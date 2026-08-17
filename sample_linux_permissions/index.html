@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permisos de Linux</title>
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  color-scheme: light;
+
+  --bg:        #eef1f4;
+  --surface:   #ffffff;
+  --surface-2: #e6eaef;
+  --line:      #ccd4dc;
+  --line-2:    #9aa6b3;
+
+  --ink:   #131920;
+  --ink-2: #3f4a57;
+  --ink-3: #6d7884;
+
+  /* Los tres actores. Este trío se usa igual en toda la página. */
+  --u: #a8481a;
+  --g: #10695a;
+  --o: #464fa2;
+
+  --warn: #8a5300;
+  --ok:   #10695a;
+
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Cantarell, sans-serif;
+
+  --fs-xs: .75rem;
+  --fs-sm: .8125rem;
+  --fs-ui: .9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.1875rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2.125rem;
+  --fs-3xl: clamp(2.6rem, 7vw, 4.5rem);
+
+  --r: 3px;
+  --maxw: 68ch;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:        #0d1218;
+    --surface:   #161d26;
+    --surface-2: #1e2733;
+    --line:      #2c3644;
+    --line-2:    #4a5768;
+
+    --ink:   #dde5ed;
+    --ink-2: #a7b3c0;
+    --ink-3: #79868f;
+
+    --u: #e18c58;
+    --g: #4cc2a8;
+    --o: #949ceb;
+
+    --warn: #dda63f;
+    --ok:   #4cc2a8;
+  }
+}
+
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #0d1218;
+  --surface:   #161d26;
+  --surface-2: #1e2733;
+  --line:      #2c3644;
+  --line-2:    #4a5768;
+
+  --ink:   #dde5ed;
+  --ink-2: #a7b3c0;
+  --ink-3: #79868f;
+
+  --u: #e18c58;
+  --g: #4cc2a8;
+  --o: #949ceb;
+
+  --warn: #dda63f;
+  --ok:   #4cc2a8;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{ box-sizing: border-box; }
+
+body{
+  margin:0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--fs-base);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection{ background: var(--ink); color: var(--bg); }
+
+a{ color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+:focus-visible{
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+code, kbd, samp{ font-family: var(--mono); font-size: .92em; }
+
+h1,h2,h3{ text-wrap: balance; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.shell{
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 3rem);
+}
+
+.body-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  padding-bottom: 5rem;
+}
+
+@media (min-width: 1000px){
+  .body-grid{
+    grid-template-columns: 13rem minmax(0,1fr);
+    gap: 4rem;
+  }
+}
+
+main{ min-width: 0; }
+
+.prose{ max-width: var(--maxw); }
+
+section{
+  padding-block: clamp(3rem, 7vw, 5rem);
+  border-top: 1px solid var(--line);
+}
+section:first-of-type{ border-top: 0; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{
+  border-bottom: 1px solid var(--line);
+  padding-block: clamp(3.5rem, 10vw, 7rem) clamp(3rem, 8vw, 5rem);
+}
+
+.eyebrow{
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.75rem;
+}
+
+h1{
+  font-family: var(--mono);
+  font-size: var(--fs-3xl);
+  font-weight: 600;
+  letter-spacing: -.045em;
+  line-height: .95;
+  margin: 0;
+}
+
+.hero-lede{
+  max-width: 46ch;
+  margin: 1.75rem 0 0;
+  font-size: var(--fs-lg);
+  color: var(--ink-2);
+}
+
+/* La cadena grande del hero */
+.hero-string{
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  font-family: var(--mono);
+  font-size: clamp(1.75rem, 8.5vw, 4.2rem);
+  letter-spacing: .04em;
+  line-height: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .12em;
+  font-weight: 600;
+}
+.hero-string span{
+  display: inline-block;
+  animation: drop .5s cubic-bezier(.2,.8,.3,1) backwards;
+}
+.hs-t{ color: var(--ink-3); }
+.hs-u{ color: var(--u); }
+.hs-g{ color: var(--g); }
+.hs-o{ color: var(--o); }
+.hs-off{ color: var(--line-2); }
+
+@keyframes drop{
+  from{ opacity:0; transform: translateY(-.28em); }
+  to{ opacity:1; transform: none; }
+}
+
+.hero-legend{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.5rem;
+  margin-top: 1.5rem;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.hero-legend b{ font-weight: 600; }
+.hero-legend .k-u{ color: var(--u); }
+.hero-legend .k-g{ color: var(--g); }
+.hero-legend .k-o{ color: var(--o); }
+
+/* ============================================================
+   ÍNDICE LATERAL
+   ============================================================ */
+.rail{ display: none; }
+
+@media (min-width: 1000px){
+  .rail{
+    display: block;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    padding-top: clamp(3rem, 7vw, 5rem);
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+.rail ol{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+}
+.rail a{
+  color: var(--ink-3);
+  text-decoration: none;
+  display: flex;
+  gap: .6rem;
+  transition: color .15s;
+}
+.rail a:hover{ color: var(--ink); }
+.rail a .glyph{
+  color: var(--line-2);
+  width: 1.1em;
+  flex: none;
+}
+.rail a.is-active{ color: var(--ink); }
+.rail a.is-active .glyph{ color: var(--u); }
+
+/* ============================================================
+   TIPOGRAFÍA DE SECCIÓN
+   ============================================================ */
+.sec-mark{
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 .9rem;
+}
+
+h2{
+  font-family: var(--mono);
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1.1;
+  margin: 0 0 1.25rem;
+}
+
+h3{
+  font-family: var(--mono);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  margin: 2.5rem 0 .75rem;
+}
+
+p{ margin: 0 0 1.1rem; }
+
+.prose ul, .prose ol{ padding-left: 1.2rem; margin: 0 0 1.2rem; }
+.prose li{ margin-bottom: .5rem; }
+
+.note{
+  font-size: var(--fs-ui);
+  font-family: var(--sans);
+  color: var(--ink-2);
+  border-left: 2px solid var(--line-2);
+  padding: .15rem 0 .15rem 1rem;
+  margin: 1.5rem 0;
+  max-width: var(--maxw);
+}
+.note b{ color: var(--ink); }
+
+/* ============================================================
+   BLOQUES ANCHOS
+   ============================================================ */
+.wide{
+  margin: 2rem 0;
+}
+
+.panel{
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.scroll-x{ overflow-x: auto; }
+
+/* ============================================================
+   ANATOMÍA DE ls -l
+   ============================================================ */
+.anatomy{
+  font-family: var(--mono);
+  min-width: 34rem;
+}
+.anatomy-line{
+  display: flex;
+  font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+  letter-spacing: .06em;
+  font-weight: 600;
+}
+.chunk{
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  padding: .25rem .35rem;
+  cursor: default;
+  transition: background .15s, border-color .15s;
+}
+.chunk:hover, .chunk.is-hot{
+  border-color: var(--line-2);
+  background: var(--surface-2);
+}
+.c-type{ color: var(--ink-3); }
+.c-u{ color: var(--u); }
+.c-g{ color: var(--g); }
+.c-o{ color: var(--o); }
+
+.anatomy-rules{
+  display: flex;
+  height: 1.6rem;
+}
+.anatomy-rules div{
+  border-left: 1px solid var(--line-2);
+  border-bottom: 1px solid var(--line-2);
+  margin-left: .35rem;
+}
+.anatomy-labels{
+  display: flex;
+  font-size: var(--fs-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.anatomy-labels div{ padding-left: .5rem; }
+.anatomy-labels b{ display:block; font-weight:600; }
+.l-u b{ color: var(--u); }
+.l-g b{ color: var(--g); }
+.l-o b{ color: var(--o); }
+
+/* ancho de cada tramo, compartido por las 3 filas */
+.w1{ width: 3.5rem; }
+.w3{ width: 7.5rem; }
+.w-rest{ width: 16rem; }
+
+/* ============================================================
+   TABLAS
+   ============================================================ */
+table{
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 34rem;
+  font-family: var(--sans);
+  font-size: var(--fs-ui);
+}
+th, td{
+  text-align: left;
+  padding: .7rem .9rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+thead th{
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2);
+  font-weight: 600;
+}
+tbody tr:last-child td{ border-bottom: 0; }
+td code{ color: var(--ink); }
+.col-bit{ width: 8rem; }
+.bit-r{ color: var(--u); font-weight: 700; font-family: var(--mono); }
+.bit-w{ color: var(--g); font-weight: 700; font-family: var(--mono); }
+.bit-x{ color: var(--o); font-weight: 700; font-family: var(--mono); }
+.tnum{ font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   CALCULADORA
+   ============================================================ */
+.calc{
+  display: grid;
+  gap: 2rem;
+}
+@media (min-width: 780px){
+  .calc{ grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: 2.5rem; }
+}
+
+.matrix{
+  display: grid;
+  grid-template-columns: 4.5rem repeat(3, 1fr) 2.5rem;
+  gap: .4rem;
+  align-items: center;
+  font-family: var(--mono);
+}
+.matrix .head{
+  font-size: var(--fs-xs);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: center;
+  padding-bottom: .3rem;
+}
+.matrix .rowlab{
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.rowlab[data-actor="u"]{ color: var(--u); }
+.rowlab[data-actor="g"]{ color: var(--g); }
+.rowlab[data-actor="o"]{ color: var(--o); }
+
+.bit{
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  width: 100%;
+  height: 2.6rem;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  font: inherit;
+  transition: background .12s, border-color .12s;
+}
+.bit::after{
+  content: attr(data-glyph);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--line-2);
+}
+.bit:hover{ border-color: var(--ink-3); }
+.bit:checked{ border-style: solid; }
+.bit[data-actor="u"]:checked{ background: color-mix(in srgb, var(--u) 15%, transparent); border-color: var(--u); }
+.bit[data-actor="g"]:checked{ background: color-mix(in srgb, var(--g) 15%, transparent); border-color: var(--g); }
+.bit[data-actor="o"]:checked{ background: color-mix(in srgb, var(--o) 15%, transparent); border-color: var(--o); }
+.bit[data-actor="u"]:checked::after{ color: var(--u); }
+.bit[data-actor="g"]:checked::after{ color: var(--g); }
+.bit[data-actor="o"]:checked::after{ color: var(--o); }
+
+.digit{
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.digit[data-actor="u"]{ color: var(--u); }
+.digit[data-actor="g"]{ color: var(--g); }
+.digit[data-actor="o"]{ color: var(--o); }
+
+.matrix-foot{
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  margin-top: .5rem;
+  padding-top: .9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.special{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.chip{
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+  padding: .35rem .7rem;
+  cursor: pointer;
+  color: var(--ink-3);
+  background: transparent;
+  transition: all .12s;
+  user-select: none;
+}
+.chip:hover{ border-color: var(--ink-3); color: var(--ink); }
+.chip input{ position: absolute; opacity: 0; pointer-events: none; }
+.chip:has(input:checked){
+  border-style: solid;
+  border-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  color: var(--warn);
+  font-weight: 600;
+}
+
+/* salida */
+.readout{ display: flex; flex-direction: column; gap: 1.25rem; }
+
+.readout-octal{
+  font-family: var(--mono);
+  font-size: clamp(3rem, 11vw, 5rem);
+  font-weight: 600;
+  letter-spacing: .02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  gap: .05em;
+}
+.readout-octal .sp{ color: var(--warn); }
+.readout-octal .du{ color: var(--u); }
+.readout-octal .dg{ color: var(--g); }
+.readout-octal .do{ color: var(--o); }
+
+.readout-sym{
+  font-family: var(--mono);
+  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  letter-spacing: .1em;
+  font-weight: 600;
+}
+.readout-sym .su{ color: var(--u); }
+.readout-sym .sg{ color: var(--g); }
+.readout-sym .so{ color: var(--o); }
+.readout-sym .off{ color: var(--line-2); }
+
+.cmd{
+  font-family: var(--mono);
+  font-size: var(--fs-ui);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: .7rem .9rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.cmd .prompt{ color: var(--ink-3); }
+
+.math{
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+.math .mu{ color: var(--u); }
+.math .mg{ color: var(--g); }
+.math .mo{ color: var(--o); }
+
+.presets{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: .5rem;
+}
+.preset{
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: var(--r);
+  padding: .4rem .7rem;
+  cursor: pointer;
+  transition: all .12s;
+}
+.preset:hover{ border-color: var(--ink); color: var(--ink); }
+
+/* ============================================================
+   VEREDICTO / QUIÉN ACCEDE
+   ============================================================ */
+.who{
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+.who label{
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: .45rem .8rem;
+  cursor: pointer;
+  color: var(--ink-2);
+  background: var(--surface);
+  transition: all .12s;
+}
+.who label input{ position: absolute; opacity: 0; pointer-events: none; }
+.who label:has(input:checked){ font-weight: 600; }
+.who label[data-actor="u"]:has(input:checked){ border-color: var(--u); color: var(--u); background: color-mix(in srgb, var(--u) 12%, transparent); }
+.who label[data-actor="g"]:has(input:checked){ border-color: var(--g); color: var(--g); background: color-mix(in srgb, var(--g) 12%, transparent); }
+.who label[data-actor="o"]:has(input:checked){ border-color: var(--o); color: var(--o); background: color-mix(in srgb, var(--o) 12%, transparent); }
+
+.verdict{
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+.verdict-row{
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+  font-family: var(--sans);
+  font-size: var(--fs-ui);
+  padding-bottom: .55rem;
+  border-bottom: 1px solid var(--line);
+}
+.verdict-row:last-child{ border-bottom: 0; }
+.verdict-state{
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-radius: var(--r);
+  padding: .15rem .5rem;
+  flex: none;
+  width: 6.5rem;
+  text-align: center;
+}
+.verdict-state.yes{ color: var(--ok); background: color-mix(in srgb, var(--ok) 15%, transparent); }
+.verdict-state.no{ color: var(--ink-3); background: var(--surface-2); }
+
+/* ============================================================
+   DIAGRAMA DE DECISIÓN
+   ============================================================ */
+.flow{
+  display: grid;
+  gap: 0;
+  font-family: var(--mono);
+  min-width: 30rem;
+}
+.flow-step{
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,14rem);
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.flow-step:last-child{ border-bottom: 0; }
+.flow-q{ font-size: var(--fs-ui); color: var(--ink); }
+.flow-q small{ display:block; font-family: var(--sans); color: var(--ink-3); font-size: var(--fs-sm); margin-top:.2rem; }
+.flow-arrow{ color: var(--line-2); }
+.flow-out{
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: .04em;
+  border-left: 3px solid;
+  padding-left: .75rem;
+}
+.flow-out[data-actor="u"]{ border-color: var(--u); color: var(--u); }
+.flow-out[data-actor="g"]{ border-color: var(--g); color: var(--g); }
+.flow-out[data-actor="o"]{ border-color: var(--o); color: var(--o); }
+
+/* ============================================================
+   CARDS DE BITS ESPECIALES
+   ============================================================ */
+.cards{
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+.card{
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--warn);
+  border-radius: var(--r);
+  padding: 1.25rem;
+}
+.card h4{
+  font-family: var(--mono);
+  font-size: var(--fs-ui);
+  margin: 0 0 .2rem;
+  letter-spacing: -.01em;
+}
+.card .oct{
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--warn);
+  margin: 0 0 .8rem;
+}
+.card p{
+  font-family: var(--sans);
+  font-size: var(--fs-ui);
+  color: var(--ink-2);
+  margin: 0 0 .9rem;
+}
+.card .cmd{ font-size: var(--fs-sm); }
+
+/* ============================================================
+   UMASK
+   ============================================================ */
+.umask-calc{
+  font-family: var(--mono);
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: .4rem 1.25rem;
+  align-items: baseline;
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+}
+.umask-calc .lab{
+  font-size: var(--fs-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.umask-calc .rule{
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line-2);
+  margin: .3rem 0;
+}
+.umask-calc .res{ color: var(--u); font-weight: 600; }
+
+/* ============================================================
+   CHULETA
+   ============================================================ */
+.cheat{
+  display: grid;
+  gap: .1rem;
+  font-family: var(--mono);
+  font-size: var(--fs-ui);
+}
+.cheat-row{
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0,1fr);
+  gap: 1rem;
+  padding: .6rem 0;
+  border-bottom: 1px solid var(--line);
+  align-items: baseline;
+}
+.cheat-row:last-child{ border-bottom: 0; }
+.cheat-row span{
+  font-family: var(--sans);
+  font-size: var(--fs-ui);
+  color: var(--ink-2);
+}
+.cheat-row b{ font-weight: 600; }
+
+footer{
+  border-top: 1px solid var(--line);
+  padding-block: 2.5rem 4rem;
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="shell">
+    <p class="eyebrow">Guía visual · sistemas de archivos Unix</p>
+    <h1>Permisos de Linux</h1>
+    <p class="hero-lede">Cada archivo guarda nueve bits y dos dueños. Con eso el kernel decide, en microsegundos, si te deja pasar o no.</p>
+
+    <div class="hero-string" aria-label="Cadena de permisos de ejemplo: guion, r w x, r, guion, x, r, dos guiones">
+      <span class="hs-t" style="animation-delay:.00s">-</span><span class="hs-u" style="animation-delay:.04s">r</span><span class="hs-u" style="animation-delay:.08s">w</span><span class="hs-u" style="animation-delay:.12s">x</span><span class="hs-g" style="animation-delay:.16s">r</span><span class="hs-off" style="animation-delay:.20s">-</span><span class="hs-g" style="animation-delay:.24s">x</span><span class="hs-o" style="animation-delay:.28s">r</span><span class="hs-off" style="animation-delay:.32s">-</span><span class="hs-off" style="animation-delay:.36s">-</span>
+    </div>
+
+    <p class="hero-legend">
+      <b class="k-u">■ usuario</b>
+      <b class="k-g">■ grupo</b>
+      <b class="k-o">■ otros</b>
+      <b>= 754</b>
+    </p>
+  </div>
+</header>
+
+<div class="shell body-grid">
+
+  <nav class="rail" aria-label="Índice">
+    <ol>
+      <li><a href="#anatomia"><span class="glyph">-</span> Anatomía</a></li>
+      <li><a href="#rwx"><span class="glyph">r</span> r, w, x</a></li>
+      <li><a href="#directorios"><span class="glyph">d</span> Directorios</a></li>
+      <li><a href="#quien"><span class="glyph">?</span> Quién eres</a></li>
+      <li><a href="#octal"><span class="glyph">4</span> Octal</a></li>
+      <li><a href="#calculadora"><span class="glyph">#</span> Calculadora</a></li>
+      <li><a href="#simbolico"><span class="glyph">+</span> Modo simbólico</a></li>
+      <li><a href="#dueno"><span class="glyph">@</span> Dueño y grupo</a></li>
+      <li><a href="#especiales"><span class="glyph">s</span> Bits especiales</a></li>
+      <li><a href="#umask"><span class="glyph">0</span> umask</a></li>
+      <li><a href="#errores"><span class="glyph">!</span> Errores típicos</a></li>
+      <li><a href="#chuleta"><span class="glyph">*</span> Chuleta</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ANATOMÍA -->
+    <section id="anatomia">
+      <p class="sec-mark">Punto de partida</p>
+      <h2>La línea de <code>ls -l</code></h2>
+      <div class="prose">
+        <p>Todo lo que necesitas saber sobre los permisos de un archivo cabe en la primera columna de <code>ls -l</code>. Son diez caracteres: uno que dice qué tipo de cosa es, y luego tres bloques de tres.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <div class="anatomy">
+          <div class="anatomy-line">
+            <div class="chunk c-type w1">-</div>
+            <div class="chunk c-u w3">rwx</div>
+            <div class="chunk c-g w3">r-x</div>
+            <div class="chunk c-o w3">r--</div>
+            <div class="chunk w-rest" style="color:var(--ink-3); font-weight:400;">1 ana devs 4096 …</div>
+          </div>
+          <div class="anatomy-rules" aria-hidden="true">
+            <div class="w1"></div>
+            <div class="w3"></div>
+            <div class="w3"></div>
+            <div class="w3"></div>
+            <div class="w-rest"></div>
+          </div>
+          <div class="anatomy-labels">
+            <div class="w1"><b>Tipo</b></div>
+            <div class="w3 l-u"><b>Usuario</b>dueño</div>
+            <div class="w3 l-g"><b>Grupo</b>del archivo</div>
+            <div class="w3 l-o"><b>Otros</b>el resto</div>
+            <div class="w-rest"><b>Dueño / grupo</b>ana pertenece a devs</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>El primer carácter no es un permiso: es el tipo de objeto. <code>-</code> archivo normal, <code>d</code> directorio, <code>l</code> enlace simbólico, <code>c</code> y <code>b</code> dispositivos, <code>s</code> socket, <code>p</code> tubería con nombre.</p>
+        <p>Los nueve restantes son los permisos reales, y siempre aparecen en el mismo orden: <b>r</b>ead, <b>w</b>rite, e<b>x</b>ecute — repetido tres veces, una por cada clase de persona. Un guion en una posición significa que ese permiso está apagado.</p>
+      </div>
+    </section>
+
+    <!-- RWX -->
+    <section id="rwx">
+      <p class="sec-mark">Los tres bits</p>
+      <h2>Qué permite cada letra</h2>
+      <div class="prose">
+        <p>En un archivo normal, las tres letras significan lo que esperarías. Ninguna implica a las otras: puedes tener permiso de escritura sin poder leer el archivo.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="col-bit">Bit</th><th>En un archivo</th><th>Ejemplo</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="bit-r">r</span> · leer · 4</td>
+              <td>Ver el contenido del archivo.</td>
+              <td><code>cat notas.txt</code></td>
+            </tr>
+            <tr>
+              <td><span class="bit-w">w</span> · escribir · 2</td>
+              <td>Modificar o vaciar el contenido. <b>No</b> permite borrar el archivo: eso depende del directorio que lo contiene.</td>
+              <td><code>echo hola &gt;&gt; notas.txt</code></td>
+            </tr>
+            <tr>
+              <td><span class="bit-x">x</span> · ejecutar · 1</td>
+              <td>Correrlo como programa o script. Sin <code>x</code> el archivo existe, se lee, pero no arranca.</td>
+              <td><code>./deploy.sh</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Trampa clásica.</b> Borrar un archivo no requiere permiso sobre el archivo, sino <code>w</code> sobre el <b>directorio</b> que lo contiene. Por eso puedes borrar un archivo de solo lectura que no es tuyo si el directorio es tuyo.
+      </div>
+    </section>
+
+    <!-- DIRECTORIOS -->
+    <section id="directorios">
+      <p class="sec-mark">El mismo bit, otro significado</p>
+      <h2>Directorios: donde todo se tuerce</h2>
+      <div class="prose">
+        <p>Un directorio es, técnicamente, una tabla de nombres apuntando a inodos. Los mismos tres bits se aplican sobre esa tabla, y ahí es donde cambian de sentido por completo.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="col-bit">Bit</th><th>En un directorio</th><th>Sin él</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="bit-r">r</span> · leer</td>
+              <td>Listar los nombres que contiene.</td>
+              <td><code>ls</code> falla, pero si adivinas un nombre aún puedes abrirlo (con <code>x</code>).</td>
+            </tr>
+            <tr>
+              <td><span class="bit-w">w</span> · escribir</td>
+              <td>Crear, renombrar y borrar entradas dentro. Requiere <code>x</code> también.</td>
+              <td>El directorio queda congelado: su contenido se lee pero no se altera.</td>
+            </tr>
+            <tr>
+              <td><span class="bit-x">x</span> · atravesar</td>
+              <td>Entrar y usarlo como parte de una ruta. Es el bit más importante de un directorio.</td>
+              <td>Nada dentro es accesible, ni aunque tengas permisos totales sobre los archivos.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <p>La combinación <code>r--</code> en un directorio es casi inútil: ves los nombres pero no puedes consultar ni el tamaño de los archivos. La combinación <code>--x</code>, en cambio, es muy útil: nadie puede fisgonear el listado, pero quien conozca la ruta exacta entra. Es el patrón habitual de <code>/home/usuario</code> compartido.</p>
+        <p>Y recuerda que <code>x</code> hace falta en <b>cada</b> directorio de la ruta. Para abrir <code>/srv/app/config/db.yml</code> necesitas <code>x</code> en <code>/</code>, en <code>/srv</code>, en <code>/srv/app</code> y en <code>/srv/app/config</code>, además de <code>r</code> en el archivo.</p>
+      </div>
+    </section>
+
+    <!-- QUIÉN -->
+    <section id="quien">
+      <p class="sec-mark">La regla que casi nadie explica</p>
+      <h2>El kernel elige un solo bloque</h2>
+      <div class="prose">
+        <p>Los permisos <b>no se suman</b>. Cuando intentas acceder a un archivo, el kernel recorre tres preguntas en orden, se queda con la primera que responde «sí» y aplica <b>solo</b> ese bloque de tres bits. Las demás no se consultan nunca.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-q">¿Tu UID es el del dueño?<small>Comparación numérica de identificadores, no de nombres.</small></div>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <div class="flow-out" data-actor="u">se aplica <b>usuario</b> · fin</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-q">Si no, ¿alguno de tus grupos es el grupo del archivo?<small>Grupo principal o cualquiera de los secundarios.</small></div>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <div class="flow-out" data-actor="g">se aplica <b>grupo</b> · fin</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-q">Si tampoco…<small>No hay más preguntas.</small></div>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <div class="flow-out" data-actor="o">se aplica <b>otros</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>Consecuencia contraintuitiva.</b> Con <code>----rwxrwx</code>, la dueña del archivo <b>no puede leerlo</b> aunque todo el mundo sí pueda. Es dueña, así que el kernel para en la primera pregunta y aplica <code>---</code>. Eso sí: como dueña puede ejecutar <code>chmod</code> y devolverse el permiso en cualquier momento.
+      </div>
+
+      <div class="prose">
+        <p>Y por encima de todo esto está <b>root</b> (UID 0), que se salta las comprobaciones de lectura y escritura por completo. La única que respeta parcialmente es <code>x</code>: root solo puede ejecutar un archivo si al menos alguien tiene el bit <code>x</code> encendido.</p>
+      </div>
+    </section>
+
+    <!-- OCTAL -->
+    <section id="octal">
+      <p class="sec-mark">De letras a números</p>
+      <h2>Por qué 755 y no otra cosa</h2>
+      <div class="prose">
+        <p>Cada bloque de tres bits es un número binario de tres dígitos, y por eso se escribe en octal: un dígito por bloque, de 0 a 7. Los valores son fijos.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th>Bits</th><th class="tnum">Valor</th><th>Suma</th><th>Significado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>---</code></td><td class="tnum">0</td><td>—</td><td>Nada</td></tr>
+            <tr><td><code>--x</code></td><td class="tnum">1</td><td>1</td><td>Solo ejecutar / atravesar</td></tr>
+            <tr><td><code>-w-</code></td><td class="tnum">2</td><td>2</td><td>Solo escribir</td></tr>
+            <tr><td><code>-wx</code></td><td class="tnum">3</td><td>2+1</td><td>Escribir y ejecutar</td></tr>
+            <tr><td><code>r--</code></td><td class="tnum">4</td><td>4</td><td>Solo leer</td></tr>
+            <tr><td><code>r-x</code></td><td class="tnum">5</td><td>4+1</td><td>Leer y ejecutar</td></tr>
+            <tr><td><code>rw-</code></td><td class="tnum">6</td><td>4+2</td><td>Leer y escribir</td></tr>
+            <tr><td><code>rwx</code></td><td class="tnum">7</td><td>4+2+1</td><td>Todo</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <p>Con eso, <code>755</code> se lee de un vistazo: el dueño tiene <code>rwx</code>, el grupo <code>r-x</code>, y el resto <code>r-x</code>. Es el permiso normal de un programa o un directorio público. <code>644</code> es el de un archivo de datos: el dueño lee y escribe, los demás solo leen.</p>
+      </div>
+    </section>
+
+    <!-- CALCULADORA -->
+    <section id="calculadora">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Calculadora de permisos</h2>
+      <div class="prose">
+        <p>Enciende y apaga bits. El número octal, la cadena de <code>ls</code> y el comando se actualizan a la vez — y abajo puedes elegir quién intenta entrar para ver qué bloque se le aplica.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="calc">
+
+          <div>
+            <div class="matrix">
+              <div></div>
+              <div class="head">r · 4</div>
+              <div class="head">w · 2</div>
+              <div class="head">x · 1</div>
+              <div class="head">oct</div>
+
+              <div class="rowlab" data-actor="u">usuario</div>
+              <input class="bit" type="checkbox" data-actor="u" data-val="4" data-glyph="r" checked aria-label="usuario puede leer">
+              <input class="bit" type="checkbox" data-actor="u" data-val="2" data-glyph="w" checked aria-label="usuario puede escribir">
+              <input class="bit" type="checkbox" data-actor="u" data-val="1" data-glyph="x" checked aria-label="usuario puede ejecutar">
+              <div class="digit" data-actor="u" id="dig-u">7</div>
+
+              <div class="rowlab" data-actor="g">grupo</div>
+              <input class="bit" type="checkbox" data-actor="g" data-val="4" data-glyph="r" checked aria-label="grupo puede leer">
+              <input class="bit" type="checkbox" data-actor="g" data-val="2" data-glyph="w" aria-label="grupo puede escribir">
+              <input class="bit" type="checkbox" data-actor="g" data-val="1" data-glyph="x" checked aria-label="grupo puede ejecutar">
+              <div class="digit" data-actor="g" id="dig-g">5</div>
+
+              <div class="rowlab" data-actor="o">otros</div>
+              <input class="bit" type="checkbox" data-actor="o" data-val="4" data-glyph="r" checked aria-label="otros pueden leer">
+              <input class="bit" type="checkbox" data-actor="o" data-val="2" data-glyph="w" aria-label="otros pueden escribir">
+              <input class="bit" type="checkbox" data-actor="o" data-val="1" data-glyph="x" checked aria-label="otros pueden ejecutar">
+              <div class="digit" data-actor="o" id="dig-o">5</div>
+
+              <div class="matrix-foot">
+                <div class="special">
+                  <label class="chip"><input type="checkbox" id="sp-suid"> setuid</label>
+                  <label class="chip"><input type="checkbox" id="sp-sgid"> setgid</label>
+                  <label class="chip"><input type="checkbox" id="sp-sticky"> sticky</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="presets">
+              <button class="preset" type="button" data-preset="644">644</button>
+              <button class="preset" type="button" data-preset="755">755</button>
+              <button class="preset" type="button" data-preset="600">600</button>
+              <button class="preset" type="button" data-preset="700">700</button>
+              <button class="preset" type="button" data-preset="775">775</button>
+              <button class="preset" type="button" data-preset="1777">1777</button>
+              <button class="preset" type="button" data-preset="777">777</button>
+            </div>
+          </div>
+
+          <div class="readout">
+            <div class="readout-octal" id="out-octal" aria-live="polite"></div>
+            <div class="readout-sym" id="out-sym"></div>
+
+            <div class="math" id="out-math"></div>
+
+            <div class="cmd"><span class="prompt">$</span> <span id="out-cmd"></span></div>
+
+            <div>
+              <p class="sec-mark" style="margin-bottom:.6rem">¿Quién intenta acceder a <code>informe.txt</code>?</p>
+              <div class="who">
+                <label data-actor="u"><input type="radio" name="who" value="u" checked> ana · la dueña</label>
+                <label data-actor="g"><input type="radio" name="who" value="g"> luis · del grupo devs</label>
+                <label data-actor="o"><input type="radio" name="who" value="o"> invitado</label>
+              </div>
+              <div class="verdict" id="out-verdict"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMBÓLICO -->
+    <section id="simbolico">
+      <p class="sec-mark">La otra sintaxis</p>
+      <h2>Modo simbólico: cambios quirúrgicos</h2>
+      <div class="prose">
+        <p>El número octal reescribe los nueve bits de golpe. Si solo quieres tocar uno y dejar el resto como está, usa la forma simbólica: <b>quién</b> + <b>operador</b> + <b>qué</b>.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th>Comando</th><th>Qué hace</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>chmod u+x script.sh</code></td><td>Añade ejecución solo para el dueño. Lo demás intacto.</td></tr>
+            <tr><td><code>chmod g-w informe.txt</code></td><td>Quita escritura al grupo.</td></tr>
+            <tr><td><code>chmod o=r datos.csv</code></td><td>Fija los permisos de «otros» exactamente a <code>r--</code>, borrando lo que hubiera.</td></tr>
+            <tr><td><code>chmod a+r public/</code></td><td><code>a</code> = todos (u, g y o a la vez).</td></tr>
+            <tr><td><code>chmod ug+rw,o-rwx notas</code></td><td>Varias reglas separadas por comas, sin espacios.</td></tr>
+            <tr><td><code>chmod -R u+rwX proyecto/</code></td><td>Recursivo. La <code>X</code> mayúscula añade <code>x</code> <b>solo</b> a directorios y a lo que ya era ejecutable — evita volver ejecutables todos tus <code>.txt</code>.</td></tr>
+            <tr><td><code>chmod --reference=a.txt b.txt</code></td><td>Copia los permisos de otro archivo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Usa <code>X</code> mayúscula al ir en recursivo.</b> <code>chmod -R 755</code> sobre un árbol de documentos marca como ejecutable cada archivo de texto. <code>chmod -R u=rwX,go=rX</code> hace lo que en realidad querías.
+      </div>
+    </section>
+
+    <!-- DUEÑO -->
+    <section id="dueno">
+      <p class="sec-mark">Antes de los bits</p>
+      <h2>Dueño y grupo</h2>
+      <div class="prose">
+        <p>Los nueve bits no significan nada sin saber a quién se refieren. Cada archivo guarda dos identificadores numéricos: el UID de su dueño y el GID de su grupo. Los nombres que ves en <code>ls -l</code> son una traducción de <code>/etc/passwd</code> y <code>/etc/group</code>.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th>Comando</th><th>Qué hace</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>chown ana informe.txt</code></td><td>Cambia el dueño. Solo root puede regalar archivos a otro usuario.</td></tr>
+            <tr><td><code>chown ana:devs informe.txt</code></td><td>Cambia dueño y grupo en una sola orden.</td></tr>
+            <tr><td><code>chgrp devs informe.txt</code></td><td>Cambia solo el grupo. Puedes hacerlo sin root si eres el dueño <b>y</b> perteneces al grupo destino.</td></tr>
+            <tr><td><code>id</code> · <code>groups</code></td><td>Muestra tu UID, tu GID principal y todos tus grupos secundarios.</td></tr>
+            <tr><td><code>stat -c '%A %a %U:%G' f</code></td><td>Permisos en simbólico, en octal, y dueño:grupo — todo en una línea.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Cambiar de grupo no es inmediato.</b> Tras un <code>usermod -aG docker ana</code>, la sesión abierta sigue con la lista de grupos vieja. Hay que cerrar sesión y volver a entrar (o usar <code>newgrp</code>) para que el kernel te reconozca en el grupo nuevo.
+      </div>
+    </section>
+
+    <!-- ESPECIALES -->
+    <section id="especiales">
+      <p class="sec-mark">El cuarto dígito</p>
+      <h2>setuid, setgid y sticky</h2>
+      <div class="prose">
+        <p>Delante de los tres dígitos hay un cuarto, casi siempre cero, con tres bits más. No dan permisos: cambian las reglas del juego. Aparecen en <code>ls -l</code> sustituyendo la <code>x</code> del bloque correspondiente — en minúscula si había <code>x</code>, en <b>mayúscula</b> si no la había (señal habitual de que algo está mal configurado).</p>
+      </div>
+
+      <div class="wide cards">
+        <div class="card">
+          <h4>setuid</h4>
+          <p class="oct">4000 · aparece como <code>s</code> en usuario</p>
+          <p>El programa se ejecuta con el UID de su dueño, no con el de quien lo lanza. Así <code>passwd</code>, propiedad de root, puede escribir en <code>/etc/shadow</code> aunque lo ejecutes tú.</p>
+          <div class="cmd">-rw<b style="color:var(--warn)">s</b>r-xr-x root /usr/bin/passwd</div>
+        </div>
+        <div class="card">
+          <h4>setgid</h4>
+          <p class="oct">2000 · aparece como <code>s</code> en grupo</p>
+          <p>En un archivo, se ejecuta con el grupo del archivo. En un <b>directorio</b> es lo realmente útil: todo lo que se cree dentro hereda el grupo del directorio. Es la base de las carpetas compartidas de equipo.</p>
+          <div class="cmd">$ chmod 2775 /srv/compartido</div>
+        </div>
+        <div class="card">
+          <h4>sticky</h4>
+          <p class="oct">1000 · aparece como <code>t</code> en otros</p>
+          <p>En un directorio con <code>w</code> para todos, restringe el borrado: cada quien solo puede borrar o renombrar sus propios archivos. Es exactamente lo que protege <code>/tmp</code>.</p>
+          <div class="cmd">drwxrwxrw<b style="color:var(--warn)">t</b> root /tmp</div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>setuid es la superficie de ataque favorita.</b> Un binario setuid root con un fallo de validación entrega la máquina entera. Nunca lo pongas en scripts (Linux lo ignora en scripts, precisamente por eso) y audita los tuyos con <code>find / -perm -4000 -type f 2&gt;/dev/null</code>.
+      </div>
+    </section>
+
+    <!-- UMASK -->
+    <section id="umask">
+      <p class="sec-mark">Por qué tus archivos nacen en 644</p>
+      <h2>umask: la máscara de creación</h2>
+      <div class="prose">
+        <p>Cuando creas un archivo no eliges sus permisos: el sistema parte de un valor base y le <b>resta</b> los bits de tu <code>umask</code>. La base es <code>666</code> para archivos (nunca ejecutables por defecto) y <code>777</code> para directorios.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="umask-calc">
+          <div class="lab">Base archivo</div><div>666</div>
+          <div class="lab">umask típica</div><div>022</div>
+          <div class="rule"></div>
+          <div class="lab">Resultado</div><div class="res">644 &nbsp;<span style="font-size:var(--fs-ui)">rw-r--r--</span></div>
+
+          <div style="grid-column:1/-1;height:1.5rem"></div>
+
+          <div class="lab">Base directorio</div><div>777</div>
+          <div class="lab">umask típica</div><div>022</div>
+          <div class="rule"></div>
+          <div class="lab">Resultado</div><div class="res">755 &nbsp;<span style="font-size:var(--fs-ui)">rwxr-xr-x</span></div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>Una <code>umask 077</code> hace que todo lo que crees sea privado (<code>600</code> y <code>700</code>): es lo razonable en un servidor multiusuario. Consulta la tuya con <code>umask</code> y hazla permanente en <code>~/.bashrc</code> o <code>~/.profile</code>.</p>
+        <p>Técnicamente no es una resta sino un AND con el complemento, así que los bits que la máscara no cubre nunca se añaden — la umask solo puede quitar permisos, jamás darlos.</p>
+      </div>
+    </section>
+
+    <!-- ERRORES -->
+    <section id="errores">
+      <p class="sec-mark">Diagnóstico</p>
+      <h2>Errores típicos y qué los causa</h2>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th style="width:14rem">Síntoma</th><th>Causa habitual</th><th>Arreglo</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>Permission denied</code> al ejecutar un script</td>
+              <td>Falta el bit <code>x</code>. El archivo se lee bien, pero no arranca.</td>
+              <td><code>chmod +x script.sh</code></td>
+            </tr>
+            <tr>
+              <td><code>Permission denied</code> pero <code>ls -l</code> se ve correcto</td>
+              <td>Falta <code>x</code> en algún directorio superior de la ruta.</td>
+              <td><code>namei -l /ruta/al/archivo</code></td>
+            </tr>
+            <tr>
+              <td>SSH ignora tu clave</td>
+              <td>La clave privada es legible por otros. <code>ssh</code> se niega a usarla.</td>
+              <td><code>chmod 600 ~/.ssh/id_ed25519</code> y <code>700 ~/.ssh</code></td>
+            </tr>
+            <tr>
+              <td>El servidor web devuelve 403</td>
+              <td>Al usuario del servicio le falta <code>x</code> en la cadena de directorios, o <code>r</code> en el archivo.</td>
+              <td><code>chmod -R u=rwX,go=rX /var/www</code></td>
+            </tr>
+            <tr>
+              <td>Un compañero no puede editar en la carpeta compartida</td>
+              <td>Los archivos nuevos nacen con el grupo personal de quien los crea.</td>
+              <td>setgid en el directorio: <code>chmod 2775</code></td>
+            </tr>
+            <tr>
+              <td>Todo el sistema se rompe tras un <code>chmod -R</code></td>
+              <td><code>chmod -R 777 /</code> o similar. Se pierden setuid y la coherencia entera.</td>
+              <td>No tiene arreglo limpio. Restaurar desde copia o reinstalar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b><code>777</code> no es «arreglarlo», es rendirse.</b> Si algo solo funciona con 777, el problema real casi siempre es un dueño equivocado o un <code>x</code> que falta en un directorio padre. <code>chmod 777</code> lo tapa y deja el archivo escribible por cualquier proceso de la máquina.
+      </div>
+    </section>
+
+    <!-- CHULETA -->
+    <section id="chuleta">
+      <p class="sec-mark">Para tener a mano</p>
+      <h2>Chuleta</h2>
+
+      <div class="wide panel">
+        <div class="cheat">
+          <div class="cheat-row"><b>644</b><span>Archivos de datos, configuración, HTML.</span></div>
+          <div class="cheat-row"><b>755</b><span>Programas, scripts y directorios públicos.</span></div>
+          <div class="cheat-row"><b>600</b><span>Secretos: claves privadas, <code>.env</code>, tokens.</span></div>
+          <div class="cheat-row"><b>700</b><span>Directorios privados: <code>~/.ssh</code>, <code>~/.gnupg</code>.</span></div>
+          <div class="cheat-row"><b>2775</b><span>Carpeta compartida de equipo, con herencia de grupo.</span></div>
+          <div class="cheat-row"><b>1777</b><span>Buzón público tipo <code>/tmp</code>: todos escriben, cada uno borra lo suyo.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>ls -l</b><span>Ver permisos, dueño y grupo.</span></div>
+          <div class="cheat-row"><b>stat archivo</b><span>Verlo todo, incluido el octal exacto.</span></div>
+          <div class="cheat-row"><b>namei -l ruta</b><span>Auditar los permisos de cada tramo de una ruta.</span></div>
+          <div class="cheat-row"><b>id / groups</b><span>Saber quién eres para el kernel.</span></div>
+          <div class="cheat-row"><b>umask</b><span>Ver o fijar la máscara de creación.</span></div>
+          <div class="cheat-row"><b>getfacl / setfacl</b><span>Cuando tres clases no bastan: listas de control de acceso por usuario. El <code>+</code> al final de <code>ls -l</code> indica que un archivo tiene ACL.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="shell">Guía visual de permisos POSIX · chmod · chown · umask</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var bits     = Array.prototype.slice.call(document.querySelectorAll(".bit"));
+  var spSuid   = document.getElementById("sp-suid");
+  var spSgid   = document.getElementById("sp-sgid");
+  var spSticky = document.getElementById("sp-sticky");
+  var outOctal = document.getElementById("out-octal");
+  var outSym   = document.getElementById("out-sym");
+  var outMath  = document.getElementById("out-math");
+  var outCmd   = document.getElementById("out-cmd");
+  var outVerd  = document.getElementById("out-verdict");
+  var digits   = { u: document.getElementById("dig-u"),
+                   g: document.getElementById("dig-g"),
+                   o: document.getElementById("dig-o") };
+
+  var ACTORS = ["u", "g", "o"];
+  var NAMES  = { u: "ana (dueña)", g: "luis (grupo devs)", o: "invitado" };
+
+  function bitsOf(actor){
+    var on = { r:false, w:false, x:false };
+    bits.forEach(function(b){
+      if (b.dataset.actor !== actor) return;
+      if (b.dataset.val === "4") on.r = b.checked;
+      if (b.dataset.val === "2") on.w = b.checked;
+      if (b.dataset.val === "1") on.x = b.checked;
+    });
+    return on;
+  }
+
+  function digitOf(on){ return (on.r?4:0) + (on.w?2:0) + (on.x?1:0); }
+
+  /* La x del trío se convierte en s/t cuando hay bit especial.
+     Mayúscula = bit especial activo pero sin x, situación anómala. */
+  function triad(on, special, letter){
+    var s = (on.r ? "r" : "-") + (on.w ? "w" : "-");
+    if (special) s += on.x ? letter : letter.toUpperCase();
+    else         s += on.x ? "x" : "-";
+    return s;
+  }
+
+  function render(){
+    var state = {}, oct = {};
+    ACTORS.forEach(function(a){
+      state[a] = bitsOf(a);
+      oct[a]   = digitOf(state[a]);
+      digits[a].textContent = oct[a];
+    });
+
+    var sp = (spSuid.checked ? 4 : 0) + (spSgid.checked ? 2 : 0) + (spSticky.checked ? 1 : 0);
+
+    /* --- número octal --- */
+    var octHtml = "";
+    if (sp) octHtml += '<span class="sp">' + sp + "</span>";
+    octHtml += '<span class="du">' + oct.u + '</span><span class="dg">' + oct.g + '</span><span class="do">' + oct.o + "</span>";
+    outOctal.innerHTML = octHtml;
+
+    /* --- cadena simbólica --- */
+    var tu = triad(state.u, spSuid.checked,   "s");
+    var tg = triad(state.g, spSgid.checked,   "s");
+    var to = triad(state.o, spSticky.checked, "t");
+    function paint(t, cls){
+      return t.split("").map(function(ch){
+        return ch === "-" ? '<span class="off">-</span>' : '<span class="' + cls + '">' + ch + "</span>";
+      }).join("");
+    }
+    outSym.innerHTML = '<span class="off">-</span>' + paint(tu, "su") + paint(tg, "sg") + paint(to, "so");
+
+    /* --- la suma, dígito a dígito --- */
+    function sum(on, d){
+      var parts = [];
+      if (on.r) parts.push("4");
+      if (on.w) parts.push("2");
+      if (on.x) parts.push("1");
+      return (parts.length ? parts.join(" + ") : "0") + " = " + d;
+    }
+    outMath.innerHTML =
+      '<div><span class="mu">usuario</span>&nbsp; ' + sum(state.u, oct.u) + "</div>" +
+      '<div><span class="mg">grupo</span>&nbsp;&nbsp;&nbsp; ' + sum(state.g, oct.g) + "</div>" +
+      '<div><span class="mo">otros</span>&nbsp;&nbsp;&nbsp; ' + sum(state.o, oct.o) + "</div>";
+
+    /* --- comando --- */
+    outCmd.textContent = "chmod " + (sp ? sp : "") + oct.u + oct.g + oct.o + " informe.txt";
+
+    /* --- veredicto para el actor elegido --- */
+    var whoEl = document.querySelector('input[name="who"]:checked');
+    var who   = whoEl ? whoEl.value : "u";
+    var on    = state[who];
+    var rows  = [
+      ["Leer el contenido",       on.r],
+      ["Modificar el contenido",  on.w],
+      ["Ejecutarlo como programa", on.x]
+    ];
+    outVerd.innerHTML = rows.map(function(row){
+      return '<div class="verdict-row"><span class="verdict-state ' + (row[1] ? "yes" : "no") + '">' +
+             (row[1] ? "sí" : "no") + "</span><span>" + row[0] + " · " + NAMES[who] + "</span></div>";
+    }).join("");
+  }
+
+  bits.forEach(function(b){ b.addEventListener("change", render); });
+  [spSuid, spSgid, spSticky].forEach(function(b){ b.addEventListener("change", render); });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="who"]'), function(r){
+    r.addEventListener("change", render);
+  });
+
+  /* Presets: 3 o 4 dígitos octales. */
+  Array.prototype.forEach.call(document.querySelectorAll(".preset"), function(btn){
+    btn.addEventListener("click", function(){
+      var v = btn.dataset.preset;
+      var sp = v.length === 4 ? parseInt(v[0], 10) : 0;
+      var d  = v.length === 4 ? v.slice(1) : v;
+      spSuid.checked   = !!(sp & 4);
+      spSgid.checked   = !!(sp & 2);
+      spSticky.checked = !!(sp & 1);
+      ACTORS.forEach(function(a, i){
+        var n = parseInt(d[i], 10);
+        bits.forEach(function(b){
+          if (b.dataset.actor !== a) return;
+          b.checked = (n & parseInt(b.dataset.val, 10)) !== 0;
+        });
+      });
+      render();
+    });
+  });
+
+  /* Anatomía: resaltar el tramo y su etiqueta a la vez. */
+  var chunks = Array.prototype.slice.call(document.querySelectorAll(".anatomy .chunk"));
+  var labels = Array.prototype.slice.call(document.querySelectorAll(".anatomy-labels > div"));
+  chunks.forEach(function(c, i){
+    function set(state){
+      c.classList.toggle("is-hot", state);
+      if (labels[i]) labels[i].style.color = state ? "var(--ink)" : "";
+    }
+    c.addEventListener("mouseenter", function(){ set(true); });
+    c.addEventListener("mouseleave", function(){ set(false); });
+  });
+
+  /* Índice lateral: marca la sección visible. */
+  var links = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".rail a"), function(a){
+    links[a.getAttribute("href").slice(1)] = a;
+  });
+  if ("IntersectionObserver" in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var a = links[e.target.id];
+        if (a) a.classList.toggle("is-active", e.isIntersecting);
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("main section"), function(s){ obs.observe(s); });
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>
