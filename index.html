@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LPI 010-160 Linux Essentials — Examen de práctica</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --border:#d7dbe0;
+  --text:#1b1f24; --muted:#5c6773; --accent:#1f6feb; --accent-ink:#ffffff;
+  --ok:#1a7f4b; --ok-bg:#e6f4ec; --bad:#b42318; --bad-bg:#fdeceb;
+  --warn:#8a5a00; --warn-bg:#fdf3e0; --mark:#7a3ea1; --mark-bg:#f3ebfa;
+  --radius:10px; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c222b; --border:#2b323c;
+    --text:#e6edf3; --muted:#9aa7b4; --accent:#4c8dff; --accent-ink:#0b0f14;
+    --ok:#5ddc9a; --ok-bg:#12291f; --bad:#ff8a80; --bad-bg:#2c1616;
+    --warn:#ffcf70; --warn-bg:#2c2312; --mark:#d0a6f5; --mark-bg:#241a2e;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+code{font-family:var(--mono); font-size:.92em; background:var(--panel2); border:1px solid var(--border);
+  border-radius:5px; padding:.05em .35em; white-space:nowrap}
+.wrap{max-width:900px; margin:0 auto; padding:0 16px 64px}
+.topbar{position:sticky; top:0; z-index:20; background:var(--panel); border-bottom:1px solid var(--border)}
+.topbar .inner{max-width:900px; margin:0 auto; padding:10px 16px; display:flex; gap:12px;
+  align-items:center; justify-content:space-between; flex-wrap:wrap}
+.brand{font-weight:700; letter-spacing:.2px}
+.brand small{display:block; font-weight:400; color:var(--muted); font-size:.78rem}
+.seg{display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden}
+.seg button{background:var(--panel); color:var(--muted); border:0; padding:6px 10px; font:inherit;
+  font-size:.82rem; cursor:pointer}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); font-weight:600}
+.hidden{display:none !important}
+h1{font-size:1.6rem; margin:28px 0 6px}
+h2{font-size:1.18rem; margin:26px 0 10px}
+h3{font-size:1rem; margin:18px 0 8px}
+p.lead{color:var(--muted); margin:0 0 18px}
+.card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px}
+.modes{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.mode{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px;
+  display:flex; flex-direction:column; gap:10px}
+.mode h3{margin:0}
+.mode ul{margin:0; padding-left:18px; color:var(--muted); font-size:.9rem}
+.mode .spacer{flex:1}
+button.btn{font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--border);
+  background:var(--panel2); color:var(--text); padding:9px 14px}
+button.btn:hover{border-color:var(--accent)}
+button.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:transparent; font-weight:600}
+button.btn:disabled{opacity:.45; cursor:not-allowed}
+.facts{display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin:18px 0}
+.fact{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:12px}
+.fact b{display:block; font-size:1.25rem}
+.fact span{color:var(--muted); font-size:.8rem}
+table.topics{width:100%; border-collapse:collapse; font-size:.9rem}
+table.topics th,table.topics td{text-align:left; padding:7px 8px; border-bottom:1px solid var(--border)}
+table.topics td.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+.note{font-size:.85rem; color:var(--muted); border-left:3px solid var(--border); padding:6px 0 6px 12px; margin:16px 0}
+
+/* ---- examen ---- */
+.examhead{position:sticky; top:57px; z-index:15; background:var(--bg); padding:12px 0 8px}
+.metaline{display:flex; gap:14px; align-items:center; flex-wrap:wrap; font-size:.85rem; color:var(--muted)}
+.metaline .grow{flex:1}
+#timer{font-variant-numeric:tabular-nums; font-weight:700; color:var(--text)}
+#timer.warn{color:var(--bad)}
+.bar{height:7px; background:var(--panel2); border:1px solid var(--border); border-radius:99px; overflow:hidden; margin-top:8px}
+.bar i{display:block; height:100%; background:var(--accent); width:0; transition:width .2s}
+.badges{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+.badge{font-size:.72rem; letter-spacing:.3px; text-transform:uppercase; font-weight:700;
+  border-radius:99px; padding:3px 9px; background:var(--panel2); border:1px solid var(--border); color:var(--muted)}
+.badge.t{color:var(--accent)}
+.badge.multi{color:var(--mark); background:var(--mark-bg)}
+.badge.fill{color:var(--warn); background:var(--warn-bg)}
+.qtext{font-size:1.08rem; font-weight:600; margin:0 0 4px}
+.qtext .en, .opt .en, .exp .en{color:var(--muted); font-weight:400; font-size:.94em}
+.es,.en,.both{display:block}
+body.lang-es .en{display:none}
+body.lang-en .es{display:none}
+.opts{display:flex; flex-direction:column; gap:9px; margin-top:16px}
+.opt{display:flex; gap:11px; align-items:flex-start; border:1px solid var(--border); background:var(--panel);
+  border-radius:9px; padding:11px 13px; cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt input{margin:3px 0 0}
+.opt .key{font-family:var(--mono); font-weight:700; color:var(--muted); min-width:1.1em}
+.opt.sel{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.fillbox{margin-top:16px}
+.fillbox input{width:100%; font-family:var(--mono); font-size:1rem; padding:11px 12px;
+  border:1px solid var(--border); border-radius:9px; background:var(--panel); color:var(--text)}
+.fillbox input:focus{outline:2px solid var(--accent); outline-offset:1px}
+.hint{font-size:.8rem; color:var(--muted); margin-top:6px}
+.controls{display:flex; gap:8px; flex-wrap:wrap; margin-top:20px}
+.controls .grow{flex:1}
+.palette{margin-top:22px}
+.palette summary{cursor:pointer; color:var(--muted); font-size:.9rem}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(42px,1fr)); gap:6px; margin-top:12px}
+.grid button{font:inherit; font-size:.8rem; padding:7px 0; border-radius:7px; cursor:pointer;
+  border:1px solid var(--border); background:var(--panel); color:var(--muted)}
+.grid button.done{background:var(--panel2); color:var(--text); font-weight:600; border-color:var(--muted)}
+.grid button.marked{border-color:var(--mark); color:var(--mark)}
+.grid button.cur{outline:2px solid var(--accent); outline-offset:1px; color:var(--text)}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:.78rem; color:var(--muted); margin-top:10px}
+
+/* ---- resultado ---- */
+.verdict{border-radius:var(--radius); padding:20px; border:1px solid var(--border); margin:22px 0}
+.verdict.pass{background:var(--ok-bg); border-color:var(--ok)}
+.verdict.fail{background:var(--bad-bg); border-color:var(--bad)}
+.verdict .big{font-size:2.4rem; font-weight:800; line-height:1.1}
+.verdict.pass .big{color:var(--ok)} .verdict.fail .big{color:var(--bad)}
+.verdict .sub{color:var(--muted); font-size:.9rem}
+.tbar{height:6px; background:var(--panel2); border-radius:99px; overflow:hidden; min-width:90px}
+.tbar i{display:block; height:100%; background:var(--accent)}
+.filters{display:flex; gap:8px; flex-wrap:wrap; margin:18px 0 8px}
+.rev{border:1px solid var(--border); border-radius:var(--radius); background:var(--panel); padding:14px; margin-bottom:12px}
+.rev.ko{border-left:4px solid var(--bad)}
+.rev.ok{border-left:4px solid var(--ok)}
+.rev.na{border-left:4px solid var(--warn)}
+.rev .ro{border:1px solid var(--border); border-radius:8px; padding:8px 11px; margin-top:7px; font-size:.94rem}
+.rev .ro.good{border-color:var(--ok); background:var(--ok-bg)}
+.rev .ro.pick{border-color:var(--bad); background:var(--bad-bg)}
+.rev .tag{font-size:.72rem; text-transform:uppercase; letter-spacing:.3px; font-weight:700; color:var(--muted)}
+.exp{margin-top:11px; padding-top:11px; border-top:1px dashed var(--border); font-size:.94rem}
+.exp b{display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.3px; color:var(--muted)}
+footer.foot{max-width:900px; margin:0 auto; padding:24px 16px 40px; color:var(--muted); font-size:.8rem}
+@media print{
+  .topbar,.controls,.palette,.filters,.examhead,button{display:none !important}
+  body{background:#fff; color:#000}
+  .rev,.card,.verdict{break-inside:avoid}
+}
+</style>
+</head>
+<body class="lang-both">
+
+<div class="topbar">
+  <div class="inner">
+    <div class="brand">LPI 010-160 · Linux Essentials
+      <small>Examen de práctica / Practice exam</small></div>
+    <div class="seg" role="group" aria-label="Idioma de visualización">
+      <button data-lang="both" aria-pressed="true">ES + EN</button>
+      <button data-lang="es" aria-pressed="false">ES</button>
+      <button data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= INICIO ================= -->
+<section id="screen-start" class="wrap">
+  <h1>Examen de práctica LPI Linux Essentials (010-160)</h1>
+  <p class="lead">
+    Banco de preguntas bilingüe basado en los objetivos oficiales v1.6.
+    Elige un modo para comenzar.
+  </p>
+
+  <div id="resume" class="card hidden" style="margin-bottom:18px">
+    <h3 style="margin-top:0">Intento sin terminar</h3>
+    <p id="resumeInfo" style="margin:6px 0 12px; color:var(--muted); font-size:.9rem"></p>
+    <div class="controls" style="margin:0">
+      <button class="btn primary" id="btnResume">Reanudar intento</button>
+      <button class="btn" id="btnDiscard">Descartar</button>
+    </div>
+  </div>
+
+  <div class="modes">
+    <div class="mode">
+      <h3>Simulacro de examen</h3>
+      <ul>
+        <li><b id="simCount">40</b> preguntas aleatorias del banco</li>
+        <li>60 minutos con envío automático al agotarse</li>
+        <li>Reparto por tema igual al examen oficial</li>
+        <li>Orden de preguntas aleatorio</li>
+      </ul>
+      <div class="spacer"></div>
+      <button class="btn primary" data-mode="sim">Comenzar simulacro</button>
+    </div>
+    <div class="mode">
+      <h3>Banco completo (estudio)</h3>
+      <ul>
+        <li><b id="fullCount">100</b> preguntas, todas las del banco</li>
+        <li>Sin límite de tiempo</li>
+        <li>Ordenadas por tema (101 → 105)</li>
+        <li>Puedes reanudar más tarde</li>
+      </ul>
+      <div class="spacer"></div>
+      <button class="btn" data-mode="full">Comenzar banco completo</button>
+    </div>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><b id="fTotal">–</b><span>preguntas en el banco</span></div>
+    <div class="fact"><b id="fSingle">–</b><span>respuesta única</span></div>
+    <div class="fact"><b id="fMulti">–</b><span>selección múltiple</span></div>
+    <div class="fact"><b id="fFill">–</b><span>escribir el comando</span></div>
+  </div>
+
+  <h2>Distribución por tema</h2>
+  <div class="card">
+    <table class="topics">
+      <thead><tr><th>Tema</th><th class="num">Banco</th><th class="num">Simulacro</th></tr></thead>
+      <tbody id="topicRows"></tbody>
+    </table>
+  </div>
+
+  <h2>Cómo se califica</h2>
+  <div class="card">
+    <ul style="margin:0; padding-left:20px">
+      <li><b>Respuesta única:</b> una sola opción correcta.</li>
+      <li><b>Selección múltiple:</b> se exige el conjunto exacto de opciones correctas (todo o nada); no hay puntos parciales.</li>
+      <li><b>Escribir el comando:</b> se ignoran mayúsculas/minúsculas y los espacios extra; se aceptan las variantes equivalentes habituales.</li>
+      <li><b>Umbral de aprobación:</b> 65 % de respuestas correctas.</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    Datos del examen oficial: 40 preguntas, 60 minutos, puntuación de 200 a 800 con
+    500 para aprobar. Este simulador informa el porcentaje real obtenido y, junto a él,
+    una equivalencia aproximada en la escala 200-800 (LPI no publica su fórmula de conversión).
+    Las preguntas de este banco no son oficiales: están redactadas a partir de los
+    objetivos públicos de la versión 1.6.
+  </div>
+</section>
+
+<!-- ================= EXAMEN ================= -->
+<section id="screen-exam" class="wrap hidden">
+  <div class="examhead">
+    <div class="metaline">
+      <span id="qcounter">–</span>
+      <span class="grow"></span>
+      <span id="answered">–</span>
+      <span id="timer" aria-live="off"></span>
+    </div>
+    <div class="bar"><i id="barfill"></i></div>
+  </div>
+
+  <div id="qcard" class="card"></div>
+
+  <div class="controls">
+    <button class="btn" id="btnPrev">← Anterior</button>
+    <button class="btn" id="btnMark">☆ Marcar para revisar</button>
+    <span class="grow"></span>
+    <button class="btn" id="btnNext">Siguiente →</button>
+    <button class="btn primary" id="btnFinish">Finalizar intento</button>
+  </div>
+
+  <details class="palette" open>
+    <summary>Navegación de preguntas</summary>
+    <div class="grid" id="grid"></div>
+    <div class="legend">
+      <span>■ respondida</span><span>☆ marcada</span><span>□ sin responder</span>
+      <span>Atajos: ← → navegar · 1-9 elegir · M marcar</span>
+    </div>
+  </details>
+</section>
+
+<!-- ================= RESULTADO ================= -->
+<section id="screen-result" class="wrap hidden">
+  <h1>Resultado del intento</h1>
+  <div id="verdict" class="verdict"></div>
+
+  <h2>Desempeño por tema</h2>
+  <div class="card">
+    <table class="topics">
+      <thead><tr><th>Tema</th><th class="num">Correctas</th><th class="num">%</th><th></th></tr></thead>
+      <tbody id="resTopics"></tbody>
+    </table>
+  </div>
+
+  <h2>Revisión de preguntas</h2>
+  <div class="filters" id="filters">
+    <button class="btn primary" data-filter="all">Todas</button>
+    <button class="btn" data-filter="wrong">Incorrectas</button>
+    <button class="btn" data-filter="blank">Sin responder</button>
+    <button class="btn" data-filter="marked">Marcadas</button>
+  </div>
+  <div id="review"></div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnAgain">Nuevo intento (mismo modo)</button>
+    <button class="btn" id="btnHome">Volver al inicio</button>
+    <button class="btn" id="btnPrint">Imprimir / PDF</button>
+  </div>
+</section>
+
+<footer class="foot">
+  Material de estudio no oficial. LPI y Linux Essentials son marcas de Linux Professional Institute.
+  Linux® es marca registrada de Linus Torvalds.
+</footer>
+
+<script>
+/* ====== BANCO DE PREGUNTAS ======
+   Formato de cada pregunta:
+   { id, topic, type:'single'|'multi'|'fill',
+     q:[es,en],
+     o:[[es,en],...]        // opciones (no aplica a 'fill')
+     a:[indices correctos]  // no aplica a 'fill'
+     accept:[...]           // respuestas aceptadas ('fill')
+     ex:[es,en] }           // explicacion
+   El texto entre acentos graves se muestra como codigo.            */
+const Q = [];
+</script>
+<!-- @@BANCO@@ -->
+<script>
+/* ===== Tema 101: La comunidad Linux y una carrera en Open Source ===== */
+Q.push(
+{id:101, topic:101, type:'single',
+ q:['¿Quién inició en 1991 el desarrollo del kernel Linux?','Who started the development of the Linux kernel in 1991?'],
+ o:[['Linus Torvalds','Linus Torvalds'],['Richard Stallman','Richard Stallman'],['Ken Thompson','Ken Thompson'],['Andrew Tanenbaum','Andrew Tanenbaum']],
+ a:[0],
+ ex:['Linus Torvalds publicó la primera versión del kernel Linux en 1991. Richard Stallman fundó el proyecto GNU (1983) y la Free Software Foundation; Ken Thompson participó en la creación de UNIX y Andrew Tanenbaum escribió MINIX.',
+     'Linus Torvalds released the first version of the Linux kernel in 1991. Richard Stallman founded the GNU project (1983) and the Free Software Foundation; Ken Thompson co-created UNIX and Andrew Tanenbaum wrote MINIX.']},
+
+{id:102, topic:101, type:'single',
+ q:['¿Cuál de estas distribuciones deriva de Debian?','Which of these distributions is derived from Debian?'],
+ o:[['Ubuntu','Ubuntu'],['Fedora','Fedora'],['openSUSE','openSUSE'],['Arch Linux','Arch Linux']],
+ a:[0],
+ ex:['Ubuntu se basa en Debian y usa paquetes .deb con `apt`. Fedora pertenece a la familia Red Hat (.rpm), openSUSE usa `zypper` y Arch Linux usa `pacman`.',
+     'Ubuntu is based on Debian and uses .deb packages with `apt`. Fedora belongs to the Red Hat family (.rpm), openSUSE uses `zypper` and Arch Linux uses `pacman`.']},
+
+{id:103, topic:101, type:'single',
+ q:['¿Qué es una distribución de Linux?','What is a Linux distribution?'],
+ o:[['Un conjunto integrado formado por el kernel, utilidades del sistema, gestor de paquetes y aplicaciones','An integrated set made up of the kernel, system utilities, a package manager and applications'],
+    ['Otro nombre para el kernel Linux','Another name for the Linux kernel'],
+    ['Un entorno gráfico de escritorio','A graphical desktop environment'],
+    ['Un emulador de terminal','A terminal emulator']],
+ a:[0],
+ ex:['El kernel por sí solo no es utilizable: una distribución lo empaqueta junto con las herramientas GNU, bibliotecas, un gestor de paquetes y aplicaciones, con una política de mantenimiento propia.',
+     'The kernel alone is not usable: a distribution bundles it with GNU tools, libraries, a package manager and applications, under its own maintenance policy.']},
+
+{id:104, topic:101, type:'single',
+ q:['¿Qué gestor de paquetes de alto nivel usan Fedora y Red Hat Enterprise Linux?','Which high-level package manager do Fedora and Red Hat Enterprise Linux use?'],
+ o:[['dnf','dnf'],['apt','apt'],['zypper','zypper'],['pacman','pacman']],
+ a:[0],
+ ex:['`dnf` (sucesor de `yum`) gestiona paquetes RPM en Fedora y RHEL. `apt` corresponde a Debian/Ubuntu, `zypper` a openSUSE y `pacman` a Arch Linux.',
+     '`dnf` (the successor of `yum`) manages RPM packages on Fedora and RHEL. `apt` belongs to Debian/Ubuntu, `zypper` to openSUSE and `pacman` to Arch Linux.']},
+
+{id:105, topic:101, type:'single',
+ q:['¿Sobre qué kernel está construido Android?','Which kernel is Android built on?'],
+ o:[['Linux','Linux'],['BSD','BSD'],['Mach','Mach'],['Windows NT','Windows NT']],
+ a:[0],
+ ex:['Android usa el kernel Linux con modificaciones propias. Mach es la base de macOS/iOS y BSD es una familia UNIX independiente.',
+     'Android uses the Linux kernel with its own modifications. Mach underpins macOS/iOS and BSD is a separate UNIX family.']},
+
+{id:106, topic:101, type:'multi',
+ q:['¿Cuáles de los siguientes son entornos de escritorio de Linux? Marca todas las que correspondan.','Which of the following are Linux desktop environments? Select all that apply.'],
+ o:[['GNOME','GNOME'],['KDE Plasma','KDE Plasma'],['Xfce','Xfce'],['Bash','Bash']],
+ a:[0,1,2],
+ ex:['GNOME, KDE Plasma y Xfce son entornos de escritorio. Bash es un shell de línea de comandos, no un entorno gráfico.',
+     'GNOME, KDE Plasma and Xfce are desktop environments. Bash is a command line shell, not a graphical environment.']},
+
+{id:107, topic:101, type:'single',
+ q:['Según la licencia GPL, ¿qué obligación tiene quien distribuye un binario derivado de código GPL?','Under the GPL, what obligation does someone distributing a binary derived from GPL code have?'],
+ o:[['Poner a disposición el código fuente correspondiente bajo la misma licencia','Make the corresponding source code available under the same license'],
+    ['Pagar regalías a la Free Software Foundation','Pay royalties to the Free Software Foundation'],
+    ['Registrar el binario ante el Linux Professional Institute','Register the binary with the Linux Professional Institute'],
+    ['Ninguna, puede cerrar el código','None, the code may be made proprietary']],
+ a:[0],
+ ex:['La GPL es una licencia copyleft: las obras derivadas deben distribuirse bajo la misma licencia y con el código fuente disponible.',
+     'The GPL is a copyleft license: derivative works must be distributed under the same license with the source code available.']},
+
+{id:108, topic:101, type:'multi',
+ q:['¿Cuáles de estas licencias son permisivas (sin copyleft)? Marca todas las que correspondan.','Which of these licenses are permissive (non-copyleft)? Select all that apply.'],
+ o:[['MIT','MIT'],['BSD','BSD'],['Apache 2.0','Apache 2.0'],['GPLv3','GPLv3']],
+ a:[0,1,2],
+ ex:['MIT, BSD y Apache 2.0 permiten reutilizar el código en productos propietarios. GPLv3 es copyleft y obliga a mantener la misma licencia.',
+     'MIT, BSD and Apache 2.0 allow the code to be reused in proprietary products. GPLv3 is copyleft and requires keeping the same license.']},
+
+{id:109, topic:101, type:'single',
+ q:['¿Cuál NO es una de las libertades esenciales del software libre?','Which is NOT one of the essential freedoms of free software?'],
+ o:[['Impedir que otros modifiquen el programa','Preventing others from modifying the program'],
+    ['Ejecutar el programa para cualquier propósito','Running the program for any purpose'],
+    ['Estudiar y modificar el código fuente','Studying and modifying the source code'],
+    ['Redistribuir copias, incluso modificadas','Redistributing copies, including modified ones']],
+ a:[0],
+ ex:['Las cuatro libertades son: usar, estudiar, redistribuir y mejorar/redistribuir versiones modificadas. Restringir a otros va en contra de esa definición.',
+     'The four freedoms are: use, study, redistribute and improve/redistribute modified versions. Restricting others contradicts that definition.']},
+
+{id:110, topic:101, type:'single',
+ q:['¿Qué organización mantiene el proyecto GNU y publicó la licencia GPL?','Which organization maintains the GNU project and published the GPL?'],
+ o:[['Free Software Foundation','Free Software Foundation'],['Linux Foundation','Linux Foundation'],['Apache Software Foundation','Apache Software Foundation'],['Open Source Initiative','Open Source Initiative']],
+ a:[0],
+ ex:['La FSF, fundada por Richard Stallman, respalda el proyecto GNU y publica las licencias GPL/LGPL. La Linux Foundation patrocina el desarrollo del kernel y la OSI aprueba licencias open source.',
+     'The FSF, founded by Richard Stallman, backs the GNU project and publishes the GPL/LGPL licenses. The Linux Foundation sponsors kernel development and the OSI approves open source licenses.']},
+
+{id:111, topic:101, type:'single',
+ q:['¿Cuál de las siguientes aplicaciones es un servidor web?','Which of the following applications is a web server?'],
+ o:[['Apache HTTP Server','Apache HTTP Server'],['Postfix','Postfix'],['Samba','Samba'],['MariaDB','MariaDB']],
+ a:[0],
+ ex:['Apache HTTP Server (y Nginx) sirven contenido web. Postfix es un servidor de correo, Samba comparte archivos con clientes Windows y MariaDB es una base de datos relacional.',
+     'Apache HTTP Server (and Nginx) serve web content. Postfix is a mail server, Samba shares files with Windows clients and MariaDB is a relational database.']},
+
+{id:112, topic:101, type:'single',
+ q:['¿Qué suite de oficina libre incluye Writer, Calc e Impress?','Which free office suite includes Writer, Calc and Impress?'],
+ o:[['LibreOffice','LibreOffice'],['GIMP','GIMP'],['Blender','Blender'],['Inkscape','Inkscape']],
+ a:[0],
+ ex:['LibreOffice es la suite de oficina. GIMP edita imágenes de mapa de bits, Inkscape gráficos vectoriales y Blender modelado 3D.',
+     'LibreOffice is the office suite. GIMP edits bitmap images, Inkscape vector graphics and Blender does 3D modelling.']},
+
+{id:113, topic:101, type:'single',
+ q:['¿Cuál de estos programas es un sistema gestor de bases de datos relacionales?','Which of these programs is a relational database management system?'],
+ o:[['PostgreSQL','PostgreSQL'],['Nginx','Nginx'],['Squid','Squid'],['Dovecot','Dovecot']],
+ a:[0],
+ ex:['PostgreSQL y MariaDB/MySQL son gestores de bases de datos relacionales. Nginx es servidor web/proxy inverso, Squid un proxy de caché y Dovecot un servidor IMAP/POP3.',
+     'PostgreSQL and MariaDB/MySQL are relational database servers. Nginx is a web server/reverse proxy, Squid a caching proxy and Dovecot an IMAP/POP3 server.']},
+
+{id:114, topic:101, type:'single',
+ q:['¿Qué servicio permite compartir carpetas e impresoras de un servidor Linux con clientes Windows?','Which service lets a Linux server share folders and printers with Windows clients?'],
+ o:[['Samba','Samba'],['NFS','NFS'],['BIND','BIND'],['Postfix','Postfix']],
+ a:[0],
+ ex:['Samba implementa el protocolo SMB/CIFS que usa Windows. NFS es el sistema de archivos en red tradicional de UNIX, BIND un servidor DNS y Postfix un servidor de correo.',
+     'Samba implements the SMB/CIFS protocol used by Windows. NFS is the traditional UNIX network file system, BIND is a DNS server and Postfix a mail server.']},
+
+{id:115, topic:101, type:'single',
+ q:['¿Qué tecnología de virtualización está integrada en el propio kernel Linux?','Which virtualization technology is built into the Linux kernel itself?'],
+ o:[['KVM','KVM'],['VirtualBox','VirtualBox'],['VMware Workstation','VMware Workstation'],['Wine','Wine']],
+ a:[0],
+ ex:['KVM es el hipervisor incluido en el kernel Linux. VirtualBox y VMware Workstation son productos externos, y Wine no es virtualización sino una capa de compatibilidad para ejecutar aplicaciones de Windows.',
+     'KVM is the hypervisor included in the Linux kernel. VirtualBox and VMware Workstation are third-party products, and Wine is not virtualization but a compatibility layer for running Windows applications.']},
+
+{id:116, topic:101, type:'single',
+ q:['¿Qué describe mejor la computación en la nube en su modelo de infraestructura como servicio (IaaS)?','Which best describes cloud computing in its infrastructure as a service (IaaS) model?'],
+ o:[['Recursos de cómputo, almacenamiento y red provistos bajo demanda a través de la red','Compute, storage and network resources provided on demand over the network'],
+    ['Un tipo de sistema de archivos distribuido','A kind of distributed file system'],
+    ['Un gestor de ventanas para escritorios remotos','A window manager for remote desktops'],
+    ['Un protocolo de transferencia de correo','A mail transfer protocol']],
+ a:[0],
+ ex:['En IaaS el proveedor ofrece máquinas virtuales, almacenamiento y redes que se crean y destruyen bajo demanda; Linux es el sistema operativo dominante en estas plataformas.',
+     'With IaaS the provider offers virtual machines, storage and networks created and destroyed on demand; Linux is the dominant operating system on these platforms.']},
+
+{id:117, topic:101, type:'single',
+ q:['¿Qué es un emulador de terminal como gnome-terminal, konsole o xterm?','What is a terminal emulator such as gnome-terminal, konsole or xterm?'],
+ o:[['Una aplicación gráfica que proporciona una ventana de texto donde se ejecuta un shell','A graphical application that provides a text window in which a shell runs'],
+    ['El propio intérprete que ejecuta los comandos','The interpreter that actually runs the commands'],
+    ['El gestor de arranque del sistema','The system boot loader'],
+    ['Un servidor gráfico como X11 o Wayland','A display server such as X11 or Wayland']],
+ a:[0],
+ ex:['El shell (por ejemplo Bash) interpreta los comandos; el emulador de terminal solo le proporciona una ventana de entrada y salida de texto.',
+     'The shell (for example Bash) interprets the commands; the terminal emulator merely provides a text input/output window for it.']},
+
+{id:118, topic:101, type:'single',
+ q:['¿Cuál es una buena práctica de seguridad en el uso diario de Linux?','Which is a good security practice for daily Linux use?'],
+ o:[['Trabajar con una cuenta sin privilegios y elevar con `sudo` solo cuando sea necesario','Work with an unprivileged account and elevate with `sudo` only when necessary'],
+    ['Iniciar sesión siempre como root para evitar errores de permisos','Always log in as root to avoid permission errors'],
+    ['Dar permisos 777 a los archivos de trabajo','Give working files 777 permissions'],
+    ['Compartir la contraseña de root con el equipo','Share the root password with the team']],
+ a:[0],
+ ex:['El principio de mínimo privilegio limita el daño de un error o de un programa malicioso. `sudo` permite ejecutar comandos concretos con privilegios y deja registro de quién los ejecutó.',
+     'The principle of least privilege limits the damage of a mistake or a malicious program. `sudo` runs specific commands with privileges and leaves an audit trail of who ran them.']}
+);
+
+/* ===== Tema 102: Encontrar tu camino en un sistema Linux ===== */
+Q.push(
+{id:201, topic:102, type:'single',
+ q:['¿Cuál es el shell predeterminado en la mayoría de las distribuciones Linux?','Which shell is the default on most Linux distributions?'],
+ o:[['Bash','Bash'],['tcsh','tcsh'],['PowerShell','PowerShell'],['ksh','ksh']],
+ a:[0],
+ ex:['Bash (Bourne Again Shell) es el shell interactivo predeterminado en la mayoría de distribuciones. El shell de cada usuario se define en el último campo de `/etc/passwd`.',
+     'Bash (Bourne Again Shell) is the default interactive shell on most distributions. Each user shell is defined in the last field of `/etc/passwd`.']},
+
+{id:202, topic:102, type:'fill',
+ q:['Escribe el comando, sin opciones, que muestra el directorio de trabajo actual.','Type the command, without options, that prints the current working directory.'],
+ accept:['pwd'],
+ ex:['`pwd` significa print working directory y muestra la ruta absoluta del directorio actual.',
+     '`pwd` stands for print working directory and shows the absolute path of the current directory.']},
+
+{id:203, topic:102, type:'single',
+ q:['¿Qué muestra el comando `echo $HOME`?','What does the command `echo $HOME` display?'],
+ o:[['La ruta del directorio personal del usuario actual','The path of the current user home directory'],
+    ['La cadena literal $HOME','The literal string $HOME'],
+    ['El nombre del equipo','The host name'],
+    ['La lista completa de variables de entorno','The complete list of environment variables']],
+ a:[0],
+ ex:['El shell expande `$HOME` al valor de esa variable, por ejemplo `/home/ana`. Para ver todas las variables de entorno se usa `env` o `printenv`.',
+     'The shell expands `$HOME` to the value of that variable, for example `/home/ana`. To list all environment variables use `env` or `printenv`.']},
+
+{id:204, topic:102, type:'single',
+ q:['¿Para qué sirve la variable de entorno PATH?','What is the PATH environment variable used for?'],
+ o:[['Contiene la lista de directorios donde el shell busca los programas ejecutables','It holds the list of directories where the shell looks for executable programs'],
+    ['Guarda el historial de comandos','It stores the command history'],
+    ['Define el aspecto del prompt','It defines the appearance of the prompt'],
+    ['Contiene la ruta del directorio actual','It contains the path of the current directory']],
+ a:[0],
+ ex:['PATH es una lista de directorios separados por dos puntos. Si un programa no está en ninguno de ellos hay que invocarlo con su ruta, por ejemplo `./script.sh`.',
+     'PATH is a colon-separated list of directories. If a program is not in any of them it must be invoked with its path, for example `./script.sh`.']},
+
+{id:205, topic:102, type:'single',
+ q:['¿Qué comando muestra la ruta completa del ejecutable que se lanzaría al escribir `ls`?','Which command shows the full path of the executable that would run when typing `ls`?'],
+ o:[['which ls','which ls'],['where ls','where ls'],['find ls','find ls'],['echo ls','echo ls']],
+ a:[0],
+ ex:['`which` recorre los directorios de PATH y muestra la primera coincidencia. `type ls` además indica si se trata de un alias, una función o un comando interno del shell.',
+     '`which` walks the PATH directories and prints the first match. `type ls` additionally tells whether it is an alias, a function or a shell builtin.']},
+
+{id:206, topic:102, type:'single',
+ q:['¿Qué ocurre al ejecutar `cd` sin argumentos?','What happens when running `cd` with no arguments?'],
+ o:[['Cambia al directorio personal del usuario','It changes to the user home directory'],
+    ['No hace nada','It does nothing'],
+    ['Cambia al directorio raíz /','It changes to the root directory /'],
+    ['Vuelve al directorio anterior','It returns to the previous directory']],
+ a:[0],
+ ex:['`cd` sin argumentos equivale a `cd ~` o `cd $HOME`. Para volver al directorio anterior se usa `cd -`.',
+     '`cd` with no arguments is equivalent to `cd ~` or `cd $HOME`. To return to the previous directory use `cd -`.']},
+
+{id:207, topic:102, type:'single',
+ q:['¿Qué hace el comando `cd -`?','What does the command `cd -` do?'],
+ o:[['Vuelve al directorio de trabajo anterior','It returns to the previous working directory'],
+    ['Sube un nivel en la jerarquía','It moves one level up in the hierarchy'],
+    ['Cambia al directorio raíz','It changes to the root directory'],
+    ['Devuelve un error de sintaxis','It returns a syntax error']],
+ a:[0],
+ ex:['El shell guarda el directorio previo en la variable OLDPWD y `cd -` alterna entre los dos últimos directorios.',
+     'The shell keeps the previous directory in the OLDPWD variable and `cd -` toggles between the last two directories.']},
+
+{id:208, topic:102, type:'single',
+ q:['¿Cuál de las siguientes es una ruta absoluta?','Which of the following is an absolute path?'],
+ o:[['/home/ana/documentos/informe.txt','/home/ana/documentos/informe.txt'],
+    ['documentos/informe.txt','documentos/informe.txt'],
+    ['../documentos/informe.txt','../documentos/informe.txt'],
+    ['./informe.txt','./informe.txt']],
+ a:[0],
+ ex:['Una ruta absoluta comienza siempre en la raíz `/` y es valida desde cualquier directorio. Las demás son rutas relativas al directorio actual.',
+     'An absolute path always starts at the root `/` and is valid from any directory. The others are relative to the current directory.']},
+
+{id:209, topic:102, type:'single',
+ q:['En una ruta, ¿a qué se refiere `..`?','In a path, what does `..` refer to?'],
+ o:[['Al directorio padre','The parent directory'],
+    ['Al directorio actual','The current directory'],
+    ['Al directorio personal','The home directory'],
+    ['Al directorio raíz','The root directory']],
+ a:[0],
+ ex:['`.` es el directorio actual y `..` el directorio padre. `~` representa el directorio personal del usuario.',
+     '`.` is the current directory and `..` the parent directory. `~` stands for the user home directory.']},
+
+{id:210, topic:102, type:'single',
+ q:['¿Qué opción de `ls` muestra también los archivos ocultos?','Which `ls` option also shows hidden files?'],
+ o:[['-a','-a'],['-l','-l'],['-h','-h'],['-R','-R']],
+ a:[0],
+ ex:['`-a` (all) incluye las entradas que empiezan por punto. `-l` da el listado largo, `-h` tamaños legibles y `-R` recorre subdirectorios.',
+     '`-a` (all) includes entries starting with a dot. `-l` gives the long listing, `-h` human readable sizes and `-R` recurses into subdirectories.']},
+
+{id:211, topic:102, type:'single',
+ q:['¿Cómo se identifica un archivo oculto en Linux?','How is a hidden file identified on Linux?'],
+ o:[['Su nombre comienza con un punto','Its name begins with a dot'],
+    ['Tiene activado un atributo hidden','It has a hidden attribute set'],
+    ['Esta almacenado en /hidden','It is stored in /hidden'],
+    ['Tiene permisos 000','It has 000 permissions']],
+ a:[0],
+ ex:['No existe un atributo de ocultación: es una convención de nombre. Por eso los archivos de configuración personal se llaman `.bashrc`, `.profile`, etc.',
+     'There is no hidden attribute: it is a naming convention. That is why personal configuration files are named `.bashrc`, `.profile`, and so on.']},
+
+{id:212, topic:102, type:'fill',
+ q:['Escribe el comando que lista, en formato largo y mostrando los archivos ocultos, el contenido del directorio actual.','Type the command that lists the current directory contents in long format including hidden files.'],
+ accept:['ls -la','ls -al','ls -l -a','ls -a -l','ls -lah','ls -alh'],
+ ex:['`ls -la` combina el listado largo (`-l`) con la inclusión de archivos ocultos (`-a`). El orden de las letras no importa.',
+     '`ls -la` combines the long listing (`-l`) with hidden files (`-a`). The order of the letters does not matter.']},
+
+{id:213, topic:102, type:'single',
+ q:['¿Qué información NO aparece en el listado largo de `ls -l`?','Which piece of information does NOT appear in the `ls -l` long listing?'],
+ o:[['El contenido del archivo','The file content'],
+    ['Los permisos','The permissions'],
+    ['El propietario y el grupo','The owner and the group'],
+    ['El tamaño y la fecha de modificación','The size and the modification date']],
+ a:[0],
+ ex:['`ls -l` muestra tipo y permisos, número de enlaces, propietario, grupo, tamaño, fecha y nombre. Para ver el contenido se usan `cat`, `less` o un editor.',
+     '`ls -l` shows type and permissions, link count, owner, group, size, date and name. To see the content use `cat`, `less` or an editor.']},
+
+{id:214, topic:102, type:'single',
+ q:['¿Qué comando busca una palabra clave en las descripciones de todas las páginas de manual?','Which command searches a keyword in the descriptions of all manual pages?'],
+ o:[['man -k red','man -k network'],['man -f red','man -f network'],['man -a red','man -a network'],['man 5 red','man 5 network']],
+ a:[0],
+ ex:['`man -k` (equivalente a `apropos`) busca en los nombres y descripciones cortas. `man -f` (equivalente a `whatis`) solo muestra la descripción de un nombre exacto.',
+     '`man -k` (same as `apropos`) searches names and short descriptions. `man -f` (same as `whatis`) only shows the description of an exact name.']},
+
+{id:215, topic:102, type:'single',
+ q:['¿Qué muestra el comando `man 5 passwd`?','What does the command `man 5 passwd` display?'],
+ o:[['La página de la sección 5, que describe el formato del archivo /etc/passwd','The section 5 page, describing the format of the /etc/passwd file'],
+    ['La página del comando passwd','The page for the passwd command'],
+    ['Las cinco primeras líneas de la página','The first five lines of the page'],
+    ['Un error, porque passwd no tiene sección 5','An error, because passwd has no section 5']],
+ a:[0],
+ ex:['Las secciones del manual más usadas son: 1 comandos de usuario, 5 formatos de archivo y convenciones, 8 comandos de administración. `man passwd` sin número muestra la sección 1.',
+     'The most used manual sections are: 1 user commands, 5 file formats and conventions, 8 administration commands. `man passwd` without a number shows section 1.']},
+
+{id:216, topic:102, type:'single',
+ q:['¿En qué directorio se instala la documentación adicional que acompaña a los paquetes?','In which directory is the extra documentation shipped with packages installed?'],
+ o:[['/usr/share/doc','/usr/share/doc'],['/etc/doc','/etc/doc'],['/var/doc','/var/doc'],['/opt/help','/opt/help']],
+ a:[0],
+ ex:['`/usr/share/doc` contiene READMEs, changelogs y ejemplos de configuración de cada paquete; `/usr/share/man` guarda las páginas de manual.',
+     '`/usr/share/doc` holds READMEs, changelogs and configuration examples for each package; `/usr/share/man` stores the manual pages.']},
+
+{id:217, topic:102, type:'single',
+ q:['¿Qué opción suelen aceptar los comandos GNU para mostrar una ayuda breve de su uso?','Which option do GNU commands usually accept to show a brief usage help?'],
+ o:[['--help','--help'],['-h en todos los casos','-h in all cases'],['/?','/?'],['-help','-help']],
+ a:[0],
+ ex:['`--help` es la convención GNU. `-h` existe en muchos comandos pero con otro significado, como human readable en `ls -h` o `df -h`.',
+     '`--help` is the GNU convention. `-h` exists in many commands but with another meaning, such as human readable in `ls -h` or `df -h`.']},
+
+{id:218, topic:102, type:'single',
+ q:['¿Qué comando crea la estructura de directorios `proyecto/src/lib` cuando ninguno de ellos existe?','Which command creates the directory structure `proyecto/src/lib` when none of them exists?'],
+ o:[['mkdir -p proyecto/src/lib','mkdir -p proyecto/src/lib'],
+    ['mkdir proyecto/src/lib','mkdir proyecto/src/lib'],
+    ['mkdir -r proyecto/src/lib','mkdir -r proyecto/src/lib'],
+    ['mkdir -m proyecto/src/lib','mkdir -m proyecto/src/lib']],
+ a:[0],
+ ex:['`-p` (parents) crea los directorios intermedios que falten y no da error si ya existen. Sin `-p` el comando falla porque `proyecto` no existe.',
+     '`-p` (parents) creates any missing intermediate directories and does not fail if they already exist. Without `-p` the command fails because `proyecto` does not exist.']},
+
+{id:219, topic:102, type:'single',
+ q:['¿Qué elimina el comando `rmdir`?','What does the `rmdir` command remove?'],
+ o:[['Solo directorios vacíos','Only empty directories'],
+    ['Directorios junto con todo su contenido','Directories together with all their content'],
+    ['Cualquier archivo o directorio','Any file or directory'],
+    ['Solo enlaces simbólicos','Only symbolic links']],
+ a:[0],
+ ex:['`rmdir` falla si el directorio contiene algo. Para borrar un directorio con contenido se usa `rm -r`.',
+     '`rmdir` fails if the directory contains anything. To delete a directory with content use `rm -r`.']},
+
+{id:220, topic:102, type:'single',
+ q:['¿Qué comando borra un directorio con todo su contenido pidiendo confirmación para cada elemento?','Which command deletes a directory and all its content, asking for confirmation for each item?'],
+ o:[['rm -ri datos/','rm -ri datos/'],['rm datos/','rm datos/'],['rmdir -r datos/','rmdir -r datos/'],['rm -rf datos/','rm -rf datos/']],
+ a:[0],
+ ex:['`-r` es recursivo e `-i` pide confirmación. `-f` (force) hace justo lo contrario: no pregunta y no avisa de los errores.',
+     '`-r` is recursive and `-i` asks for confirmation. `-f` (force) does the opposite: it never asks and hides errors.']},
+
+{id:221, topic:102, type:'single',
+ q:['¿Qué opción necesita `cp` para copiar un directorio completo con su contenido?','Which option does `cp` need in order to copy a whole directory with its content?'],
+ o:[['-r','-r'],['-i','-i'],['-v','-v'],['-u','-u']],
+ a:[0],
+ ex:['`cp -r origen/ destino/` copia de forma recursiva. `-i` pide confirmación antes de sobrescribir, `-v` es verboso y `-u` copia solo si el origen es más nuevo.',
+     '`cp -r source/ dest/` copies recursively. `-i` prompts before overwriting, `-v` is verbose and `-u` copies only when the source is newer.']},
+
+{id:222, topic:102, type:'single',
+ q:['¿Qué hace `mv informe.txt informe_final.txt` dentro del mismo directorio?','What does `mv informe.txt informe_final.txt` do within the same directory?'],
+ o:[['Renombra el archivo','It renames the file'],
+    ['Crea una copia con el nuevo nombre','It creates a copy with the new name'],
+    ['Crea un enlace simbólico','It creates a symbolic link'],
+    ['Da error porque falta la opción -r','It fails because the -r option is missing']],
+ a:[0],
+ ex:['`mv` mueve y renombra: dentro del mismo directorio el efecto es un cambio de nombre, sin duplicar datos.',
+     '`mv` moves and renames: within the same directory the effect is a rename, with no data duplication.']},
+
+{id:223, topic:102, type:'single',
+ q:['¿Con cuál de estos nombres coincide el patron `informe?.txt`?','Which of these names matches the pattern `informe?.txt`?'],
+ o:[['informe1.txt','informe1.txt'],['informe10.txt','informe10.txt'],['informe.txt','informe.txt'],['informe_final.txt','informe_final.txt']],
+ a:[0],
+ ex:['`?` coincide con exactamente un carácter, `*` con cualquier cantidad incluida ninguna y `[abc]` con uno de los caracteres del conjunto.',
+     '`?` matches exactly one character, `*` matches any number including none, and `[abc]` matches one character from the set.']},
+
+{id:224, topic:102, type:'single',
+ q:['¿Qué hace `touch notas.txt` si el archivo ya existe?','What does `touch notas.txt` do if the file already exists?'],
+ o:[['Actualiza su fecha de acceso y modificación sin alterar el contenido','It updates its access and modification times without changing the content'],
+    ['Vacía el archivo','It empties the file'],
+    ['Devuelve un error','It returns an error'],
+    ['Lo elimina','It deletes it']],
+ a:[0],
+ ex:['`touch` crea el archivo si no existe y, si existe, solo actualiza sus marcas de tiempo.',
+     '`touch` creates the file if it does not exist and, if it does, just updates its timestamps.']},
+
+{id:225, topic:102, type:'single',
+ q:['¿Cuál es la diferencia entre comillas simples y dobles en Bash?','What is the difference between single and double quotes in Bash?'],
+ o:[['Las simples impiden toda expansión; las dobles permiten expandir variables y sustitución de comandos','Single quotes prevent all expansion; double quotes still allow variable expansion and command substitution'],
+    ['No hay ninguna diferencia','There is no difference at all'],
+    ['Las simples expanden variables y las dobles no','Single quotes expand variables and double quotes do not'],
+    ['Las dobles impiden cualquier interpretación del contenido','Double quotes prevent any interpretation of the content']],
+ a:[0],
+ ex:['Con `nombre=Ana`, el comando `echo "$nombre"` imprime Ana mientras que `echo $nombre` entre comillas simples imprime la cadena $nombre.',
+     'With `nombre=Ana`, `echo "$nombre"` prints Ana whereas `echo $nombre` inside single quotes prints the literal string $nombre.']},
+
+{id:226, topic:102, type:'single',
+ q:['¿Qué comando muestra la lista de comandos ejecutados anteriormente en la sesión?','Which command shows the list of commands previously run in the session?'],
+ o:[['history','history'],['last','last'],['log','log'],['recall','recall']],
+ a:[0],
+ ex:['`history` lista el historial guardado en `~/.bash_history`. Ctrl+R busca dentro del historial y `!!` repite el último comando. `last` muestra los inicios de sesión.',
+     '`history` lists the history kept in `~/.bash_history`. Ctrl+R searches the history and `!!` repeats the last command. `last` shows login records.']},
+
+{id:227, topic:102, type:'single',
+ q:['¿Qué hace la tecla Tab en Bash?','What does the Tab key do in Bash?'],
+ o:[['Completa automáticamente comandos, rutas y nombres de archivo','It auto-completes commands, paths and file names'],
+    ['Inserta siempre un carácter de tabulación','It always inserts a tab character'],
+    ['Cancela el comando en curso','It cancels the current command'],
+    ['Limpia la pantalla','It clears the screen']],
+ a:[0],
+ ex:['La compleción con Tab reduce errores de escritura; al pulsarla dos veces muestra todas las coincidencias posibles. Ctrl+C cancela y Ctrl+L limpia la pantalla.',
+     'Tab completion reduces typing errors; pressing it twice lists all possible matches. Ctrl+C cancels and Ctrl+L clears the screen.']},
+
+{id:228, topic:102, type:'multi',
+ q:['¿Cuáles de estos comandos crean un archivo comprimido? Marca todas las que correspondan.','Which of these commands create a compressed archive? Select all that apply.'],
+ o:[['tar -czf copia.tar.gz documentos/','tar -czf copia.tar.gz documentos/'],
+    ['zip -r copia.zip documentos/','zip -r copia.zip documentos/'],
+    ['gzip informe.txt','gzip informe.txt'],
+    ['tar -xzf copia.tar.gz','tar -xzf copia.tar.gz']],
+ a:[0,1,2],
+ ex:['Las tres primeras generan un archivo comprimido. `tar -xzf` hace lo contrario: extrae el contenido, porque `-x` significa extract.',
+     'The first three produce a compressed file. `tar -xzf` does the opposite: it extracts the content, because `-x` means extract.']},
+
+{id:229, topic:102, type:'single',
+ q:['¿Qué directorio representa el simbolo `~` en el shell?','Which directory does the `~` symbol represent in the shell?'],
+ o:[['El directorio personal del usuario actual','The home directory of the current user'],
+    ['El directorio raíz del sistema','The root directory of the system'],
+    ['El directorio de trabajo actual','The current working directory'],
+    ['El directorio temporal /tmp','The temporary directory /tmp']],
+ a:[0],
+ ex:['`~` se expande a `$HOME` y `~ana` al directorio personal del usuario ana.',
+     '`~` expands to `$HOME`, and `~ana` expands to user ana home directory.']}
+);
+</script>
+<script>
+/* ===== Tema 103: El poder de la línea de comandos ===== */
+Q.push(
+{id:301, topic:103, type:'single',
+ q:['En `tar -czvf copia.tar.gz documentos/`, ¿qué hace la opción `z`?','In `tar -czvf copia.tar.gz documentos/`, what does the `z` option do?'],
+ o:[['Comprime el archivo resultante con gzip','It compresses the resulting archive with gzip'],
+    ['Crea el archivo contenedor','It creates the archive'],
+    ['Muestra los nombres procesados','It lists the processed names'],
+    ['Indica el nombre del archivo de salida','It specifies the output file name']],
+ a:[0],
+ ex:['En ese comando `c` crea, `z` comprime con gzip, `v` es verboso y `f` indica el nombre del archivo. La opción `f` debe ir inmediatamente antes del nombre.',
+     'In that command `c` creates, `z` compresses with gzip, `v` is verbose and `f` gives the file name. The `f` option must come immediately before the name.']},
+
+{id:302, topic:103, type:'single',
+ q:['¿Qué comando extrae el contenido de `copia.tar.gz` en el directorio actual?','Which command extracts the content of `copia.tar.gz` into the current directory?'],
+ o:[['tar -xzf copia.tar.gz','tar -xzf copia.tar.gz'],
+    ['tar -czf copia.tar.gz','tar -czf copia.tar.gz'],
+    ['gunzip -x copia.tar.gz','gunzip -x copia.tar.gz'],
+    ['unzip copia.tar.gz','unzip copia.tar.gz']],
+ a:[0],
+ ex:['`-x` extrae, `-z` descomprime gzip y `-f` indica el archivo. Con `-t` se puede listar el contenido sin extraerlo.',
+     '`-x` extracts, `-z` decompresses gzip and `-f` names the file. With `-t` you can list the content without extracting it.']},
+
+{id:303, topic:103, type:'single',
+ q:['¿Cuál es la diferencia entre `tar` y `gzip`?','What is the difference between `tar` and `gzip`?'],
+ o:[['tar agrupa varios archivos en uno solo; gzip comprime un único archivo','tar bundles several files into one; gzip compresses a single file'],
+    ['Son dos nombres del mismo programa','They are two names for the same program'],
+    ['tar comprime y gzip agrupa','tar compresses and gzip bundles'],
+    ['gzip solo funciona con directorios','gzip only works with directories']],
+ a:[0],
+ ex:['Por eso lo habitual es combinarlos: `tar` genera el contenedor .tar y `gzip` lo comprime, produciendo .tar.gz o .tgz.',
+     'That is why they are usually combined: `tar` builds the .tar container and `gzip` compresses it, producing .tar.gz or .tgz.']},
+
+{id:304, topic:103, type:'single',
+ q:['¿Qué opción de `tar` aplica compresión bzip2?','Which `tar` option applies bzip2 compression?'],
+ o:[['-j','-j'],['-z','-z'],['-J','-J'],['-a','-a']],
+ a:[0],
+ ex:['`-z` usa gzip, `-j` usa bzip2 y `-J` usa xz.',
+     '`-z` uses gzip, `-j` uses bzip2 and `-J` uses xz.']},
+
+{id:305, topic:103, type:'single',
+ q:['¿Qué comando extrae el contenido de un archivo `datos.zip`?','Which command extracts the content of a `datos.zip` file?'],
+ o:[['unzip datos.zip','unzip datos.zip'],['zip -x datos.zip','zip -x datos.zip'],['tar -xzf datos.zip','tar -xzf datos.zip'],['gunzip datos.zip','gunzip datos.zip']],
+ a:[0],
+ ex:['`zip` crea archivos .zip y `unzip` los extrae. Este formato conserva la estructura de directorios y es compatible con Windows.',
+     '`zip` creates .zip archives and `unzip` extracts them. This format preserves the directory structure and is compatible with Windows.']},
+
+{id:306, topic:103, type:'single',
+ q:['¿Qué hace `ls > lista.txt`?','What does `ls > lista.txt` do?'],
+ o:[['Escribe la salida en lista.txt, sobrescribiendo su contenido anterior','It writes the output into lista.txt, overwriting any previous content'],
+    ['Añade la salida al final de lista.txt','It appends the output to the end of lista.txt'],
+    ['Usa lista.txt como entrada del comando','It uses lista.txt as the command input'],
+    ['Envía solo los mensajes de error al archivo','It sends only error messages to the file']],
+ a:[0],
+ ex:['`>` redirige la salida estándar y trunca el archivo destino. Para conservar el contenido previo se usa `>>`.',
+     '`>` redirects standard output and truncates the target file. To keep the previous content use `>>`.']},
+
+{id:307, topic:103, type:'single',
+ q:['¿Qué operador añade la salida de un comando al final de un archivo existente?','Which operator appends the output of a command to the end of an existing file?'],
+ o:[['>>','>>'],['>','>'],['2>','2>'],['<','<']],
+ a:[0],
+ ex:['`>>` añade sin borrar, `>` sobrescribe, `2>` redirige la salida de error y `<` redirige la entrada estándar desde un archivo.',
+     '`>>` appends without deleting, `>` overwrites, `2>` redirects error output and `<` redirects standard input from a file.']},
+
+{id:308, topic:103, type:'single',
+ q:['¿Cómo se redirige únicamente la salida de error estándar a un archivo?','How do you redirect only standard error to a file?'],
+ o:[['comando 2> errores.log','command 2> errors.log'],
+    ['comando > errores.log','command > errors.log'],
+    ['comando 1> errores.log','command 1> errors.log'],
+    ['comando < errores.log','command < errors.log']],
+ a:[0],
+ ex:['Los descriptores son 0 para la entrada estándar, 1 para la salida estándar y 2 para la salida de error. `comando > todo.log 2>&1` envía ambas salidas al mismo archivo.',
+     'The descriptors are 0 for standard input, 1 for standard output and 2 for standard error. `command > all.log 2>&1` sends both streams to the same file.']},
+
+{id:309, topic:103, type:'single',
+ q:['¿Qué hace `ps aux | grep sshd`?','What does `ps aux | grep sshd` do?'],
+ o:[['Pasa la salida de `ps aux` como entrada de `grep`','It passes the output of `ps aux` as the input of `grep`'],
+    ['Ejecuta los dos comandos en paralelo sin relación','It runs both commands in parallel with no relation'],
+    ['Guarda la salida de `ps aux` en un archivo llamado grep','It saves the output of `ps aux` into a file named grep'],
+    ['Compara la salida de los dos comandos','It compares the output of both commands']],
+ a:[0],
+ ex:['La barra vertical `|` es una tubería: conecta la salida estándar del primer comando con la entrada estándar del segundo.',
+     'The vertical bar `|` is a pipe: it connects the standard output of the first command to the standard input of the second.']},
+
+{id:310, topic:103, type:'single',
+ q:['¿Qué opción de `grep` hace que la búsqueda ignore mayusculas y minusculas?','Which `grep` option makes the search case insensitive?'],
+ o:[['-i','-i'],['-v','-v'],['-c','-c'],['-l','-l']],
+ a:[0],
+ ex:['`-i` ignora el caso, `-v` invierte la selección, `-c` cuenta las líneas coincidentes y `-l` muestra solo los nombres de archivo.',
+     '`-i` ignores case, `-v` inverts the match, `-c` counts matching lines and `-l` prints only file names.']},
+
+{id:311, topic:103, type:'single',
+ q:['¿Qué hace `grep -v error registro.log`?','What does `grep -v error registro.log` do?'],
+ o:[['Muestra las líneas que NO contienen la palabra error','It shows the lines that do NOT contain the word error'],
+    ['Muestra las líneas que contienen error','It shows the lines that contain error'],
+    ['Cuenta las apariciones de error','It counts the occurrences of error'],
+    ['Muestra el archivo en modo verboso','It shows the file in verbose mode']],
+ a:[0],
+ ex:['`-v` invierte el criterio. Es habitual combinarlo en tuberías para descartar líneas, por ejemplo `ps aux | grep -v grep`.',
+     '`-v` inverts the criterion. It is often used in pipes to discard lines, for example `ps aux | grep -v grep`.']},
+
+{id:312, topic:103, type:'single',
+ q:['¿Qué hace `grep -r "TODO" .`?','What does `grep -r "TODO" .` do?'],
+ o:[['Busca la cadena TODO en los archivos del directorio actual y de sus subdirectorios','It searches the string TODO in the files of the current directory and its subdirectories'],
+    ['Busca solo en el directorio actual sin entrar en subdirectorios','It searches only in the current directory without entering subdirectories'],
+    ['Reemplaza TODO por un punto','It replaces TODO with a dot'],
+    ['Busca archivos cuyo nombre sea TODO','It searches for files named TODO']],
+ a:[0],
+ ex:['`-r` recorre el árbol de directorios de forma recursiva a partir de la ruta indicada.',
+     '`-r` walks the directory tree recursively starting at the given path.']},
+
+{id:313, topic:103, type:'single',
+ q:['En una expresión regular, ¿qué significa el metacarácter `^`?','In a regular expression, what does the `^` metacharacter mean?'],
+ o:[['El inicio de la línea','The beginning of the line'],
+    ['El final de la línea','The end of the line'],
+    ['Cualquier carácter','Any character'],
+    ['Cero o más repeticiones','Zero or more repetitions']],
+ a:[0],
+ ex:['`^` ancla al inició de línea y `$` al final; así `grep "^root" /etc/passwd` busca líneas que empiezan por root. Dentro de corchetes, como en `[^a]`, `^` niega el conjunto.',
+     '`^` anchors to the start of the line and `$` to the end; so `grep "^root" /etc/passwd` finds lines starting with root. Inside brackets, as in `[^a]`, `^` negates the set.']},
+
+{id:314, topic:103, type:'single',
+ q:['En expresiones regulares, ¿qué representa el punto `.`?','In regular expressions, what does the dot `.` represent?'],
+ o:[['Cualquier carácter individual','Any single character'],
+    ['Un punto literal','A literal dot'],
+    ['Cero o más caracteres','Zero or more characters'],
+    ['El inicio de la línea','The start of the line']],
+ a:[0],
+ ex:['`.` coincide con un carácter cualquiera y `.*` con cualquier secuencia. Para buscar un punto literal hay que escaparlo: `\\.`',
+     '`.` matches any single character and `.*` matches any sequence. To match a literal dot it must be escaped: `\\.`']},
+
+{id:315, topic:103, type:'single',
+ q:['¿Qué comando cuenta el número de líneas de un archivo?','Which command counts the number of lines in a file?'],
+ o:[['wc -l archivo','wc -l file'],['wc -w archivo','wc -w file'],['wc -c archivo','wc -c file'],['wc -m archivo','wc -m file']],
+ a:[0],
+ ex:['`-l` cuenta líneas, `-w` palabras y `-c` bytes. Es muy común al final de una tubería: `grep error log | wc -l`.',
+     '`-l` counts lines, `-w` words and `-c` bytes. It is very common at the end of a pipe: `grep error log | wc -l`.']},
+
+{id:316, topic:103, type:'single',
+ q:['¿Qué muestra `head -n 5 registro.log`?','What does `head -n 5 registro.log` display?'],
+ o:[['Las primeras 5 líneas del archivo','The first 5 lines of the file'],
+    ['Las últimas 5 líneas del archivo','The last 5 lines of the file'],
+    ['Los primeros 5 caracteres','The first 5 characters'],
+    ['Las 5 líneas más largas','The 5 longest lines']],
+ a:[0],
+ ex:['`head` muestra el principio y `tail` el final; ambos usan 10 líneas por omisión.',
+     '`head` shows the beginning and `tail` the end; both default to 10 lines.']},
+
+{id:317, topic:103, type:'single',
+ q:['¿Qué hace `tail -f /var/log/syslog`?','What does `tail -f /var/log/syslog` do?'],
+ o:[['Muestra el final del archivo y sigue mostrando las líneas nuevas a medida que se escriben','It shows the end of the file and keeps printing new lines as they are written'],
+    ['Abre el archivo en un editor','It opens the file in an editor'],
+    ['Filtra el archivo por fecha','It filters the file by date'],
+    ['Vacía el archivo de registro','It empties the log file']],
+ a:[0],
+ ex:['`-f` (follow) es la forma habitual de vigilar registros en tiempo real. Se interrumpe con Ctrl+C.',
+     '`-f` (follow) is the usual way to watch logs in real time. Stop it with Ctrl+C.']},
+
+{id:318, topic:103, type:'single',
+ q:['¿Qué opción de `sort` ordena los valores como números y no como texto?','Which `sort` option orders values numerically instead of as text?'],
+ o:[['-n','-n'],['-r','-r'],['-u','-u'],['-k','-k']],
+ a:[0],
+ ex:['`-n` ordena numéricamente, `-r` invierte el orden, `-u` elimina duplicados y `-k` selecciona la columna clave. Sin `-n`, 10 se ordena antes que 9.',
+     '`-n` sorts numerically, `-r` reverses the order, `-u` removes duplicates and `-k` selects the key column. Without `-n`, 10 sorts before 9.']},
+
+{id:319, topic:103, type:'single',
+ q:['¿Por qué suele usarse `sort` antes de `uniq`?','Why is `sort` usually used before `uniq`?'],
+ o:[['Porque `uniq` solo elimina líneas duplicadas que son adyacentes','Because `uniq` only removes duplicate lines that are adjacent'],
+    ['Porque `uniq` no acepta entrada por tubería','Because `uniq` does not accept piped input'],
+    ['Porque `sort` cuenta las repeticiones','Because `sort` counts the repetitions'],
+    ['Porque `uniq` necesita números','Because `uniq` requires numbers']],
+ a:[0],
+ ex:['La combinación típica es `sort archivo | uniq -c`, donde `-c` añade el número de repeticiones de cada línea.',
+     'The typical combination is `sort file | uniq -c`, where `-c` prepends the number of occurrences of each line.']},
+
+{id:320, topic:103, type:'single',
+ q:['¿Qué muestra `cut -d: -f1 /etc/passwd`?','What does `cut -d: -f1 /etc/passwd` display?'],
+ o:[['Los nombres de usuario, es decir el primer campo delimitado por dos puntos','The user names, that is the first field delimited by colons'],
+    ['El archivo completo','The complete file'],
+    ['El primer carácter de cada línea','The first character of each line'],
+    ['Los shells de cada usuario','The shell of each user']],
+ a:[0],
+ ex:['`-d` fija el delimitador y `-f` los campos. El shell de cada usuario sería el campo 7: `cut -d: -f7 /etc/passwd`.',
+     '`-d` sets the delimiter and `-f` the fields. Each user shell would be field 7: `cut -d: -f7 /etc/passwd`.']},
+
+{id:321, topic:103, type:'single',
+ q:['¿Qué hace `sed "s/rojo/azul/g" colores.txt`?','What does `sed "s/rojo/azul/g" colores.txt` do?'],
+ o:[['Muestra el contenido sustituyendo todas las apariciones de rojo por azul, sin modificar el archivo','It prints the content replacing every occurrence of rojo with azul, without modifying the file'],
+    ['Modifica el archivo en el disco','It modifies the file on disk'],
+    ['Sustituye solo la primera aparición de cada línea','It replaces only the first occurrence in each line'],
+    ['Elimina las líneas que contienen rojo','It deletes the lines containing rojo']],
+ a:[0],
+ ex:['`sed` escribe el resultado en la salida estándar. El modificador `g` hace la sustitución global en cada línea y la opción `-i` modificaría el archivo original.',
+     '`sed` writes the result to standard output. The `g` flag makes the substitution global in each line, and the `-i` option would edit the original file.']},
+
+{id:322, topic:103, type:'single',
+ q:['¿Qué comando convierte las minusculas en mayusculas en un flujo de texto?','Which command converts lowercase to uppercase in a text stream?'],
+ o:[['tr a-z A-Z','tr a-z A-Z'],['cut -u','cut -u'],['sort -u','sort -u'],['wc -m','wc -m']],
+ a:[0],
+ ex:['`tr` (translate) sustituye o elimina caracteres y solo trabaja con la entrada estándar, por ejemplo `cat nombres.txt | tr a-z A-Z`.',
+     '`tr` (translate) replaces or deletes characters and only works on standard input, for example `cat nombres.txt | tr a-z A-Z`.']},
+
+{id:323, topic:103, type:'single',
+ q:['¿Cómo se sale del paginador `less`?','How do you exit the `less` pager?'],
+ o:[['Pulsando la tecla q','By pressing the q key'],
+    ['Escribiendo :wq','By typing :wq'],
+    ['Pulsando Esc dos veces','By pressing Esc twice'],
+    ['Pulsando Ctrl+S','By pressing Ctrl+S']],
+ a:[0],
+ ex:['En `less` se navega con las flechas, Espacio y las teclas b, se busca con `/` y se sale con q. `:wq` corresponde al editor vi.',
+     'In `less` you navigate with the arrows, Space and b, search with `/` and quit with q. `:wq` belongs to the vi editor.']},
+
+{id:324, topic:103, type:'single',
+ q:['¿Qué es la primera línea `#!/bin/bash` de un script?','What is the first line `#!/bin/bash` of a script?'],
+ o:[['El shebang, que indica el intérprete con el que debe ejecutarse el script','The shebang, which declares the interpreter that must run the script'],
+    ['Un comentario que el sistema ignora por completo','A comment that the system ignores completely'],
+    ['La declaración de una variable','A variable declaration'],
+    ['Una línea obligatoria en todo archivo de texto','A mandatory line in every text file']],
+ a:[0],
+ ex:['El kernel lee los dos primeros caracteres `#!` y ejecuta el intérprete indicado pasandole el script. Sin shebang, el script se ejecuta con el shell actual.',
+     'The kernel reads the first two characters `#!` and runs the given interpreter with the script as argument. Without a shebang, the script runs with the current shell.']},
+
+{id:325, topic:103, type:'fill',
+ q:['Escribe el comando que añade permiso de ejecución a `script.sh` para todos los usuarios.','Type the command that adds execute permission on `script.sh` for all users.'],
+ accept:['chmod +x script.sh','chmod a+x script.sh','chmod ugo+x script.sh','chmod 755 script.sh'],
+ ex:['`chmod +x script.sh` aplica el permiso de ejecución según la umask, en la práctica a todos. También es válido el modo octal `chmod 755 script.sh`.',
+     '`chmod +x script.sh` applies the execute permission according to the umask, in practice to everybody. The octal mode `chmod 755 script.sh` is also valid.']},
+
+{id:326, topic:103, type:'single',
+ q:['En un script de Bash, ¿qué contiene `$1`?','In a Bash script, what does `$1` contain?'],
+ o:[['El primer argumento pasado al script','The first argument passed to the script'],
+    ['El nombre del script','The name of the script'],
+    ['El número de argumentos recibidos','The number of arguments received'],
+    ['El código de salida del script','The exit code of the script']],
+ a:[0],
+ ex:['`$0` es el nombre del script, `$1`, `$2`... los argumentos posicionales, `$#` la cantidad de argumentos y `$@` todos ellos.',
+     '`$0` is the script name, `$1`, `$2`... the positional arguments, `$#` the number of arguments and `$@` all of them.']},
+
+{id:327, topic:103, type:'fill',
+ q:['Escribe la variable especial de Bash que contiene el código de salida del último comando ejecutado.','Type the special Bash variable that holds the exit code of the last executed command.'],
+ accept:['$?','?'],
+ ex:['`echo $?` muestra el código de salida: 0 indica éxito y cualquier valor distinto de cero indica un fallo.',
+     '`echo $?` shows the exit code: 0 means success and any non-zero value means failure.']},
+
+{id:328, topic:103, type:'single',
+ q:['¿Qué código de salida indica, por convención, que un comando terminó correctamente?','Which exit code conventionally means that a command finished successfully?'],
+ o:[['0','0'],['1','1'],['255','255'],['-1','-1']],
+ a:[0],
+ ex:['0 es éxito; los valores de 1 a 255 indican distintos tipos de error definidos por cada programa.',
+     '0 is success; values from 1 to 255 signal different error conditions defined by each program.']},
+
+{id:329, topic:103, type:'single',
+ q:['¿Cuál asigna correctamente una variable en Bash?','Which one correctly assigns a variable in Bash?'],
+ o:[['nombre="Ana"','nombre="Ana"'],['nombre = "Ana"','nombre = "Ana"'],['set nombre "Ana"','set nombre "Ana"'],['$nombre="Ana"','$nombre="Ana"']],
+ a:[0],
+ ex:['No debe haber espacios alrededor del signo igual. El signo `$` solo se usa al leer el valor de la variable, no al asignarlo.',
+     'There must be no spaces around the equals sign. The `$` sign is only used when reading the value, not when assigning it.']},
+
+{id:330, topic:103, type:'single',
+ q:['¿Qué efecto tiene `export EDITOR=vim`?','What is the effect of `export EDITOR=vim`?'],
+ o:[['Hace que la variable esté disponible para los procesos hijos del shell','It makes the variable available to the child processes of the shell'],
+    ['Guarda la variable permanentemente en el disco','It stores the variable permanently on disk'],
+    ['Convierte la variable en de solo lectura','It makes the variable read only'],
+    ['Elimina la variable del entorno','It removes the variable from the environment']],
+ a:[0],
+ ex:['Sin `export` la variable es local al shell actual. Para que sea permanente hay que añadir la línea a `~/.bashrc` o `~/.profile`.',
+     'Without `export` the variable is local to the current shell. To make it permanent add the line to `~/.bashrc` or `~/.profile`.']},
+
+{id:331, topic:103, type:'single',
+ q:['¿Qué hace la instrucción `hoy=$(date +%F)`?','What does the statement `hoy=$(date +%F)` do?'],
+ o:[['Guarda en la variable la salida del comando `date` (sustitución de comandos)','It stores the output of the `date` command in the variable (command substitution)'],
+    ['Guarda el texto literal $(date +%F)','It stores the literal text $(date +%F)'],
+    ['Ejecuta `date` en segundo plano','It runs `date` in the background'],
+    ['Define una función llamada hoy','It defines a function named hoy']],
+ a:[0],
+ ex:['`$(comando)` ejecuta el comando y sustituye la expresión por su salida. La forma antigua equivalente usa acentos graves.',
+     '`$(command)` runs the command and replaces the expression with its output. The older equivalent form uses backticks.']},
+
+{id:332, topic:103, type:'single',
+ q:['¿Qué comprueba la expresión `[ -d /etc ]`?','What does the expression `[ -d /etc ]` test?'],
+ o:[['Si /etc existe y es un directorio','Whether /etc exists and is a directory'],
+    ['Si /etc existe y es un archivo regular','Whether /etc exists and is a regular file'],
+    ['Si /etc tiene permiso de ejecución','Whether /etc has execute permission'],
+    ['Si la cadena /etc está vacía','Whether the string /etc is empty']],
+ a:[0],
+ ex:['`-d` directorio, `-f` archivo regular, `-e` existe, `-x` ejecutable, `-z` cadena vacía. Los corchetes son el comando `test` y necesitan espacios internos.',
+     '`-d` directory, `-f` regular file, `-e` exists, `-x` executable, `-z` empty string. The brackets are the `test` command and require inner spaces.']},
+
+{id:333, topic:103, type:'single',
+ q:['¿Cuál es la sintaxis correcta de un bucle for en Bash?','Which is the correct syntax of a for loop in Bash?'],
+ o:[['for f in *.txt; do echo "$f"; done','for f in *.txt; do echo "$f"; done'],
+    ['for (f in *.txt) { echo $f }','for (f in *.txt) { echo $f }'],
+    ['for f in *.txt: echo $f','for f in *.txt: echo $f'],
+    ['foreach f (*.txt) echo $f end','foreach f (*.txt) echo $f end']],
+ a:[0],
+ ex:['La estructura es `for variable in lista; do ... done`. Dentro del cuerpo la variable se lee con `$f`, preferiblemente entre comillas.',
+     'The structure is `for variable in list; do ... done`. Inside the body the variable is read as `$f`, preferably quoted.']},
+
+{id:334, topic:103, type:'single',
+ q:['¿Qué hace `read -p "Nombre: " nombre` en un script?','What does `read -p "Nombre: " nombre` do in a script?'],
+ o:[['Muestra el mensaje y guarda en la variable lo que escriba el usuario','It shows the prompt and stores what the user types in the variable'],
+    ['Lee la primera línea de un archivo llamado nombre','It reads the first line of a file named nombre'],
+    ['Imprime el valor de la variable nombre','It prints the value of the variable nombre'],
+    ['Da error porque `read` no acepta opciones','It fails because `read` accepts no options']],
+ a:[0],
+ ex:['`read` lee de la entrada estándar; la opción `-p` muestra un mensaje previo sin salto de línea.',
+     '`read` reads from standard input; the `-p` option shows a prompt without a trailing newline.']},
+
+{id:335, topic:103, type:'single',
+ q:['¿Qué significa `comando1 && comando2`?','What does `comando1 && comando2` mean?'],
+ o:[['Ejecuta comando2 solo si comando1 termina con éxito','It runs comando2 only if comando1 finishes successfully'],
+    ['Ejecuta los dos comandos siempre','It always runs both commands'],
+    ['Ejecuta comando2 solo si comando1 falla','It runs comando2 only if comando1 fails'],
+    ['Ejecuta los dos comandos en segundo plano','It runs both commands in the background']],
+ a:[0],
+ ex:['`&&` es un Y lógico condicionado al código de salida 0; `||` ejecuta el segundo comando solo si el primero falla, y `;` los ejecuta siempre en secuencia.',
+     '`&&` is a logical AND based on exit code 0; `||` runs the second command only if the first fails, and `;` always runs them in sequence.']},
+
+{id:336, topic:103, type:'multi',
+ q:['¿Cuáles afirmaciones sobre la estructura `if` en Bash son correctas? Marca todas las que correspondan.','Which statements about the Bash `if` structure are correct? Select all that apply.'],
+ o:[['Los corchetes `[ ]` equivalen al comando `test` y requieren espacios interiores','The brackets `[ ]` are equivalent to the `test` command and require inner spaces'],
+    ['El bloque se cierra con `fi`','The block is closed with `fi`'],
+    ['La palabra `then` introduce las instrucciones a ejecutar','The keyword `then` introduces the statements to run'],
+    ['El bloque se cierra con `endif`','The block is closed with `endif`']],
+ a:[0,1,2],
+ ex:['La forma completa es: `if [ condicion ]; then ... elif [ ... ]; then ... else ... fi`. `endif` no existe en Bash.',
+     'The full form is: `if [ condition ]; then ... elif [ ... ]; then ... else ... fi`. `endif` does not exist in Bash.']},
+
+{id:337, topic:103, type:'single',
+ q:['¿Cómo se ejecuta un script llamado `copia.sh` que está en el directorio actual y no forma parte del PATH?','How do you run a script named `copia.sh` that is in the current directory and not part of the PATH?'],
+ o:[['./copia.sh','./copia.sh'],['copia.sh','copia.sh'],['run copia.sh','run copia.sh'],['exec -s copia.sh','exec -s copia.sh']],
+ a:[0],
+ ex:['Por seguridad el directorio actual no está en el PATH, por eso hay que indicar la ruta con `./`. También se puede invocar el intérprete: `bash copia.sh`.',
+     'For security reasons the current directory is not in the PATH, so the path must be given with `./`. You can also invoke the interpreter: `bash copia.sh`.']},
+
+{id:338, topic:103, type:'single',
+ q:['¿Qué hace el comando `echo "Hola" > saludo.txt` seguido de `echo "Adios" > saludo.txt`?','What is the result of `echo "Hola" > saludo.txt` followed by `echo "Adios" > saludo.txt`?'],
+ o:[['El archivo contiene solo la palabra Adios','The file contains only the word Adios'],
+    ['El archivo contiene las dos líneas','The file contains both lines'],
+    ['El segundo comando da error','The second command fails'],
+    ['El archivo queda vacío','The file ends up empty']],
+ a:[0],
+ ex:['Cada `>` trunca el archivo antes de escribir. Para acumular las dos líneas habría que usar `>>` en el segundo comando.',
+     'Each `>` truncates the file before writing. To keep both lines the second command should use `>>`.']}
+);
+</script>
+<script>
+/* ===== Tema 104: El sistema operativo Linux ===== */
+Q.push(
+{id:401, topic:104, type:'single',
+ q:['¿Qué significa LTS en el nombre de una versión de una distribución?','What does LTS mean in the name of a distribution release?'],
+ o:[['Que recibirá soporte y actualizaciones de seguridad durante un periodo prolongado','That it will receive support and security updates for an extended period'],
+    ['Que es una versión de prueba','That it is a testing release'],
+    ['Que requiere una licencia comercial','That it requires a commercial license'],
+    ['Que solo incluye herramientas de línea de comandos','That it only includes command line tools']],
+ a:[0],
+ ex:['LTS significa Long Term Support. Ubuntu LTS, por ejemplo, recibe soporte durante cinco años, frente a nueve meses de las versiones normales.',
+     'LTS stands for Long Term Support. Ubuntu LTS, for example, is supported for five years, versus nine months for regular releases.']},
+
+{id:402, topic:104, type:'single',
+ q:['¿Cuál es el archivo de dispositivo del primer disco SATA, SAS o USB detectado por el sistema?','Which is the device file of the first SATA, SAS or USB disk detected by the system?'],
+ o:[['/dev/sda','/dev/sda'],['/dev/disk0','/dev/disk0'],['/dev/hd0','/dev/hd0'],['/dev/sd1','/dev/sd1']],
+ a:[0],
+ ex:['Los discos se nombran `/dev/sda`, `/dev/sdb`, etc. Los discos NVMe usan otro esquema: `/dev/nvme0n1`.',
+     'Disks are named `/dev/sda`, `/dev/sdb`, and so on. NVMe disks use a different scheme: `/dev/nvme0n1`.']},
+
+{id:403, topic:104, type:'single',
+ q:['¿Qué representa `/dev/sdb3`?','What does `/dev/sdb3` represent?'],
+ o:[['La tercera partición del segundo disco','The third partition of the second disk'],
+    ['El tercer disco del segundo controlador','The third disk of the second controller'],
+    ['La segunda partición del tercer disco','The second partition of the third disk'],
+    ['Un dispositivo de cinta','A tape device']],
+ a:[0],
+ ex:['La letra identifica el disco (b es el segundo) y el número la partición dentro de ese disco.',
+     'The letter identifies the disk (b is the second one) and the number the partition within that disk.']},
+
+{id:404, topic:104, type:'single',
+ q:['¿Qué comando lista los dispositivos de bloque con sus particiones y puntos de montaje?','Which command lists block devices with their partitions and mount points?'],
+ o:[['lsblk','lsblk'],['lspci','lspci'],['lsusb','lsusb'],['lsmod','lsmod']],
+ a:[0],
+ ex:['`lsblk` muestra discos y particiones en forma de árbol. `lspci` lista los dispositivos del bus PCI, `lsusb` los USB y `lsmod` los módulos del kernel cargados.',
+     '`lsblk` shows disks and partitions as a tree. `lspci` lists PCI bus devices, `lsusb` the USB ones and `lsmod` the loaded kernel modules.']},
+
+{id:405, topic:104, type:'single',
+ q:['¿Qué contiene el sistema de archivos virtual `/proc`?','What does the `/proc` virtual file system contain?'],
+ o:[['Información del kernel y de los procesos en ejecución, generada en memoria','Kernel and running process information, generated in memory'],
+    ['Los archivos de configuración del sistema','The system configuration files'],
+    ['Los registros históricos del sistema','The historical system logs'],
+    ['Los programas ejecutables del sistema','The system executable programs']],
+ a:[0],
+ ex:['`/proc` no ocupa espacio en disco: el kernel lo genera al momento. Contiene un directorio por PID y archivos como `/proc/cpuinfo` o `/proc/meminfo`. `/sys` expone información de dispositivos y controladores.',
+     '`/proc` uses no disk space: the kernel generates it on the fly. It contains one directory per PID plus files such as `/proc/cpuinfo` or `/proc/meminfo`. `/sys` exposes device and driver information.']},
+
+{id:406, topic:104, type:'single',
+ q:['¿Qué comando muestra la memoria RAM total, usada y disponible?','Which command shows total, used and available RAM?'],
+ o:[['free -h','free -h'],['df -h','df -h'],['du -h','du -h'],['lsblk -m','lsblk -m']],
+ a:[0],
+ ex:['`free` informa de la memoria RAM y del espacio de intercambio (swap). `df` muestra el espacio de los sistemas de archivos y `du` el uso por directorio.',
+     '`free` reports RAM and swap usage. `df` shows file system space and `du` per-directory usage.']},
+
+{id:407, topic:104, type:'single',
+ q:['¿Qué comando muestra el espacio libre y ocupado de los sistemas de archivos montados?','Which command shows free and used space of the mounted file systems?'],
+ o:[['df -h','df -h'],['du -sh','du -sh'],['free -m','free -m'],['fdisk -l','fdisk -l']],
+ a:[0],
+ ex:['`df -h` (disk free) da una vista por sistema de archivos en unidades legibles. `du -sh directorio` resume cuánto ocupa un directorio concreto.',
+     '`df -h` (disk free) gives a per-file-system view in human readable units. `du -sh directory` summarizes how much a given directory uses.']},
+
+{id:408, topic:104, type:'single',
+ q:['¿Qué comando muestra los procesos en ejecución actualizándose de forma continua?','Which command shows running processes updating continuously?'],
+ o:[['top','top'],['ps','ps'],['jobs','jobs'],['pstree','pstree']],
+ a:[0],
+ ex:['`top` (o `htop`) es interactivo y se actualiza cada pocos segundos. `ps` toma una instantánea, `jobs` lista los trabajos del shell actual y `pstree` muestra la jerarquía de procesos.',
+     '`top` (or `htop`) is interactive and refreshes every few seconds. `ps` takes a snapshot, `jobs` lists the current shell jobs and `pstree` shows the process hierarchy.']},
+
+{id:409, topic:104, type:'single',
+ q:['¿Qué identifica de forma única a cada proceso en ejecución?','What uniquely identifies each running process?'],
+ o:[['El PID','The PID'],['El nombre del programa','The program name'],['El UID del usuario','The user UID'],['El terminal asociado','The associated terminal']],
+ a:[0],
+ ex:['El PID (Process ID) es un número único asignado por el kernel. Varios procesos pueden compartir nombre, usuario o terminal.',
+     'The PID (Process ID) is a unique number assigned by the kernel. Several processes may share the same name, user or terminal.']},
+
+{id:410, topic:104, type:'single',
+ q:['¿Qué hace `kill -9 1234`?','What does `kill -9 1234` do?'],
+ o:[['Envía la señal SIGKILL al proceso 1234, que termina de inmediato sin poder limpiar','It sends SIGKILL to process 1234, which is terminated immediately with no chance to clean up'],
+    ['Envía la señal SIGTERM para una terminación ordenada','It sends SIGTERM for a graceful shutdown'],
+    ['Mata nueve procesos empezando por el 1234','It kills nine processes starting at 1234'],
+    ['Reinicia el proceso 1234','It restarts process 1234']],
+ a:[0],
+ ex:['Sin opciones, `kill` envía SIGTERM (15), que permite al programa cerrar archivos y guardar datos. SIGKILL (9) no puede ser ignorado y debe reservarse para procesos que no responden.',
+     'With no options, `kill` sends SIGTERM (15), letting the program close files and save data. SIGKILL (9) cannot be caught and should be reserved for unresponsive processes.']},
+
+{id:411, topic:104, type:'single',
+ q:['¿En qué directorio se almacenan tradicionalmente los archivos de registro del sistema?','In which directory are system log files traditionally stored?'],
+ o:[['/var/log','/var/log'],['/etc/log','/etc/log'],['/tmp/log','/tmp/log'],['/usr/log','/usr/log']],
+ a:[0],
+ ex:['`/var/log` contiene archivos como `syslog`, `messages`, `auth.log` o `dmesg`. Suelen requerir privilegios para leerse y son rotados por `logrotate`.',
+     '`/var/log` holds files such as `syslog`, `messages`, `auth.log` or `dmesg`. They usually require privileges to read and are rotated by `logrotate`.']},
+
+{id:412, topic:104, type:'single',
+ q:['¿Qué comando consulta el registro del sistema en distribuciones que usan systemd?','Which command queries the system log on distributions using systemd?'],
+ o:[['journalctl','journalctl'],['logrotate','logrotate'],['syslog','syslog'],['tail -j','tail -j']],
+ a:[0],
+ ex:['`journalctl` lee el diario binario de systemd. Opciones útiles: `-f` para seguir en vivo, `-b` para el arranque actual y `-u servicio` para filtrar por unidad.',
+     '`journalctl` reads the systemd binary journal. Useful options: `-f` to follow live, `-b` for the current boot and `-u unit` to filter by unit.']},
+
+{id:413, topic:104, type:'single',
+ q:['¿Qué muestra el comando `dmesg`?','What does the `dmesg` command show?'],
+ o:[['Los mensajes del kernel, incluida la detección de hardware','Kernel messages, including hardware detection'],
+    ['Los mensajes de correo pendientes','Pending mail messages'],
+    ['Los intentos de inició de sesión','Login attempts'],
+    ['El uso de disco por directorio','Disk usage per directory']],
+ a:[0],
+ ex:['`dmesg` lee el buffer circular del kernel; es la primera herramienta para diagnosticar hardware recién conectado o problemas de controladores.',
+     '`dmesg` reads the kernel ring buffer; it is the first tool to diagnose newly attached hardware or driver problems.']},
+
+{id:414, topic:104, type:'single',
+ q:['¿Cuál es la función principal del kernel?','What is the main role of the kernel?'],
+ o:[['Gestionar el hardware y los recursos del sistema y ofrecer servicios a los procesos','Manage the hardware and system resources and provide services to processes'],
+    ['Proporcionar la interfaz gráfica de usuario','Provide the graphical user interface'],
+    ['Interpretar los comandos que escribe el usuario','Interpret the commands typed by the user'],
+    ['Instalar y actualizar paquetes de software','Install and update software packages']],
+ a:[0],
+ ex:['El kernel administra CPU, memoria, dispositivos y sistemas de archivos, y expone llamadas al sistema. Interpretar comandos es tarea del shell.',
+     'The kernel manages CPU, memory, devices and file systems, and exposes system calls. Interpreting commands is the shell job.']},
+
+{id:415, topic:104, type:'single',
+ q:['¿Qué comando muestra las bibliotecas compartidas que necesita un ejecutable?','Which command shows the shared libraries an executable needs?'],
+ o:[['ldd /usr/bin/ls','ldd /usr/bin/ls'],['lsmod /usr/bin/ls','lsmod /usr/bin/ls'],['file /usr/bin/ls','file /usr/bin/ls'],['ln -s /usr/bin/ls','ln -s /usr/bin/ls']],
+ a:[0],
+ ex:['`ldd` lista las dependencias de bibliotecas dinámicas (archivos .so). `ldconfig` actualiza la caché de bibliotecas del sistema.',
+     '`ldd` lists dynamic library dependencies (.so files). `ldconfig` refreshes the system library cache.']},
+
+{id:416, topic:104, type:'single',
+ q:['Según el estándar FHS, ¿qué directorio contiene los archivos de configuración del sistema?','According to the FHS standard, which directory holds the system configuration files?'],
+ o:[['/etc','/etc'],['/var','/var'],['/opt','/opt'],['/usr/bin','/usr/bin']],
+ a:[0],
+ ex:['`/etc` guarda configuración en texto plano, `/var` datos variables, `/opt` software adicional de terceros y `/usr/bin` los ejecutables de usuario.',
+     '`/etc` stores plain text configuration, `/var` variable data, `/opt` add-on third party software and `/usr/bin` the user executables.']},
+
+{id:417, topic:104, type:'single',
+ q:['¿Qué directorio contiene datos variables como registros, colas de impresión y cachés?','Which directory contains variable data such as logs, print queues and caches?'],
+ o:[['/var','/var'],['/etc','/etc'],['/home','/home'],['/boot','/boot']],
+ a:[0],
+ ex:['`/var` crece con el uso del sistema. `/boot` contiene el kernel y el gestor de arranque, y `/home` los datos de los usuarios.',
+     '`/var` grows with system use. `/boot` contains the kernel and boot loader, and `/home` the user data.']},
+
+{id:418, topic:104, type:'single',
+ q:['¿Qué comando muestra las direcciones IP configuradas en las interfaces de red?','Which command shows the IP addresses configured on the network interfaces?'],
+ o:[['ip addr show','ip addr show'],['ip route show','ip route show'],['ss -tuln','ss -tuln'],['ping -a','ping -a']],
+ a:[0],
+ ex:['`ip addr show` (abreviado `ip a`) sustituye al antiguo `ifconfig`. `ip route show` muestra la tabla de rutas y `ss` los puertos y conexiones.',
+     '`ip addr show` (short form `ip a`) replaces the legacy `ifconfig`. `ip route show` displays the routing table and `ss` the ports and connections.']},
+
+{id:419, topic:104, type:'single',
+ q:['¿Qué herramienta comprueba la conectividad con otro host enviando paquetes ICMP?','Which tool checks connectivity with another host by sending ICMP packets?'],
+ o:[['ping','ping'],['ssh','ssh'],['dig','dig'],['scp','scp']],
+ a:[0],
+ ex:['`ping` mide si el host responde y con qué latencia. `dig` y `host` consultan el DNS; `ssh` y `scp` son acceso remoto y copia de archivos.',
+     '`ping` measures whether the host answers and with what latency. `dig` and `host` query DNS; `ssh` and `scp` are remote access and file copy.']},
+
+{id:420, topic:104, type:'single',
+ q:['¿Cuál es la función del DNS?','What is the purpose of DNS?'],
+ o:[['Traducir nombres de dominio en direcciones IP','Translate domain names into IP addresses'],
+    ['Asignar direcciones IP automáticamente a los clientes','Automatically assign IP addresses to clients'],
+    ['Cifrar el tráfico de red','Encrypt network traffic'],
+    ['Enrutar los paquetes entre redes','Route packets between networks']],
+ a:[0],
+ ex:['La asignación automática de direcciones es tarea de DHCP y el enrutamiento del router o de la puerta de enlace.',
+     'Automatic address assignment is the job of DHCP, and routing belongs to the router or default gateway.']},
+
+{id:421, topic:104, type:'single',
+ q:['¿Qué archivo indica los servidores DNS que utiliza el sistema?','Which file states the DNS servers used by the system?'],
+ o:[['/etc/resolv.conf','/etc/resolv.conf'],['/etc/hosts','/etc/hosts'],['/etc/hostname','/etc/hostname'],['/etc/services','/etc/services']],
+ a:[0],
+ ex:['`/etc/resolv.conf` contiene las líneas `nameserver`. `/etc/hostname` guarda el nombre del equipo y `/etc/services` la relación entre servicios y puertos.',
+     '`/etc/resolv.conf` contains the `nameserver` lines. `/etc/hostname` holds the machine name and `/etc/services` maps services to ports.']},
+
+{id:422, topic:104, type:'single',
+ q:['¿Qué archivo permite resolver nombres de host localmente sin consultar un servidor DNS?','Which file allows host names to be resolved locally without querying a DNS server?'],
+ o:[['/etc/hosts','/etc/hosts'],['/etc/resolv.conf','/etc/resolv.conf'],['/etc/networks','/etc/networks'],['/etc/hostname','/etc/hostname']],
+ a:[0],
+ ex:['`/etc/hosts` asocia direcciones IP con nombres y se consulta antes del DNS. Siempre incluye la línea `127.0.0.1 localhost`.',
+     '`/etc/hosts` maps IP addresses to names and is consulted before DNS. It always includes the line `127.0.0.1 localhost`.']},
+
+{id:423, topic:104, type:'multi',
+ q:['¿Cuáles de estas direcciones IPv4 pertenecen a rangos privados? Marca todas las que correspondan.','Which of these IPv4 addresses belong to private ranges? Select all that apply.'],
+ o:[['192.168.1.10','192.168.1.10'],['10.0.5.4','10.0.5.4'],['172.16.3.1','172.16.3.1'],['8.8.8.8','8.8.8.8']],
+ a:[0,1,2],
+ ex:['Los rangos privados son 10.0.0.0/8, 172.16.0.0/12 y 192.168.0.0/16. 8.8.8.8 es una dirección pública (DNS de Google).',
+     'The private ranges are 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16. 8.8.8.8 is a public address (Google DNS).']},
+
+{id:424, topic:104, type:'single',
+ q:['¿Qué dirección corresponde a localhost en IPv4?','Which address corresponds to localhost in IPv4?'],
+ o:[['127.0.0.1','127.0.0.1'],['0.0.0.0','0.0.0.0'],['192.168.0.1','192.168.0.1'],['255.255.255.255','255.255.255.255']],
+ a:[0],
+ ex:['127.0.0.1 es la interfaz de bucle local (lo). En IPv6 el equivalente es `::1`. 0.0.0.0 significa cualquier dirección al poner un servicio en escucha.',
+     '127.0.0.1 is the loopback interface (lo). Its IPv6 equivalent is `::1`. 0.0.0.0 means any address when binding a listening service.']},
+
+{id:425, topic:104, type:'single',
+ q:['¿A qué máscara de subred equivale el prefijo /24?','Which subnet mask does the /24 prefix correspond to?'],
+ o:[['255.255.255.0','255.255.255.0'],['255.255.0.0','255.255.0.0'],['255.0.0.0','255.0.0.0'],['255.255.255.255','255.255.255.255']],
+ a:[0],
+ ex:['El prefijo indica cuántos bits pertenecen a la red: /24 son 24 bits, es decir 255.255.255.0, y quedan 254 direcciones utilizables para hosts.',
+     'The prefix states how many bits belong to the network: /24 is 24 bits, that is 255.255.255.0, leaving 254 usable host addresses.']},
+
+{id:426, topic:104, type:'single',
+ q:['¿Qué comando muestra los puertos en escucha y las conexiones de red activas?','Which command shows listening ports and active network connections?'],
+ o:[['ss -tuln','ss -tuln'],['ip addr','ip addr'],['df -h','df -h'],['dmesg','dmesg']],
+ a:[0],
+ ex:['`ss` sustituye al antiguo `netstat`. Las opciones habituales son `-t` TCP, `-u` UDP, `-l` en escucha y `-n` sin resolver nombres.',
+     '`ss` replaces the legacy `netstat`. Common options are `-t` TCP, `-u` UDP, `-l` listening and `-n` no name resolution.']},
+
+{id:427, topic:104, type:'single',
+ q:['¿Qué protocolo permite abrir una sesión de línea de comandos cifrada en un equipo remoto y en qué puerto escucha por omisión?','Which protocol opens an encrypted command line session on a remote machine, and on which default port does it listen?'],
+ o:[['SSH, puerto 22','SSH, port 22'],['Telnet, puerto 23','Telnet, port 23'],['FTP, puerto 21','FTP, port 21'],['HTTP, puerto 80','HTTP, port 80']],
+ a:[0],
+ ex:['SSH cifra toda la sesión y es el estándar actual. Telnet y FTP transmiten las credenciales en texto claro y están obsoletos para este uso.',
+     'SSH encrypts the whole session and is the current standard. Telnet and FTP send credentials in clear text and are obsolete for this purpose.']},
+
+{id:428, topic:104, type:'single',
+ q:['¿Qué es la puerta de enlace predeterminada (default gateway)?','What is the default gateway?'],
+ o:[['El router al que se envía el tráfico destinado a redes distintas de la local','The router to which traffic for networks other than the local one is sent'],
+    ['El servidor DNS principal','The primary DNS server'],
+    ['El servidor DHCP de la red','The DHCP server of the network'],
+    ['La dirección IP del propio equipo','The IP address of the machine itself']],
+ a:[0],
+ ex:['Se consulta con `ip route show`, donde aparece como la ruta `default via`. Sin ella el equipo solo puede comunicarse dentro de su propia subred.',
+     'It is shown by `ip route show`, where it appears as the `default via` route. Without it the machine can only communicate within its own subnet.']},
+
+{id:429, topic:104, type:'single',
+ q:['¿Qué característica distingue a la memoria RAM del almacenamiento en disco?','Which characteristic distinguishes RAM from disk storage?'],
+ o:[['La RAM es volátil: pierde su contenido al apagar el equipo','RAM is volatile: it loses its content when the machine is powered off'],
+    ['La RAM conserva los datos de forma permanente','RAM keeps data permanently'],
+    ['La RAM es más lenta que el disco','RAM is slower than disk'],
+    ['La RAM se mide en revoluciones por minuto','RAM is measured in revolutions per minute']],
+ a:[0],
+ ex:['La RAM es rápida y volátil; el disco es persistente y más lento. El espacio de intercambio (swap) en disco amplía la memoria disponible a costa de rendimiento.',
+     'RAM is fast and volatile; disk is persistent and slower. Swap space on disk extends the available memory at the cost of performance.']},
+
+{id:430, topic:104, type:'single',
+ q:['¿Qué archivo de `/proc` contiene información sobre el procesador del sistema?','Which file in `/proc` contains information about the system processor?'],
+ o:[['/proc/cpuinfo','/proc/cpuinfo'],['/proc/meminfo','/proc/meminfo'],['/proc/mounts','/proc/mounts'],['/proc/version','/proc/version']],
+ a:[0],
+ ex:['`/proc/cpuinfo` detalla modelo, núcleos y características de la CPU; `/proc/meminfo` la memoria, `/proc/mounts` los sistemas de archivos montados y `/proc/version` la versión del kernel.',
+     '`/proc/cpuinfo` details CPU model, cores and features; `/proc/meminfo` covers memory, `/proc/mounts` the mounted file systems and `/proc/version` the kernel version.']}
+);
+</script>
+<script>
+/* ===== Tema 105: Seguridad y permisos de archivos ===== */
+Q.push(
+{id:501, topic:105, type:'single',
+ q:['¿Qué UID tiene siempre la cuenta root?','Which UID does the root account always have?'],
+ o:[['0','0'],['1','1'],['100','100'],['1000','1000']],
+ a:[0],
+ ex:['Cualquier cuenta con UID 0 tiene privilegios totales. Las cuentas de usuario normales suelen empezar en 1000 y las de servicio ocupan valores bajos.',
+     'Any account with UID 0 has full privileges. Regular user accounts usually start at 1000 and service accounts take low values.']},
+
+{id:502, topic:105, type:'single',
+ q:['¿Cuál es la diferencia principal entre `su` y `sudo`?','What is the main difference between `su` and `sudo`?'],
+ o:[['`sudo` ejecuta comandos concretos según una política y pide la contraseña del propio usuario; `su` abre una sesión como otro usuario pidiendo la contraseña de este','`sudo` runs specific commands according to a policy asking for the invoking user password; `su` opens a session as another user asking for that user password'],
+    ['Son sinónimos exactos','They are exact synonyms'],
+    ['`su` deja registro de auditoría y `sudo` no','`su` leaves an audit trail and `sudo` does not'],
+    ['`sudo` solo funciona para el usuario root','`sudo` only works for the root user']],
+ a:[0],
+ ex:['`sudo` permite delegar tareas concretas mediante `/etc/sudoers` y registra cada ejecución, por eso es la práctica recomendada frente a compartir la contraseña de root.',
+     '`sudo` allows delegating specific tasks through `/etc/sudoers` and logs every execution, which is why it is preferred over sharing the root password.']},
+
+{id:503, topic:105, type:'single',
+ q:['¿Qué comando muestra el UID, el GID y los grupos del usuario actual?','Which command shows the UID, GID and groups of the current user?'],
+ o:[['id','id'],['whoami','whoami'],['who','who'],['finger','finger']],
+ a:[0],
+ ex:['`id` muestra identificadores numéricos y nombres. `whoami` solo el nombre del usuario efectivo, `who` los usuarios con sesión abierta y `groups` solo los grupos.',
+     '`id` shows numeric identifiers and names. `whoami` shows only the effective user name, `who` the logged in users and `groups` only the groups.']},
+
+{id:504, topic:105, type:'single',
+ q:['¿Cuántos campos separados por dos puntos tiene cada línea de `/etc/passwd`?','How many colon separated fields does each line of `/etc/passwd` have?'],
+ o:[['7','7'],['5','5'],['9','9'],['4','4']],
+ a:[0],
+ ex:['El formato es usuario:contraseña:UID:GID:comentario:directorio_personal:shell. El segundo campo contiene una `x` porque el hash está en `/etc/shadow`.',
+     'The format is user:password:UID:GID:comment:home_directory:shell. The second field holds an `x` because the hash lives in `/etc/shadow`.']},
+
+{id:505, topic:105, type:'fill',
+ q:['Escribe la ruta absoluta del archivo donde se almacenan los hashes de las contraseñas de los usuarios.','Type the absolute path of the file where user password hashes are stored.'],
+ accept:['/etc/shadow'],
+ ex:['`/etc/shadow` solo es legible por root, a diferencia de `/etc/passwd`, que debe ser legible por todos para traducir UID a nombres.',
+     '`/etc/shadow` is readable only by root, unlike `/etc/passwd`, which must be world readable to map UIDs to names.']},
+
+{id:506, topic:105, type:'single',
+ q:['Un usuario tiene `/usr/sbin/nologin` como shell en `/etc/passwd`. ¿Qué implica?','A user has `/usr/sbin/nologin` as shell in `/etc/passwd`. What does that mean?'],
+ o:[['No puede iniciar una sesión interactiva; es típico de las cuentas de servicio','It cannot start an interactive session; this is typical of service accounts'],
+    ['No tiene directorio personal','It has no home directory'],
+    ['Su contraseña está caducada','Its password has expired'],
+    ['Tiene privilegios de administrador','It has administrator privileges']],
+ a:[0],
+ ex:['Las cuentas de servicio como www-data o nobody existen para ejecutar procesos con privilegios limitados, no para que alguien inicie sesión con ellas.',
+     'Service accounts such as www-data or nobody exist to run processes with limited privileges, not for anybody to log in with them.']},
+
+{id:507, topic:105, type:'single',
+ q:['¿Qué comando crea el usuario ana junto con su directorio personal?','Which command creates the user ana together with a home directory?'],
+ o:[['useradd -m ana','useradd -m ana'],['useradd -d ana','useradd -d ana'],['usermod -m ana','usermod -m ana'],['groupadd -m ana','groupadd -m ana']],
+ a:[0],
+ ex:['`-m` crea el directorio personal copiando el contenido de `/etc/skel`. `usermod` modifica cuentas existentes y `groupadd` crea grupos.',
+     '`-m` creates the home directory copying the content of `/etc/skel`. `usermod` modifies existing accounts and `groupadd` creates groups.']},
+
+{id:508, topic:105, type:'single',
+ q:['¿Qué función cumple el directorio `/etc/skel`?','What is the purpose of the `/etc/skel` directory?'],
+ o:[['Sirve de plantilla: su contenido se copia al directorio personal de cada usuario nuevo','It serves as a template: its content is copied into the home directory of each new user'],
+    ['Guarda las contraseñas de los usuarios','It stores the user passwords'],
+    ['Contiene los usuarios eliminados','It contains deleted users'],
+    ['Almacena los perfiles de los grupos','It stores the group profiles']],
+ a:[0],
+ ex:['Ahí se colocan archivos como `.bashrc` o `.profile` que se desea que todo usuario nuevo reciba.',
+     'Files such as `.bashrc` or `.profile` that every new user should receive are placed there.']},
+
+{id:509, topic:105, type:'single',
+ q:['¿Qué comando usa un usuario normal para cambiar su propia contraseña?','Which command does a regular user run to change their own password?'],
+ o:[['passwd','passwd'],['chpasswd','chpasswd'],['usermod -p','usermod -p'],['chage -l','chage -l']],
+ a:[0],
+ ex:['`passwd` sin argumentos cambia la contraseña propia; root puede indicar un usuario, por ejemplo `passwd ana`. `chage` gestiona la caducidad de las contraseñas.',
+     '`passwd` with no arguments changes your own password; root may name a user, for example `passwd ana`. `chage` manages password aging.']},
+
+{id:510, topic:105, type:'single',
+ q:['¿Qué comando añade al usuario ana al grupo ventas sin quitarle los grupos que ya tenía?','Which command adds user ana to the ventas group without removing the groups already assigned?'],
+ o:[['usermod -aG ventas ana','usermod -aG ventas ana'],
+    ['usermod -G ventas ana','usermod -G ventas ana'],
+    ['useradd -G ventas ana','useradd -G ventas ana'],
+    ['groupadd ventas ana','groupadd ventas ana']],
+ a:[0],
+ ex:['La opción `-a` significa append. Sin ella, `-G` reemplaza toda la lista de grupos suplementarios y el usuario pierde los anteriores.',
+     'The `-a` option means append. Without it, `-G` replaces the whole list of supplementary groups and the user loses the previous ones.']},
+
+{id:511, topic:105, type:'single',
+ q:['¿Qué archivo define los grupos del sistema y sus miembros?','Which file defines the system groups and their members?'],
+ o:[['/etc/group','/etc/group'],['/etc/passwd','/etc/passwd'],['/etc/shadow','/etc/shadow'],['/etc/skel','/etc/skel']],
+ a:[0],
+ ex:['`/etc/group` tiene el formato grupo:x:GID:miembros. El grupo primario de cada usuario se indica en el cuarto campo de `/etc/passwd`.',
+     '`/etc/group` uses the format group:x:GID:members. The primary group of each user is given in the fourth field of `/etc/passwd`.']},
+
+{id:512, topic:105, type:'single',
+ q:['¿Qué comando elimina al usuario ana junto con su directorio personal?','Which command deletes user ana together with the home directory?'],
+ o:[['userdel -r ana','userdel -r ana'],['userdel ana','userdel ana'],['deluser -f ana','deluser -f ana'],['usermod -d ana','usermod -d ana']],
+ a:[0],
+ ex:['`-r` elimina también el directorio personal y el buzón de correo. Sin `-r` los archivos quedan en el disco sin propietario con nombre.',
+     '`-r` also removes the home directory and the mail spool. Without `-r` the files remain on disk with no named owner.']},
+
+{id:513, topic:105, type:'single',
+ q:['En la salida de `ls -l`, ¿qué indica una `l` como primer carácter?','In `ls -l` output, what does an `l` as the first character indicate?'],
+ o:[['Que la entrada es un enlace simbólico','That the entry is a symbolic link'],
+    ['Que la entrada es un directorio','That the entry is a directory'],
+    ['Que el archivo está bloqueado','That the file is locked'],
+    ['Que es un archivo de registro','That it is a log file']],
+ a:[0],
+ ex:['El primer carácter indica el tipo: `-` archivo regular, `d` directorio, `l` enlace simbólico, `b` dispositivo de bloque, `c` dispositivo de caracteres.',
+     'The first character indicates the type: `-` regular file, `d` directory, `l` symbolic link, `b` block device, `c` character device.']},
+
+{id:514, topic:105, type:'single',
+ q:['¿A qué valor octal corresponde el conjunto de permisos `rwxr-xr--`?','Which octal value corresponds to the permission set `rwxr-xr--`?'],
+ o:[['754','754'],['755','755'],['745','745'],['764','764']],
+ a:[0],
+ ex:['Cada terna se suma: r=4, w=2, x=1. Así rwx=7 para el propietario, r-x=5 para el grupo y r--=4 para los demás.',
+     'Each triplet is added up: r=4, w=2, x=1. So rwx=7 for the owner, r-x=5 for the group and r--=4 for others.']},
+
+{id:515, topic:105, type:'fill',
+ q:['Escribe el valor octal de tres dígitos equivalente a los permisos `rw-r--r--`.','Type the three digit octal value equivalent to the permissions `rw-r--r--`.'],
+ accept:['644','0644'],
+ ex:['rw-=6, r--=4 y r--=4, de modo que el valor es 644, el permiso habitual de un archivo de datos nuevo.',
+     'rw-=6, r--=4 and r--=4, so the value is 644, the usual permission of a newly created data file.']},
+
+{id:516, topic:105, type:'single',
+ q:['¿Qué permisos deja `chmod 640 informe.txt`?','Which permissions does `chmod 640 informe.txt` set?'],
+ o:[['Lectura y escritura para el propietario, solo lectura para el grupo y ninguno para los demás','Read and write for the owner, read only for the group and none for others'],
+    ['Lectura, escritura y ejecución para todos','Read, write and execute for everybody'],
+    ['Solo lectura para el propietario','Read only for the owner'],
+    ['Lectura y ejecución para el grupo','Read and execute for the group']],
+ a:[0],
+ ex:['6=rw- para el propietario, 4=r-- para el grupo y 0=--- para el resto. Es el permiso típico de un archivo confidencial compartido con un grupo.',
+     '6=rw- for the owner, 4=r-- for the group and 0=--- for the rest. This is the typical permission of a confidential file shared with a group.']},
+
+{id:517, topic:105, type:'single',
+ q:['¿Qué hace `chmod -R g+w proyecto/`?','What does `chmod -R g+w proyecto/` do?'],
+ o:[['Añade permiso de escritura al grupo en el directorio y en todo su contenido','It adds group write permission on the directory and all its content'],
+    ['Quita el permiso de escritura al grupo','It removes group write permission'],
+    ['Cambia el grupo propietario del directorio','It changes the owning group of the directory'],
+    ['Aplica el cambio solo al directorio, no a su contenido','It applies the change only to the directory, not to its content']],
+ a:[0],
+ ex:['En el modo simbólico, `u` propietario, `g` grupo, `o` otros y `a` todos; `+` añade, `-` quita y `=` fija exactamente. `-R` lo aplica de forma recursiva.',
+     'In symbolic mode, `u` owner, `g` group, `o` others and `a` all; `+` adds, `-` removes and `=` sets exactly. `-R` applies it recursively.']},
+
+{id:518, topic:105, type:'single',
+ q:['¿Qué comando cambia a la vez el propietario y el grupo de un archivo?','Which command changes both the owner and the group of a file at once?'],
+ o:[['chown ana:ventas informe.txt','chown ana:ventas informe.txt'],
+    ['chmod ana:ventas informe.txt','chmod ana:ventas informe.txt'],
+    ['chgrp ana:ventas informe.txt','chgrp ana:ventas informe.txt'],
+    ['chown -g ventas informe.txt','chown -g ventas informe.txt']],
+ a:[0],
+ ex:['`chown usuario:grupo archivo` cambia ambos. `chgrp` solo cambia el grupo y `chmod` los permisos. Cambiar el propietario requiere privilegios de root.',
+     '`chown user:group file` changes both. `chgrp` changes only the group and `chmod` the permissions. Changing the owner requires root privileges.']},
+
+{id:519, topic:105, type:'single',
+ q:['Con una umask de 022, ¿qué permisos recibe un archivo regular recién creado?','With a umask of 022, which permissions does a newly created regular file get?'],
+ o:[['644','644'],['755','755'],['666','666'],['022','022']],
+ a:[0],
+ ex:['Los archivos parten de 666 y los directorios de 777; la umask se resta: 666-022=644 y 777-022=755. Los archivos nunca reciben el bit de ejecución automáticamente.',
+     'Files start from 666 and directories from 777; the umask is subtracted: 666-022=644 and 777-022=755. Files never get the execute bit automatically.']},
+
+{id:520, topic:105, type:'single',
+ q:['¿Qué efecto tiene el sticky bit aplicado al directorio `/tmp`?','What effect does the sticky bit have when applied to the `/tmp` directory?'],
+ o:[['Aunque el directorio sea escribible por todos, cada archivo solo puede borrarlo su propietario o root','Even though the directory is world writable, each file can only be deleted by its owner or root'],
+    ['Impide crear archivos nuevos','It prevents creating new files'],
+    ['Hace que los archivos se conserven tras reiniciar','It makes files survive a reboot'],
+    ['Obliga a que los archivos hereden el grupo del directorio','It forces files to inherit the group of the directory']],
+ a:[0],
+ ex:['Se muestra como una `t` en la terna de otros: `drwxrwxrwt`. Se aplica con `chmod +t` o `chmod 1777`.',
+     'It appears as a `t` in the others triplet: `drwxrwxrwt`. It is set with `chmod +t` or `chmod 1777`.']},
+
+{id:521, topic:105, type:'single',
+ q:['Los permisos de `/usr/bin/passwd` aparecen como `-rwsr-xr-x`. ¿Qué indica la `s`?','The permissions of `/usr/bin/passwd` show as `-rwsr-xr-x`. What does the `s` indicate?'],
+ o:[['Es setuid: el programa se ejecuta con los privilegios de su propietario, root','It is setuid: the program runs with the privileges of its owner, root'],
+    ['El archivo está compartido en la red','The file is shared over the network'],
+    ['El archivo es un enlace simbólico','The file is a symbolic link'],
+    ['El archivo está cifrado','The file is encrypted']],
+ a:[0],
+ ex:['Gracias a setuid un usuario normal puede modificar su contraseña en `/etc/shadow`, archivo que solo root puede escribir. Es un mecanismo potente y por eso debe usarse con cautela.',
+     'Thanks to setuid a regular user can change their password in `/etc/shadow`, a file only root can write. It is a powerful mechanism and must therefore be used carefully.']},
+
+{id:522, topic:105, type:'single',
+ q:['¿Cuál es la diferencia entre un enlace duro y un enlace simbólico?','What is the difference between a hard link and a symbolic link?'],
+ o:[['El enlace duro es otra entrada de directorio que apunta al mismo inodo; el simbólico es un archivo que contiene una ruta','A hard link is another directory entry pointing to the same inode; a symbolic link is a file containing a path'],
+    ['El enlace duro solo funciona con directorios','A hard link only works with directories'],
+    ['El enlace simbólico duplica el contenido del archivo','A symbolic link duplicates the file content'],
+    ['No hay ninguna diferencia práctica','There is no practical difference']],
+ a:[0],
+ ex:['Los enlaces duros no pueden cruzar sistemas de archivos ni apuntar a directorios, y el contenido sigue accesible mientras quede un enlace. Un enlace simbólico queda roto si se borra el destino.',
+     'Hard links cannot cross file systems or point to directories, and the content stays reachable while at least one link remains. A symbolic link breaks if the target is deleted.']},
+
+{id:523, topic:105, type:'fill',
+ q:['Escribe el comando que crea un enlace simbólico llamado `datos` que apunta a `/srv/almacen`.','Type the command that creates a symbolic link named `datos` pointing to `/srv/almacen`.'],
+ accept:['ln -s /srv/almacen datos','ln -s /srv/almacen ./datos'],
+ ex:['La sintaxis es `ln -s destino nombre_del_enlace`. Sin `-s` se crearía un enlace duro.',
+     'The syntax is `ln -s target link_name`. Without `-s` a hard link would be created instead.']},
+
+{id:524, topic:105, type:'single',
+ q:['¿Qué permiso necesita un usuario sobre un directorio para poder entrar en el con `cd` y acceder a los archivos que contiene?','Which permission does a user need on a directory in order to enter it with `cd` and reach the files inside?'],
+ o:[['Ejecución (x)','Execute (x)'],['Lectura (r)','Read (r)'],['Escritura (w)','Write (w)'],['Ninguno en particular','No particular permission']],
+ a:[0],
+ ex:['En un directorio, `x` permite atravesarlo y acceder a su contenido, `r` permite listar los nombres y `w` permite crear, renombrar y borrar entradas.',
+     'On a directory, `x` allows traversing it and reaching its content, `r` allows listing the names and `w` allows creating, renaming and deleting entries.']},
+
+{id:525, topic:105, type:'single',
+ q:['¿Qué permiso se necesita para borrar un archivo?','Which permission is required to delete a file?'],
+ o:[['Permiso de escritura en el directorio que contiene el archivo','Write permission on the directory containing the file'],
+    ['Permiso de escritura sobre el propio archivo','Write permission on the file itself'],
+    ['Permiso de lectura sobre el archivo','Read permission on the file'],
+    ['Ser el propietario del archivo','Being the owner of the file']],
+ a:[0],
+ ex:['Borrar significa eliminar una entrada del directorio, por eso el permiso relevante es `w` sobre el directorio. El sticky bit es la excepción que limita esta capacidad al propietario de cada archivo.',
+     'Deleting means removing an entry from the directory, so the relevant permission is `w` on the directory. The sticky bit is the exception that limits this to the owner of each file.']},
+
+{id:526, topic:105, type:'multi',
+ q:['¿Cuáles afirmaciones sobre la cuenta root son correctas? Marca todas las que correspondan.','Which statements about the root account are correct? Select all that apply.'],
+ o:[['Puede ignorar los permisos de los archivos','It can bypass file permissions'],
+    ['Su UID es 0','Its UID is 0'],
+    ['Se recomienda usar `sudo` en su lugar para las tareas administrativas','Using `sudo` instead is recommended for administrative tasks'],
+    ['No puede modificar el contenido de /etc','It cannot modify the content of /etc']],
+ a:[0,1,2],
+ ex:['Root tiene control total del sistema, incluido `/etc`. Por eso conviene trabajar como usuario normal y elevar privilegios de forma puntual con `sudo`.',
+     'Root has full control of the system, including `/etc`. That is why it is best to work as a regular user and elevate privileges occasionally with `sudo`.']},
+
+{id:527, topic:105, type:'single',
+ q:['¿Qué comando muestra los usuarios con sesión abierta en el sistema y desde dónde?','Which command shows the users currently logged in and where from?'],
+ o:[['who','who'],['id','id'],['whoami','whoami'],['groups','groups']],
+ a:[0],
+ ex:['`who` lista las sesiones activas y `w` añade lo que está ejecutando cada usuario. `last` consulta el histórico de inicios de sesión.',
+     '`who` lists the active sessions and `w` adds what each user is running. `last` queries the login history.']},
+
+{id:528, topic:105, type:'single',
+ q:['¿Cuál es la práctica correcta con las contraseñas en un entorno de trabajo?','Which is the correct practice regarding passwords in a work environment?'],
+ o:[['Usar contraseñas largas y distintas para cada servicio, guardadas en un gestor de contraseñas','Use long, unique passwords for each service, stored in a password manager'],
+    ['Reutilizar la misma contraseña para poder recordarla','Reuse the same password so it is easy to remember'],
+    ['Anotarlas en un archivo de texto en el escritorio','Write them down in a text file on the desktop'],
+    ['Compartirlas con el equipo para facilitar el soporte','Share them with the team to make support easier']],
+ a:[0],
+ ex:['Cada cuenta debe tener credenciales propias para que las acciones sean atribuibles y para que la fuga de un servicio no comprometa a los demás.',
+     'Each account must have its own credentials so actions are attributable and a leak in one service does not compromise the others.']},
+
+{id:529, topic:105, type:'single',
+ q:['¿Qué hace el comando `chmod u+x,go-w script.sh`?','What does the command `chmod u+x,go-w script.sh` do?'],
+ o:[['Añade ejecución para el propietario y quita escritura al grupo y a los demás','It adds execute for the owner and removes write for group and others'],
+    ['Da todos los permisos al propietario','It grants all permissions to the owner'],
+    ['Quita la ejecución al propietario','It removes execute from the owner'],
+    ['Es una sintaxis inválida','It is invalid syntax']],
+ a:[0],
+ ex:['El modo simbólico admite varias cláusulas separadas por comas, cada una con su clase de usuario, su operador y sus permisos.',
+     'Symbolic mode accepts several comma separated clauses, each with its user class, operator and permissions.']},
+
+{id:530, topic:105, type:'single',
+ q:['¿Para qué sirve el bit setgid aplicado a un directorio compartido?','What is the setgid bit used for when applied to a shared directory?'],
+ o:[['Los archivos creados dentro heredan el grupo del directorio','Files created inside inherit the group of the directory'],
+    ['Solo root puede escribir en el directorio','Only root can write in the directory'],
+    ['Los archivos se ejecutan como root','Files are executed as root'],
+    ['El directorio se monta automáticamente al arrancar','The directory is mounted automatically at boot']],
+ a:[0],
+ ex:['Es la técnica habitual en carpetas de trabajo en grupo: con `chmod g+s carpeta` todo lo que se cree dentro pertenece al mismo grupo, sin depender del grupo primario de cada usuario.',
+     'This is the usual technique for team folders: with `chmod g+s folder` everything created inside belongs to the same group, regardless of each user primary group.']}
+);
+</script>
+<script>
+/* ================= LOGICA DE LA APLICACION ================= */
+const TOPICS = {
+  101:['La comunidad Linux y una carrera en Open Source','The Linux Community and a Career in Open Source'],
+  102:['Encontrar tu camino en un sistema Linux','Finding Your Way on a Linux System'],
+  103:['El poder de la línea de comandos','The Power of the Command Line'],
+  104:['El sistema operativo Linux','The Linux Operating System'],
+  105:['Seguridad y permisos de archivos','Security and File Permissions']
+};
+const SIM_PLAN   = {101:7, 102:8, 103:10, 104:8, 105:7};
+const SIM_MINUTES= 60;
+const PASS_PCT   = 65;
+const STORE_KEY  = 'lpi-010-160-attempt-v1';
+const LANG_KEY   = 'lpi-010-160-lang';
+const KEYS       = 'ABCDEFGH';
+
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+/* escapa y convierte `codigo` en <code> */
+function fmt(s){
+  return esc(s).replace(/`([^`]+)`/g, function(_,c){ return '<code>'+c+'</code>'; });
+}
+function bi(pair){
+  /* si ambos idiomas coinciden (nombres propios, rutas, valores) se muestra una sola vez */
+  if(pair[0] === pair[1]) return '<span class="both">'+fmt(pair[0])+'</span>';
+  return '<span class="es">'+fmt(pair[0])+'</span><span class="en">'+fmt(pair[1])+'</span>';
+}
+function shuffle(a){
+  const r = a.slice();
+  for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=r[i]; r[i]=r[j]; r[j]=t; }
+  return r;
+}
+function norm(s){
+  return String(s).toLowerCase().trim().replace(/\s+/g,' ').replace(/;+$/,'');
+}
+function byId(id){ return Q.find(q => q.id === id); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function hms(ms){
+  if(ms < 0) ms = 0;
+  const t = Math.floor(ms/1000), h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = t%60;
+  return (h ? h+':' : '') + pad(m) + ':' + pad(s);
+}
+
+/* ---------- idioma ---------- */
+function setLang(l){
+  document.body.className = 'lang-' + l;
+  $$('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === l)));
+  try{ localStorage.setItem(LANG_KEY, l); }catch(e){}
+}
+$$('.seg button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+
+/* ---------- estado ---------- */
+let S = null;      // intento en curso
+let timerId = null;
+let filter = 'all';
+
+function newAttempt(mode){
+  let picked;
+  if(mode === 'sim'){
+    picked = [];
+    Object.keys(SIM_PLAN).forEach(t => {
+      const pool = Q.filter(q => q.topic === Number(t));
+      picked = picked.concat(shuffle(pool).slice(0, Math.min(SIM_PLAN[t], pool.length)));
+    });
+    picked = shuffle(picked);
+  }else{
+    picked = Q.slice().sort((a,b) => a.topic - b.topic || a.id - b.id);
+  }
+  S = {
+    mode: mode,
+    idx: 0,
+    started: Date.now(),
+    limitMs: mode === 'sim' ? SIM_MINUTES*60*1000 : 0,
+    elapsedMs: 0,          // solo se fija al finalizar
+    finished: false,
+    items: picked.map(q => ({
+      id: q.id,
+      oidx: q.type === 'fill' ? [] : shuffle(q.o.map((_,i) => i)),
+      ans: q.type === 'multi' ? [] : null,
+      marked: false
+    }))
+  };
+  save();
+  showExam();
+}
+
+function save(){
+  if(!S) return;
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(e){}
+}
+function clearSave(){ try{ localStorage.removeItem(STORE_KEY); }catch(e){} }
+
+/* ---------- helpers de pregunta ---------- */
+function opts(item){                       // opciones en el orden mostrado
+  const q = byId(item.id);
+  return item.oidx.map(i => ({ text:q.o[i], correct: q.a.indexOf(i) >= 0 }));
+}
+function isAnswered(item){
+  const q = byId(item.id);
+  if(q.type === 'multi') return Array.isArray(item.ans) && item.ans.length > 0;
+  if(q.type === 'fill')  return typeof item.ans === 'string' && item.ans.trim() !== '';
+  return item.ans !== null && item.ans !== undefined;
+}
+function isCorrect(item){
+  const q = byId(item.id);
+  if(!isAnswered(item)) return false;
+  if(q.type === 'fill') return q.accept.some(a => norm(a) === norm(item.ans));
+  const good = item.oidx.map((orig,pos) => q.a.indexOf(orig) >= 0 ? pos : -1).filter(p => p >= 0);
+  if(q.type === 'single') return item.ans === good[0];
+  const a = item.ans.slice().sort((x,y)=>x-y).join(','), b = good.slice().sort((x,y)=>x-y).join(',');
+  return a === b;
+}
+
+/* ---------- pantallas ---------- */
+function show(id){
+  ['screen-start','screen-exam','screen-result'].forEach(s => $('#'+s).classList.toggle('hidden', s !== id));
+  window.scrollTo(0,0);
+}
+function showStart(){
+  stopTimer();
+  show('screen-start');
+  const stored = loadStored();
+  $('#resume').classList.toggle('hidden', !stored);
+  if(stored){
+    const done = stored.items.filter(it => { S = stored; return isAnswered(it); }).length;
+    $('#resumeInfo').textContent =
+      (stored.mode === 'sim' ? 'Simulacro' : 'Banco completo') + ' · ' +
+      done + ' de ' + stored.items.length + ' preguntas respondidas.';
+    S = null;
+  }
+}
+function loadStored(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || !s.items || !s.items.length || s.finished) return null;
+    if(!s.items.every(it => byId(it.id))) return null;      // banco cambiado
+    return s;
+  }catch(e){ return null; }
+}
+
+function showExam(){
+  show('screen-exam');
+  renderQuestion();
+  renderGrid();
+  startTimer();
+}
+
+/* ---------- render de pregunta ---------- */
+function renderQuestion(){
+  const item = S.items[S.idx], q = byId(item.id);
+  const typeLabel = {
+    single:['Respuesta única','Single answer'],
+    multi :['Selección múltiple — marca todas las correctas','Multiple response — select all that apply'],
+    fill  :['Escribe el comando','Type the command']
+  }[q.type];
+
+  let html = '<div class="badges">'
+    + '<span class="badge t">Tema ' + q.topic + ' · ' + esc(TOPICS[q.topic][0]) + '</span>'
+    + '<span class="badge ' + (q.type === 'multi' ? 'multi' : q.type === 'fill' ? 'fill' : '') + '">'
+    + esc(typeLabel[0]) + '</span>'
+    + (item.marked ? '<span class="badge" style="color:var(--mark)">★ marcada</span>' : '')
+    + '</div>'
+    + '<p class="qtext">' + bi(q.q) + '</p>';
+
+  if(q.type === 'fill'){
+    html += '<div class="fillbox">'
+      + '<input id="fillInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"'
+      + ' value="' + esc(item.ans || '') + '" placeholder="p. ej.  ls -l /etc">'
+      + '<div class="hint"><span class="es">No importan las mayúsculas ni los espacios de más.</span>'
+      + '<span class="en">Case and extra spaces are ignored.</span></div></div>';
+  }else{
+    html += '<div class="opts">';
+    opts(item).forEach((o,i) => {
+      const sel = q.type === 'multi' ? item.ans.indexOf(i) >= 0 : item.ans === i;
+      html += '<label class="opt' + (sel ? ' sel' : '') + '">'
+        + '<input type="' + (q.type === 'multi' ? 'checkbox' : 'radio') + '" name="opt" value="' + i + '"'
+        + (sel ? ' checked' : '') + '>'
+        + '<span class="key">' + KEYS[i] + '</span>'
+        + '<span>' + bi(o.text) + '</span></label>';
+    });
+    html += '</div>';
+  }
+  $('#qcard').innerHTML = html;
+
+  if(q.type === 'fill'){
+    const inp = $('#fillInput');
+    inp.addEventListener('input', () => { item.ans = inp.value; save(); updateMeta(); renderGrid(); });
+    inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); go(1); } });
+  }else{
+    $$('#qcard input[name=opt]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const v = Number(inp.value);
+        if(q.type === 'multi'){
+          const k = item.ans.indexOf(v);
+          if(k >= 0) item.ans.splice(k,1); else item.ans.push(v);
+        }else{
+          item.ans = v;
+        }
+        save(); renderQuestion(); renderGrid();
+      });
+    });
+  }
+
+  $('#btnMark').innerHTML = item.marked ? '★ Quitar marca' : '☆ Marcar para revisar';
+  $('#btnPrev').disabled = S.idx === 0;
+  $('#btnNext').disabled = S.idx === S.items.length - 1;
+  updateMeta();
+}
+
+function updateMeta(){
+  const total = S.items.length, done = S.items.filter(isAnswered).length;
+  $('#qcounter').innerHTML = 'Pregunta <b>' + (S.idx+1) + '</b> de <b>' + total + '</b>';
+  $('#answered').textContent = done + '/' + total + ' respondidas';
+  $('#barfill').style.width = (done/total*100).toFixed(1) + '%';
+}
+
+function renderGrid(){
+  let h = '';
+  S.items.forEach((it,i) => {
+    const cls = [ isAnswered(it) ? 'done' : '', it.marked ? 'marked' : '', i === S.idx ? 'cur' : '' ].join(' ');
+    h += '<button class="' + cls + '" data-go="' + i + '" title="Pregunta ' + (i+1) + '">'
+       + (it.marked ? '★' : '') + (i+1) + '</button>';
+  });
+  $('#grid').innerHTML = h;
+  $$('#grid button').forEach(b => b.addEventListener('click', () => { S.idx = Number(b.dataset.go); save(); renderQuestion(); renderGrid(); }));
+}
+
+function go(d){
+  const n = S.idx + d;
+  if(n < 0 || n >= S.items.length) return;
+  S.idx = n; save(); renderQuestion(); renderGrid();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* ---------- temporizador ---------- */
+function startTimer(){
+  stopTimer();
+  tick();
+  timerId = setInterval(tick, 1000);
+}
+function stopTimer(){ if(timerId){ clearInterval(timerId); timerId = null; } }
+function tick(){
+  if(!S || S.finished) return;
+  const el = $('#timer');
+  if(S.limitMs){
+    const left = S.started + S.limitMs - Date.now();
+    el.textContent = '⏱ ' + hms(left) + ' restantes';
+    el.classList.toggle('warn', left <= 5*60*1000);
+    if(left <= 0){ finish(true); }
+  }else{
+    el.textContent = '⏱ ' + hms(Date.now() - S.started);
+    el.classList.remove('warn');
+  }
+}
+
+/* ---------- finalizar ---------- */
+function finish(auto){
+  const blank = S.items.filter(it => !isAnswered(it)).length;
+  if(!auto && blank > 0 &&
+     !confirm('Quedan ' + blank + ' preguntas sin responder. Se contarán como incorrectas. ¿Finalizar el intento?')) return;
+  if(!auto && blank === 0 && !confirm('¿Finalizar el intento y ver el resultado?')) return;
+  stopTimer();
+  S.finished = true;
+  S.elapsedMs = S.limitMs ? Math.min(Date.now() - S.started, S.limitMs) : Date.now() - S.started;
+  clearSave();
+  if(auto) alert('Se agotó el tiempo. El intento se envió automáticamente.');
+  renderResult();
+}
+
+function scaled(pct){
+  return pct >= PASS_PCT
+    ? Math.round(500 + (pct - PASS_PCT) / (100 - PASS_PCT) * 300)
+    : Math.round(200 + pct / PASS_PCT * 300);
+}
+
+function renderResult(){
+  show('screen-result');
+  const total = S.items.length;
+  const okCount    = S.items.filter(isCorrect).length;
+  const blankCount = S.items.filter(it => !isAnswered(it)).length;
+  const koCount    = total - okCount - blankCount;
+  const pct        = total ? okCount/total*100 : 0;
+  const pass       = pct >= PASS_PCT;
+
+  $('#verdict').className = 'verdict ' + (pass ? 'pass' : 'fail');
+  $('#verdict').innerHTML =
+      '<div class="big">' + pct.toFixed(1) + '% · ' + (pass ? 'APROBADO' : 'NO APROBADO') + '</div>'
+    + '<p style="margin:8px 0 0"><b>' + okCount + '</b> correctas · <b>' + koCount + '</b> incorrectas · <b>'
+    + blankCount + '</b> sin responder · ' + total + ' preguntas</p>'
+    + '<p class="sub" style="margin:6px 0 0">Modo: ' + (S.mode === 'sim' ? 'simulacro (40/60 min)' : 'banco completo')
+    + ' · Tiempo empleado: ' + hms(S.elapsedMs)
+    + ' · Umbral usado: ' + PASS_PCT + '%'
+    + '<br>Equivalencia aproximada en la escala oficial 200-800: <b>' + scaled(pct) + '</b> (se aprueba con 500).</p>';
+
+  // por tema
+  const agg = {};
+  S.items.forEach(it => {
+    const t = byId(it.id).topic;
+    agg[t] = agg[t] || { n:0, ok:0 };
+    agg[t].n++; if(isCorrect(it)) agg[t].ok++;
+  });
+  $('#resTopics').innerHTML = Object.keys(agg).sort().map(t => {
+    const a = agg[t], p = a.ok/a.n*100;
+    return '<tr><td>' + t + ' · ' + esc(TOPICS[t][0]) + '</td>'
+         + '<td class="num">' + a.ok + '/' + a.n + '</td>'
+         + '<td class="num">' + p.toFixed(0) + '%</td>'
+         + '<td><span class="tbar" style="display:block"><i style="width:' + p.toFixed(0) + '%;background:'
+         + (p >= PASS_PCT ? 'var(--ok)' : 'var(--bad)') + '"></i></span></td></tr>';
+  }).join('');
+
+  renderReview();
+}
+
+function renderReview(){
+  let h = '';
+  S.items.forEach((it,i) => {
+    const q = byId(it.id);
+    const ok = isCorrect(it), blank = !isAnswered(it);
+    if(filter === 'wrong'  && (ok || blank)) return;
+    if(filter === 'blank'  && !blank) return;
+    if(filter === 'marked' && !it.marked) return;
+
+    h += '<div class="rev ' + (ok ? 'ok' : blank ? 'na' : 'ko') + '">'
+      + '<div class="badges">'
+      + '<span class="badge">#' + (i+1) + '</span>'
+      + '<span class="badge t">Tema ' + q.topic + '</span>'
+      + '<span class="badge" style="color:' + (ok ? 'var(--ok)' : blank ? 'var(--warn)' : 'var(--bad)') + '">'
+      + (ok ? '✓ correcta' : blank ? '— sin responder' : '✗ incorrecta') + '</span>'
+      + (it.marked ? '<span class="badge" style="color:var(--mark)">★</span>' : '')
+      + '</div>'
+      + '<p class="qtext">' + bi(q.q) + '</p>';
+
+    if(q.type === 'fill'){
+      h += '<div class="ro ' + (ok ? 'good' : 'pick') + '"><span class="tag">Tu respuesta</span><br>'
+        + (blank ? '<i>(en blanco)</i>' : '<code>' + esc(it.ans) + '</code>') + '</div>'
+        + '<div class="ro good"><span class="tag">Aceptadas</span><br>'
+        + q.accept.map(a => '<code>' + esc(a) + '</code>').join(' &nbsp;·&nbsp; ') + '</div>';
+    }else{
+      opts(it).forEach((o,pos) => {
+        const picked = q.type === 'multi' ? it.ans.indexOf(pos) >= 0 : it.ans === pos;
+        const cls = o.correct ? 'good' : (picked ? 'pick' : '');
+        const tag = o.correct ? (picked ? 'correcta · tu respuesta' : 'correcta')
+                              : (picked ? 'tu respuesta' : '');
+        h += '<div class="ro ' + cls + '">'
+          + (tag ? '<span class="tag">' + tag + '</span><br>' : '')
+          + '<b class="key" style="font-family:var(--mono)">' + KEYS[pos] + '.</b> ' + bi(o.text) + '</div>';
+      });
+    }
+    h += '<div class="exp"><b>Explicación / Explanation</b>' + bi(q.ex) + '</div></div>';
+  });
+  $('#review').innerHTML = h || '<div class="card">Sin preguntas en este filtro.</div>';
+}
+
+/* ---------- eventos ---------- */
+$$('[data-mode]').forEach(b => b.addEventListener('click', () => {
+  if(loadStored() && !confirm('Se descartará el intento sin terminar. ¿Continuar?')) return;
+  newAttempt(b.dataset.mode);
+}));
+$('#btnResume').addEventListener('click', () => { S = loadStored(); if(S) showExam(); else showStart(); });
+$('#btnDiscard').addEventListener('click', () => { clearSave(); showStart(); });
+$('#btnPrev').addEventListener('click', () => go(-1));
+$('#btnNext').addEventListener('click', () => go(1));
+$('#btnMark').addEventListener('click', () => {
+  const it = S.items[S.idx]; it.marked = !it.marked; save(); renderQuestion(); renderGrid();
+});
+$('#btnFinish').addEventListener('click', () => finish(false));
+$('#btnAgain').addEventListener('click', () => newAttempt(S.mode));
+$('#btnHome').addEventListener('click', () => { S = null; showStart(); });
+$('#btnPrint').addEventListener('click', () => window.print());
+$$('#filters button').forEach(b => b.addEventListener('click', () => {
+  filter = b.dataset.filter;
+  $$('#filters button').forEach(x => x.className = 'btn' + (x === b ? ' primary' : ''));
+  renderReview();
+}));
+
+document.addEventListener('keydown', e => {
+  if($('#screen-exam').classList.contains('hidden')) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if(tag === 'input' || tag === 'textarea'){
+    if(e.key === 'ArrowRight' && e.ctrlKey) go(1);
+    return;
+  }
+  if(e.key === 'ArrowRight'){ go(1); }
+  else if(e.key === 'ArrowLeft'){ go(-1); }
+  else if(e.key === 'm' || e.key === 'M'){ $('#btnMark').click(); }
+  else if(/^[1-9]$/.test(e.key)){
+    const boxes = $$('#qcard input[name=opt]');
+    const b = boxes[Number(e.key)-1];
+    if(b){ b.checked = b.type === 'checkbox' ? !b.checked : true; b.dispatchEvent(new Event('change')); }
+  }
+});
+window.addEventListener('beforeunload', e => {
+  if(S && !S.finished){ e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ---------- arranque ---------- */
+(function init(){
+  try{ const l = localStorage.getItem(LANG_KEY); if(l) setLang(l); }catch(e){}
+
+  const counts = { single:0, multi:0, fill:0 };
+  const perTopic = {};
+  Q.forEach(q => {
+    counts[q.type]++;
+    perTopic[q.topic] = (perTopic[q.topic] || 0) + 1;
+  });
+  const simTotal = Object.keys(SIM_PLAN).reduce((a,t) => a + Math.min(SIM_PLAN[t], perTopic[t] || 0), 0);
+
+  $('#fTotal').textContent  = Q.length;
+  $('#fSingle').textContent = counts.single;
+  $('#fMulti').textContent  = counts.multi;
+  $('#fFill').textContent   = counts.fill;
+  $('#fullCount').textContent = Q.length;
+  $('#simCount').textContent  = simTotal;
+
+  $('#topicRows').innerHTML = Object.keys(TOPICS).map(t =>
+      '<tr><td>' + t + ' · ' + esc(TOPICS[t][0]) + '<br><span style="color:var(--muted);font-size:.85em">'
+    + esc(TOPICS[t][1]) + '</span></td>'
+    + '<td class="num">' + (perTopic[t] || 0) + '</td>'
+    + '<td class="num">' + Math.min(SIM_PLAN[t] || 0, perTopic[t] || 0) + '</td></tr>').join('');
+
+  showStart();
+})();
+</script>
+</body>
+</html>
