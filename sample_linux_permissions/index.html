@@ -832,6 +832,7 @@ footer{
       <li><a href="#quien"><span class="glyph">?</span> Quién eres</a></li>
       <li><a href="#octal"><span class="glyph">4</span> Octal</a></li>
       <li><a href="#calculadora"><span class="glyph">#</span> Calculadora</a></li>
+      <li><a href="#letras"><span class="glyph">u</span> u, g, o</a></li>
       <li><a href="#simbolico"><span class="glyph">+</span> Modo simbólico</a></li>
       <li><a href="#dueno"><span class="glyph">@</span> Dueño y grupo</a></li>
       <li><a href="#especiales"><span class="glyph">s</span> Bits especiales</a></li>
@@ -1105,6 +1106,116 @@ footer{
           </div>
 
         </div>
+      </div>
+    </section>
+
+    <!-- LETRAS -->
+    <section id="letras">
+      <p class="sec-mark">El mismo sistema, sin números</p>
+      <h2>Las letras: u, g, o, a</h2>
+      <div class="prose">
+        <p>Los nueve bits no cambian nunca. Lo único que cambia es cómo los nombras. El octal los identifica por su <b>posición</b> —primer dígito, segundo, tercero— y por eso obliga a escribirlos los tres. Las letras los identifican por su <b>clase</b>, y por eso puedes hablar de uno sin tocar los otros dos.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <div class="flow">
+          <div class="flow-step">
+            <div class="flow-q"><code>u</code> — <b>user</b><small>El dueño del archivo: el UID que <code>ls -l</code> muestra en la tercera columna.</small></div>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <div class="flow-out" data-actor="u">primer bloque · 1.<sup>er</sup> dígito</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-q"><code>g</code> — <b>group</b><small>El grupo del archivo, no tus grupos. Cuarta columna de <code>ls -l</code>.</small></div>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <div class="flow-out" data-actor="g">segundo bloque · 2.º dígito</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-q"><code>o</code> — <b>others</b><small>Todos los demás: ni el dueño, ni miembros del grupo.</small></div>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <div class="flow-out" data-actor="o">tercer bloque · 3.<sup>er</sup> dígito</div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-q"><code>a</code> — <b>all</b><small>Atajo de <code>ugo</code>. No es un cuarto bloque: escribe en los tres a la vez.</small></div>
+            <div class="flow-arrow" aria-hidden="true">→</div>
+            <div class="flow-out">los tres bloques</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>Aquí conviven dos alfabetos que no hay que mezclar. <code>u</code>, <code>g</code>, <code>o</code> y <code>a</code> responden a <b>a quién</b>. <code>r</code>, <code>w</code> y <code>x</code> responden a <b>qué puede hacer</b>. El primero elige el bloque; el segundo, los bits dentro de ese bloque.</p>
+      </div>
+
+      <div class="note">
+        <b>La confusión de siempre.</b> <code>o</code> no es <i>owner</i>: es <i>others</i>, justo la clase que <b>excluye</b> al dueño. El dueño es <code>u</code>. Un <code>chmod o+w</code> escrito con la intención de «darle permiso al dueño» abre el archivo al resto del mundo y no cambia nada para él.
+      </div>
+
+      <h3>La gramática: quién + operador + qué</h3>
+      <div class="prose">
+        <p>Una regla en letras son tres piezas pegadas sin espacios. Las clases se pueden combinar (<code>ug</code>, <code>go</code>) y varias reglas se separan por comas.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="col-bit">Operador</th><th>Qué hace con la clase indicada</th><th>Ejemplo</th><th>Efecto</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>+</code> · añadir</td>
+              <td>Enciende los bits listados. Los demás quedan como estaban.</td>
+              <td><code>chmod g+w f</code></td>
+              <td>El grupo gana <code>w</code>; nada más se mueve.</td>
+            </tr>
+            <tr>
+              <td><code>-</code> · quitar</td>
+              <td>Apaga los bits listados. Los demás quedan como estaban.</td>
+              <td><code>chmod o-rwx f</code></td>
+              <td>«Otros» pierde todo; usuario y grupo intactos.</td>
+            </tr>
+            <tr>
+              <td><code>=</code> · fijar</td>
+              <td>Deja la clase <b>exactamente</b> como se indica: apaga lo que no aparece.</td>
+              <td><code>chmod g=r f</code></td>
+              <td>El grupo queda en <code>r--</code>, tuviera lo que tuviera.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <p>De los tres, <code>=</code> es el único absoluto, y por eso es el puente con el octal: <code>chmod go=</code> —sin nada a la derecha— vacía las dos clases de golpe, igual que poner <code>0</code> en esos dígitos.</p>
+      </div>
+
+      <h3>Traducción entre los dos idiomas</h3>
+      <div class="prose">
+        <p>Todo número octal tiene un equivalente exacto en letras usando <code>=</code>. Al revés no siempre: <code>u+x</code> no se puede escribir en octal sin saber antes cómo estaba el archivo.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="tnum">Octal</th><th>Mismo resultado en letras</th><th>Cadena de <code>ls -l</code></th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="tnum">644</td><td><code>chmod u=rw,go=r f</code></td><td><code>rw-r--r--</code></td></tr>
+            <tr><td class="tnum">755</td><td><code>chmod u=rwx,go=rx f</code></td><td><code>rwxr-xr-x</code></td></tr>
+            <tr><td class="tnum">600</td><td><code>chmod u=rw,go= f</code></td><td><code>rw-------</code></td></tr>
+            <tr><td class="tnum">700</td><td><code>chmod u=rwx,go= f</code></td><td><code>rwx------</code></td></tr>
+            <tr><td class="tnum">664</td><td><code>chmod ug=rw,o=r f</code></td><td><code>rw-rw-r--</code></td></tr>
+            <tr><td class="tnum">750</td><td><code>chmod u=rwx,g=rx,o= f</code></td><td><code>rwxr-x---</code></td></tr>
+            <tr><td class="tnum">777</td><td><code>chmod a=rwx f</code></td><td><code>rwxrwxrwx</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Omitir la clase no equivale del todo a <code>a</code>.</b> <code>chmod +x f</code> parece <code>chmod a+x f</code>, pero <code>chmod</code> descuenta los bits de tu <code>umask</code> cuando no escribes la clase. Con <code>umask 022</code>, <code>chmod +w f</code> solo se lo da al dueño, mientras que <code>chmod a+w f</code> se lo da a los tres. Si quieres los tres, escribe la <code>a</code>.
+      </div>
+
+      <div class="prose">
+        <p>Los bits especiales también tienen sus letras y siguen la misma gramática: <code>u+s</code> es setuid, <code>g+s</code> es setgid y <code>+t</code> es el sticky. Se detallan en <a href="#especiales">bits especiales</a>.</p>
+        <p>¿Cuál usar? El octal es absoluto e idempotente: describe el estado final completo, así que es lo correcto en scripts y en automatización, donde no quieres depender de cómo estaba el archivo. Las letras son relativas: tocan un bit y respetan el resto, así que son lo correcto en la terminal, sobre archivos ajenos cuyo estado no quieres pisar sin mirar. En la <a href="#simbolico">sección siguiente</a> están los comandos completos.</p>
       </div>
     </section>
 
