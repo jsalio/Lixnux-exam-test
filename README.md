@@ -13,15 +13,16 @@ conexión.
 
 | Ruta | Qué es |
 |---|---|
-| `index.html` | Portada: navega a las dos aplicaciones |
+| `index.html` | Portada: navega a las cinco páginas |
 | `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
 | `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
+| `linux_shell_scripting/index.html` | Guía del objetivo 3.3: de comandos sueltos a script de Bash |
 | `docs/specs/registro-intentos-supabase.spec.md` | Especificación SDD (en estado *Draft*, **no implementada**) |
 
 Cada aplicación vive en su propia carpeta con un `index.html`, de modo que su URL
-es el directorio. La portada enlaza a ambas y ambas enlazan de vuelta a la portada.
+es el directorio. La portada enlaza a todas y todas enlazan de vuelta a la portada.
 
 ---
 
@@ -142,7 +143,42 @@ El foco no es la lista de comandos sino cómo se combinan.
 
 ---
 
-## 5. Especificación pendiente — `docs/specs/`
+## 5. Guía de scripting — `linux_shell_scripting/index.html`
+
+El objetivo **3.3 «Turning Commands into a Script»**, que con peso 4 es el de mayor
+puntuación individual del examen. Va de no saber qué es un script a leer uno de
+veintiocho líneas y saber qué imprime y con qué código termina.
+
+Trece secciones, cinco de ellas interactivas:
+
+- **Qué es un script**: el shell como intérprete, la misma orden a mano y en un
+  fichero, y los cuatro pasos (escribir → declarar → permitir → ejecutar).
+- **nano y vi** (interactivo): **simulador de `vi`** con sus modos. Teclear en modo
+  normal no escribe nada, `:q` con cambios pendientes se niega con `E37`, y al salir
+  con `:q!` un `cat` muestra qué se perdió. Tablas de teclas de ambos editores.
+- **El shebang**: por qué lo lee el kernel y no el shell, `#!/bin/bash` frente a
+  `#!/bin/sh` (que en Debian es `dash`) y `#!/usr/bin/env bash`.
+- **Ejecutarlo** (interactivo): `bash s.sh`, `./s.sh` y `source s.sh` comparados, y
+  **seis sesiones de terminal** con los finales reales — sin `chmod` (126), sin `./`
+  (127), con `^M` de Windows, y `source` frente a `./`.
+- **Variables y `echo`**: la asignación sin espacios, las tres formas de entrecomillar
+  y qué cambia, `$( )`, `$(( ))`, `export` y las variables de entorno habituales.
+- **Argumentos** (interactivo): **simulador** con la línea de comandos editable; trocea
+  la entrada como lo haría el shell y muestra `$0`, `$1`…, `$#`, `"$@"` y `"$*"`.
+  Quitar las comillas parte un argumento en dos, a la vista.
+- **Bucles `for`** (interactivo): seis bucles con lo que el shell expande *antes* de
+  iterar — lista literal, comodín, `{1..5}`, `$( )`, `"$@"` y un contador.
+- **`if` y `test`**: por qué `if` ejecuta un comando en vez de evaluar una expresión,
+  por qué `[` exige espacios, y la tabla de operadores de fichero, texto y número.
+- **Estado de salida**: la convención del 0, la tabla de códigos (1, 2, 126, 127, 130),
+  por qué `$?` caduca con el comando siguiente, `exit N`, `&&` y `||`.
+- **Un script entero** (interactivo): `copia-logs.sh`, 28 líneas con validación,
+  bucle y contador; **cada línea se pulsa** y explica qué aporta y por qué se escribe así.
+- **Los ocho errores de siempre**: cada mensaje de error real, su causa y su arreglo.
+- **Doce preguntas** de autoevaluación con opciones barajadas y explicación.
+- **Chuleta** final.
+
+## 6. Especificación pendiente — `docs/specs/`
 
 `registro-intentos-supabase.spec.md` es un contrato SDD para persistir en Supabase
 cada intento finalizado (nombre, IP, número de intento, nota y modo).
@@ -181,6 +217,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 | Permisos | <https://jsalio.github.io/Lixnux-exam-test/sample_linux_permissions/> |
 | Directorios | <https://jsalio.github.io/Lixnux-exam-test/linux_special_directories/> |
 | Comandos | <https://jsalio.github.io/Lixnux-exam-test/linux_basic_commands/> |
+| Scripting | <https://jsalio.github.io/Lixnux-exam-test/linux_shell_scripting/> |
 
 Al ser un *project site*, el sitio cuelga de `/Lixnux-exam-test/` y no de la raíz
 del dominio. Por eso **todos los enlaces internos son relativos**: una ruta que

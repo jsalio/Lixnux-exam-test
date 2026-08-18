@@ -1,0 +1,1897 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>De comandos a script — Bash</title>
+<meta name="description" content="Objetivo 3.3 de LPI Linux Essentials: qué es un shell script, shebang, variables, argumentos, bucles for, estado de salida, chmod +x y edición con nano y vi.">
+<style>
+/* ============================================================
+   TOKENS — compartidos con las otras guías
+   ============================================================ */
+:root{
+  color-scheme: light;
+
+  --bg:        #eef1f4;
+  --surface:   #ffffff;
+  --surface-2: #e6eaef;
+  --line:      #ccd4dc;
+  --line-2:    #9aa6b3;
+
+  --ink:   #131920;
+  --ink-2: #3f4a57;
+  --ink-3: #6d7884;
+
+  /* piezas de un script */
+  --sheb: #a8481a;   /* shebang y comandos */
+  --kw:   #7a3ea1;   /* palabras clave: for, if, do, done */
+  --var:  #464fa2;   /* variables y $1, $?, $# */
+  --str:  #10695a;   /* cadenas de texto */
+
+  --acc:  #3f6d24;   /* color propio de esta guía */
+  --warn: #8a5300;
+  --ok:   #10695a;
+
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Cantarell, sans-serif;
+
+  --fs-xs: .75rem;
+  --fs-sm: .8125rem;
+  --fs-ui: .9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.1875rem;
+  --fs-2xl: 2.125rem;
+  --fs-3xl: clamp(2.4rem, 6.5vw, 4rem);
+
+  --r: 3px;
+  --maxw: 68ch;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:        #0d1218;
+    --surface:   #161d26;
+    --surface-2: #1e2733;
+    --line:      #2c3644;
+    --line-2:    #4a5768;
+
+    --ink:   #dde5ed;
+    --ink-2: #a7b3c0;
+    --ink-3: #79868f;
+
+    --sheb: #e18c58;
+    --kw:   #c69bf0;
+    --var:  #949ceb;
+    --str:  #4cc2a8;
+
+    --acc:  #8fce6a;
+    --warn: #dda63f;
+    --ok:   #4cc2a8;
+  }
+}
+
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #0d1218;
+  --surface:   #161d26;
+  --surface-2: #1e2733;
+  --line:      #2c3644;
+  --line-2:    #4a5768;
+
+  --ink:   #dde5ed;
+  --ink-2: #a7b3c0;
+  --ink-3: #79868f;
+
+  --sheb: #e18c58;
+  --kw:   #c69bf0;
+  --var:  #949ceb;
+  --str:  #4cc2a8;
+
+  --acc:  #8fce6a;
+  --warn: #dda63f;
+  --ok:   #4cc2a8;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{ box-sizing: border-box; }
+body{
+  margin:0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: var(--fs-base); line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+::selection{ background: var(--ink); color: var(--bg); }
+a{ color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+code, kbd, samp{ font-family: var(--mono); font-size: .92em; }
+kbd{
+  border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: var(--r);
+  padding: .05em .35em; font-size: .84em; background: var(--surface);
+}
+h1,h2,h3{ text-wrap: balance; }
+
+.shell{ max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+.body-grid{ display: grid; grid-template-columns: 1fr; gap: 3rem; padding-bottom: 5rem; }
+@media (min-width: 1000px){ .body-grid{ grid-template-columns: 14rem minmax(0,1fr); gap: 4rem; } }
+main{ min-width: 0; }
+.prose{ max-width: var(--maxw); }
+section{ padding-block: clamp(2.5rem, 6vw, 4rem); border-top: 1px solid var(--line); }
+section:first-of-type{ border-top: 0; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{ border-bottom: 1px solid var(--line); padding-block: clamp(3rem, 9vw, 6rem) clamp(2.5rem, 7vw, 4rem); }
+.eyebrow{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 1.75rem;
+}
+.eyebrow a{ color: inherit; text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.eyebrow a:hover{ color: var(--ink); border-color: var(--ink); }
+h1{
+  font-family: var(--mono); font-size: var(--fs-3xl); font-weight: 600;
+  letter-spacing: -.045em; line-height: .98; margin: 0;
+}
+.hero-lede{ max-width: 50ch; margin: 1.5rem 0 0; font-size: var(--fs-lg); color: var(--ink-2); }
+
+.hero-script{
+  margin-top: clamp(2rem, 5vw, 3rem);
+  font-family: var(--mono); font-size: clamp(.9rem, 2.6vw, 1.4rem);
+  font-weight: 600; line-height: 1.7; white-space: pre; overflow-x: auto;
+}
+.hero-script span{ animation: drop .5s cubic-bezier(.2,.8,.3,1) backwards; display: inline-block; }
+@keyframes drop{ from{ opacity:0; transform: translateY(-.28em); } to{ opacity:1; transform: none; } }
+
+.hero-legend{
+  display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 1.5rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+.hero-legend b{ font-weight: 600; }
+
+/* colores de sintaxis, usados en todo el documento */
+.sb{ color: var(--sheb); }
+.k{  color: var(--kw); }
+.v{  color: var(--var); }
+.s{  color: var(--str); }
+.c{  color: var(--ink-3); font-style: italic; }
+
+/* ============================================================
+   ÍNDICE LATERAL
+   ============================================================ */
+.rail{ display: none; }
+@media (min-width: 1000px){
+  .rail{
+    display: block; position: sticky; top: 0; align-self: start;
+    padding-top: clamp(2.5rem, 6vw, 4rem); max-height: 100vh; overflow-y: auto;
+  }
+}
+.rail ol{
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem;
+  font-family: var(--mono); font-size: var(--fs-sm);
+}
+.rail a{ color: var(--ink-3); text-decoration: none; display: flex; gap: .6rem; transition: color .15s; }
+.rail a:hover{ color: var(--ink); }
+.rail a .glyph{ color: var(--line-2); width: 1.2em; flex: none; text-align: center; }
+.rail a.is-active{ color: var(--ink); }
+.rail a.is-active .glyph{ color: var(--acc); }
+
+/* ============================================================
+   SECCIONES
+   ============================================================ */
+.sec-mark{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 .9rem;
+}
+h2{
+  font-family: var(--mono); font-size: var(--fs-2xl); font-weight: 600;
+  letter-spacing: -.035em; line-height: 1.1; margin: 0 0 1.1rem;
+}
+h3{
+  font-family: var(--mono); font-size: 1.15rem; font-weight: 600;
+  letter-spacing: -.02em; margin: 2rem 0 .8rem;
+}
+p{ margin: 0 0 1.1rem; }
+ul.plain{ margin: 0 0 1.1rem; padding-left: 1.2rem; }
+ul.plain li{ margin-bottom: .45rem; }
+
+.note{
+  font-size: var(--fs-ui); font-family: var(--sans); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem;
+  margin: 1.5rem 0; max-width: var(--maxw);
+}
+.note b{ color: var(--ink); }
+.note.warn{ border-color: var(--warn); }
+.note.ok{ border-color: var(--ok); }
+
+.wide{ margin: 1.75rem 0; }
+.panel{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(1.25rem, 3vw, 1.75rem);
+}
+.scroll-x{ overflow-x: auto; }
+
+table{
+  border-collapse: collapse; width: 100%; min-width: 32rem;
+  font-family: var(--sans); font-size: var(--fs-ui);
+}
+th, td{ text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2); font-weight: 600;
+}
+tbody tr:last-child td{ border-bottom: 0; }
+td code{ color: var(--ink); white-space: nowrap; }
+td code.wrap{ white-space: normal; }
+.col-a{ width: 12rem; }
+.col-b{ width: 8rem; }
+.col-e1{ width: 15rem; }
+.col-e2{ width: 13rem; }
+
+/* bloques de código estáticos */
+pre.block{
+  margin: 1.5rem 0; padding: .95rem 1.1rem; overflow-x: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.7; color: var(--ink);
+}
+
+/* ============================================================
+   PICKER (compartido por varios interactivos)
+   ============================================================ */
+.picker{ display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.25rem; }
+.pick{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+  border-radius: var(--r); padding: .35rem .7rem; cursor: pointer; transition: all .12s;
+}
+.pick:hover{ border-color: var(--ink-3); color: var(--ink); }
+.pick[aria-pressed="true"]{ border-color: var(--ink); color: var(--ink); font-weight: 600; background: var(--surface); }
+
+/* ============================================================
+   TERMINAL
+   ============================================================ */
+.term{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); overflow: hidden;
+}
+.term-bar{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding: .5rem .8rem; border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.term pre{
+  margin: 0; padding: .9rem; overflow-x: auto;
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.6; color: var(--ink);
+}
+.prompt{ color: var(--ink-3); }
+.err{ color: var(--warn); }
+.good{ color: var(--ok); }
+.term-note{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  padding: .8rem .9rem; border-top: 1px solid var(--line); margin: 0;
+}
+
+/* ============================================================
+   SIMULADOR DE vi
+   ============================================================ */
+.vi-screen{
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.vi-screen pre{
+  margin: 0; padding: .9rem; min-height: 11rem; overflow-x: auto;
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.6; color: var(--ink);
+}
+.vi-screen pre .tilde{ color: var(--line-2); }
+.vi-screen pre .cursor{
+  background: var(--ink); color: var(--surface);
+}
+.vi-status{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  padding: .5rem .9rem; border-top: 1px solid var(--line); background: var(--surface-2);
+  color: var(--ink-2); min-height: 2.2rem; display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .6rem;
+}
+.vi-status .mode{ font-weight: 600; }
+.vi-status .mode.ins{ color: var(--str); }
+.vi-status .mode.nor{ color: var(--var); }
+.vi-status .mode.out{ color: var(--ink-3); }
+.vi-keys{ display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1rem; }
+.key{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .4rem .65rem; cursor: pointer; transition: all .12s;
+}
+.key:hover{ border-color: var(--ink-3); color: var(--ink); }
+.key.reset{ color: var(--ink-3); margin-left: auto; }
+.vi-log{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: 1.1rem 0 0;
+  min-height: 3.2rem;
+}
+
+/* ============================================================
+   SIMULADOR DE ARGUMENTOS
+   ============================================================ */
+.args-line{
+  display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.1rem;
+}
+.args-line .dollar{ font-family: var(--mono); color: var(--ink-3); font-size: var(--fs-lg); }
+.args-line input{
+  flex: 1 1 20rem; min-width: 0;
+  font-family: var(--mono); font-size: var(--fs-ui); color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r);
+  padding: .5rem .7rem;
+}
+.args-line input:focus{ border-color: var(--ink-3); }
+.args-table{ width: 100%; min-width: 0; font-family: var(--sans); font-size: var(--fs-ui); }
+.args-table td:first-child{ width: 6rem; }
+.args-table .name{ font-family: var(--mono); font-weight: 600; color: var(--var); }
+.args-table .val{ font-family: var(--mono); color: var(--ink); }
+.args-table .val em{ color: var(--ink-3); font-style: normal; }
+.args-table .why{ color: var(--ink-2); }
+.word{
+  display: inline-block; font-family: var(--mono);
+  border: 1px solid var(--line-2); border-radius: var(--r);
+  padding: .05rem .35rem; margin: .1rem .25rem .1rem 0; background: var(--surface-2);
+}
+
+/* ============================================================
+   DISECTOR DEL SCRIPT
+   ============================================================ */
+.dissect{ display: grid; gap: 1.5rem; }
+@media (min-width: 1180px){
+  .dissect{ grid-template-columns: minmax(0,1fr) minmax(0, 17rem); gap: 2rem; align-items: start; }
+}
+.code{
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: .7rem 0; overflow-x: auto;
+}
+.code .ln{
+  display: block; width: 100%; text-align: left; background: none; border: 0;
+  border-left: 2px solid transparent; cursor: pointer;
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.75; color: var(--ink);
+  padding: 0 1rem 0 .8rem; white-space: pre;
+}
+.code .ln .no{ color: var(--line-2); display: inline-block; width: 2ch; text-align: right; margin-right: 1ch; user-select: none; }
+.code .ln:hover{ background: var(--surface-2); }
+.code .ln[aria-pressed="true"]{ background: var(--surface-2); border-left-color: var(--acc); }
+.code .ln.blank{ cursor: default; }
+.code .ln.blank:hover{ background: none; }
+.dissect-aside{
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 1rem 1.1rem; position: sticky; top: 1rem;
+}
+.dissect-aside h4{
+  font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600;
+  letter-spacing: .04em; margin: 0 0 .6rem; color: var(--acc);
+}
+.dissect-aside p{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); margin: 0; }
+.dissect-aside p + p{ margin-top: .7rem; }
+
+/* ============================================================
+   QUIZ
+   ============================================================ */
+.quiz{ display: flex; flex-direction: column; gap: 1.5rem; }
+.q{ border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; }
+.q:last-child{ border-bottom: 0; padding-bottom: 0; }
+.q-text{ font-size: var(--fs-lg); margin: 0 0 .8rem; }
+.q-opts{ display: flex; flex-wrap: wrap; gap: .5rem; }
+.opt{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .45rem .8rem; cursor: pointer; transition: all .12s;
+}
+.opt:hover:not(:disabled){ border-color: var(--ink-3); color: var(--ink); }
+.opt:disabled{ cursor: default; }
+.opt.good{ border-color: var(--ok); color: var(--ok); font-weight: 600; background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.opt.bad{ border-color: var(--warn); color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); text-decoration: line-through; }
+.q-exp{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: .9rem 0 0;
+}
+.q-exp[hidden]{ display: none; }
+
+/* ============================================================
+   CHULETA
+   ============================================================ */
+.cheat{ display: grid; gap: .1rem; font-family: var(--mono); font-size: var(--fs-ui); }
+.cheat-row{
+  display: grid; grid-template-columns: minmax(0, 15rem) minmax(0,1fr);
+  gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--line); align-items: baseline;
+}
+.cheat-row:last-child{ border-bottom: 0; }
+.cheat-row span{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); }
+.cheat-row b{ font-weight: 600; }
+
+footer{
+  border-top: 1px solid var(--line);
+  padding-block: 2.5rem 4rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+footer a{ color: inherit; }
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="shell">
+    <p class="eyebrow"><a href="../">← Índice</a> · Guía · objetivo 3.3 · peso 4</p>
+    <h1>De comandos<br>a script</h1>
+    <p class="hero-lede">Escribir un script no es programar. Es guardar en un fichero lo que ya sabes teclear en la terminal. Esa idea, más seis piezas de sintaxis, es todo lo que pide el examen.</p>
+
+    <div class="hero-script" aria-label="Un script de Bash de cuatro líneas">
+<span class="sb" style="animation-delay:.00s">#!/bin/bash</span>
+<span class="k"  style="animation-delay:.08s">for</span> <span class="v" style="animation-delay:.16s">f</span> <span class="k" style="animation-delay:.24s">in</span> <span class="s" style="animation-delay:.32s">*.log</span><span class="k" style="animation-delay:.40s">; do</span>
+  <span class="sb" style="animation-delay:.48s">echo</span> <span class="s" style="animation-delay:.56s">"Procesando <span class="v">$f</span>"</span>
+<span class="k" style="animation-delay:.64s">done</span></div>
+
+    <p class="hero-legend">
+      <b class="sb">■ shebang y comandos</b>
+      <b class="k">■ palabras clave</b>
+      <b class="v">■ variables</b>
+      <b class="s">■ cadenas de texto</b>
+    </p>
+  </div>
+</header>
+
+<div class="shell body-grid">
+
+  <nav class="rail" aria-label="Índice">
+    <ol>
+      <li><a href="#que-es"><span class="glyph">#</span> Qué es un script</a></li>
+      <li><a href="#editores"><span class="glyph">e</span> nano y vi</a></li>
+      <li><a href="#shebang"><span class="glyph">!</span> La línea #!</a></li>
+      <li><a href="#ejecutar"><span class="glyph">x</span> Ejecutarlo</a></li>
+      <li><a href="#variables"><span class="glyph">$</span> Variables y echo</a></li>
+      <li><a href="#argumentos"><span class="glyph">1</span> Argumentos</a></li>
+      <li><a href="#bucles"><span class="glyph">f</span> Bucles for</a></li>
+      <li><a href="#logica"><span class="glyph">?</span> if y test</a></li>
+      <li><a href="#salida"><span class="glyph">0</span> Estado de salida</a></li>
+      <li><a href="#completo"><span class="glyph">&amp;</span> Un script entero</a></li>
+      <li><a href="#errores"><span class="glyph">%</span> Errores típicos</a></li>
+      <li><a href="#quiz"><span class="glyph">Q</span> Doce preguntas</a></li>
+      <li><a href="#chuleta"><span class="glyph">*</span> Chuleta</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ==================== QUÉ ES ==================== -->
+    <section id="que-es">
+      <p class="sec-mark">El punto de partida</p>
+      <h2>Qué es un shell script</h2>
+      <div class="prose">
+        <p>Cuando escribes <code>ls -l</code> y pulsas <kbd>Enter</kbd>, no es el kernel quien te contesta. Es un programa llamado <b>shell</b> que lee tu línea, la interpreta y ejecuta lo que corresponde. En Linux ese programa suele ser <b>Bash</b>.</p>
+        <p>Un script es exactamente lo mismo <b>pero sin ti delante</b>: un fichero de texto con las órdenes ya escritas, una por línea, que el shell lee de arriba abajo como si las estuvieras tecleando una detrás de otra.</p>
+        <p>De ahí salen tres consecuencias que conviene tener claras desde el principio:</p>
+        <ul class="plain">
+          <li><b>No se compila.</b> No hay un paso de construcción ni un binario resultante. Guardas el fichero y ya se puede ejecutar.</li>
+          <li><b>La extensión da igual.</b> <code>.sh</code> es una costumbre para que los humanos lo reconozcan; el sistema no la mira. Un script puede llamarse <code>copia</code> a secas.</li>
+          <li><b>Todo lo que funciona en la terminal funciona en el script</b>, y al revés. Si dudas de una línea, pruébala suelta antes de meterla.</li>
+        </ul>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Lo mismo, dos veces</th><th>En la terminal, a mano</th><th>En un fichero, una vez</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Qué escribes</td>
+              <td><code class="wrap">mkdir copias</code><br><code class="wrap">cp *.txt copias/</code><br><code class="wrap">echo Hecho</code></td>
+              <td>Las tres líneas idénticas, dentro de <code>copiar.sh</code></td>
+            </tr>
+            <tr><td>Cuándo se ejecuta</td><td>Al pulsar Enter en cada línea.</td><td>Cuando tú lo lances, hoy o dentro de un año.</td></tr>
+            <tr><td>Cuántas veces</td><td>Una. Repetirlo es volver a teclearlo.</td><td>Las que quieras, siempre igual.</td></tr>
+            <tr><td>Quién puede</td><td>Solo tú, sentado ahí.</td><td>Otra persona, o el propio sistema a una hora fijada.</td></tr>
+            <tr><td>Si te equivocas</td><td>Ya está hecho.</td><td>Corriges el fichero y lo vuelves a lanzar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Este es el objetivo de más peso del examen: 4 puntos.</b> No se te va a pedir que programes, sino que leas un script corto y sepas decir qué hace, qué imprime y con qué código termina. Todo lo que viene a continuación cabe en esa frase.
+      </div>
+
+      <h3>Los cuatro pasos, de principio a fin</h3>
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-b">Paso</th><th class="col-a">Se hace con</th><th>Qué consigue</th></tr></thead>
+          <tbody>
+            <tr><td><b>1. Escribir</b></td><td><code>nano copia.sh</code></td><td>Crea el fichero de texto con las órdenes dentro.</td></tr>
+            <tr><td><b>2. Declarar</b></td><td><code>#!/bin/bash</code> en la línea 1</td><td>Dice quién tiene que interpretar el fichero.</td></tr>
+            <tr><td><b>3. Permitir</b></td><td><code>chmod +x copia.sh</code></td><td>Convierte un fichero de texto en algo ejecutable.</td></tr>
+            <tr><td><b>4. Ejecutar</b></td><td><code>./copia.sh</code></td><td>Lo lanza. El punto y la barra no son adorno; se explican más abajo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== EDITORES ==================== -->
+    <section id="editores">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Escribir el fichero: nano y vi</h2>
+      <div class="prose">
+        <p>Antes de escribir un script hay que poder escribir un fichero, y en una terminal eso significa un editor de texto. El examen no pide dominar ninguno: pide saber <b>abrir, escribir, guardar y salir</b> con los dos que siempre están ahí.</p>
+        <p><b>nano</b> es el que quieres si acabas de llegar: escribes directamente y las teclas aparecen al pie de la pantalla. El símbolo <code>^</code> de esa lista significa <kbd>Ctrl</kbd>, así que <code>^O</code> es <kbd>Ctrl</kbd>+<kbd>O</kbd>.</p>
+        <p><b>vi</b> (o su versión moderna, <b>vim</b>) es feo de aprender pero está instalado en absolutamente todos los sistemas Linux, incluido ese que arranca en modo rescate y no tiene nada más. Por eso hay que saber lo mínimo.</p>
+      </div>
+
+      <div class="note warn">
+        <b>La trampa de vi está en la primera tecla.</b> vi tiene <i>modos</i>. Al abrirlo estás en modo <b>normal</b>, donde las letras no se escriben: se interpretan como órdenes. Teclear «hola» no escribe «hola», sino que ejecuta cuatro órdenes distintas. Hay que pulsar <kbd>i</kbd> antes de poder escribir, y <kbd>Esc</kbd> para volver.
+      </div>
+
+      <h3>vi, con las manos</h3>
+      <div class="prose">
+        <p>Pulsa las teclas de debajo de la pantalla y mira qué ocurre. El objetivo es que veas el momento exacto en que vi deja de obedecerte y por qué.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="vi-screen">
+          <pre id="vi-buf"></pre>
+          <div class="vi-status">
+            <span class="mode" id="vi-mode"></span>
+            <span id="vi-msg"></span>
+          </div>
+        </div>
+        <div class="vi-keys" id="vi-keys"></div>
+        <p class="vi-log" id="vi-log"></p>
+      </div>
+
+      <h3>nano — lo que hace falta</h3>
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Tecla</th><th>Qué hace</th></tr></thead>
+          <tbody>
+            <tr><td><code>nano fichero</code></td><td>Abre el fichero, o lo crea vacío si no existe. Empiezas escribiendo, sin más.</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Guardar (<i>write<b>O</b>ut</i>). Pregunta el nombre; se confirma con <kbd>Enter</kbd>.</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>X</kbd></td><td>Salir. Si hay cambios sin guardar, pregunta antes.</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> · <kbd>Ctrl</kbd>+<kbd>U</kbd></td><td>Cortar la línea · pegarla.</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Buscar texto (<i>where is</i>).</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>La ayuda completa, dentro del propio editor.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>vi — lo que hace falta</h3>
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Tecla</th><th class="col-b">Desde el modo</th><th>Qué hace</th></tr></thead>
+          <tbody>
+            <tr><td><code>vi fichero</code></td><td>—</td><td>Abre en <b>modo normal</b>. Todavía no puedes escribir.</td></tr>
+            <tr><td><kbd>i</kbd></td><td>normal</td><td>Entra en <b>modo inserción</b>: a partir de aquí las teclas se escriben. <kbd>a</kbd> hace lo mismo una posición más allá; <kbd>o</kbd> abre una línea nueva debajo.</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>inserción</td><td>Vuelve al modo normal. Es la tecla que desatasca casi cualquier situación.</td></tr>
+            <tr><td><code>:w</code></td><td>normal</td><td>Guardar. Los dos puntos abren la línea de órdenes al pie.</td></tr>
+            <tr><td><code>:q</code></td><td>normal</td><td>Salir. Se niega si hay cambios sin guardar.</td></tr>
+            <tr><td><code>:wq</code> · <code>ZZ</code></td><td>normal</td><td>Guardar y salir, en una sola orden.</td></tr>
+            <tr><td><code>:q!</code></td><td>normal</td><td>Salir <b>tirando</b> los cambios. La admiración significa «sé lo que hago».</td></tr>
+            <tr><td><kbd>x</kbd> · <code>dd</code> · <kbd>u</kbd></td><td>normal</td><td>Borrar un carácter · borrar la línea entera · deshacer.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Si te has quedado atrapado en vi</b>, la secuencia que siempre funciona es <kbd>Esc</kbd> y luego <code>:q!</code> y <kbd>Enter</kbd>. Sales sin guardar nada, pero sales.
+      </div>
+    </section>
+
+    <!-- ==================== SHEBANG ==================== -->
+    <section id="shebang">
+      <p class="sec-mark">La primera línea</p>
+      <h2>El shebang: <code>#!</code></h2>
+      <div class="prose">
+        <p>Un script empieza con una línea que no es una orden:</p>
+      </div>
+
+<pre class="block"><span class="sb">#!/bin/bash</span></pre>
+
+      <div class="prose">
+        <p>Esos dos primeros caracteres, <code>#</code> y <code>!</code>, se llaman <b>shebang</b> y los lee el <b>kernel</b>, no el shell. Cuando le pides ejecutar un fichero, el kernel mira sus primeros bytes: si encuentra <code>#!</code>, entiende que no es un binario sino un guion, toma la ruta que viene detrás y arranca <i>ese</i> programa pasándole el fichero como argumento.</p>
+        <p>Es decir, <code>./copia.sh</code> acaba convertido en <code>/bin/bash ./copia.sh</code> sin que tú lo escribas.</p>
+        <p>La elegancia del truco está en que <code>#</code> es también el carácter de <b>comentario</b> de Bash. La misma línea significa algo para el kernel y es invisible para el intérprete: nadie tropieza con ella.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Shebang</th><th>Cuándo se usa</th></tr></thead>
+          <tbody>
+            <tr><td><code>#!/bin/bash</code></td><td>Lo normal, y lo que hay que saber para el examen. Pide Bash explícitamente, con todas sus extensiones.</td></tr>
+            <tr><td><code>#!/bin/sh</code></td><td>Pide «un shell POSIX», el mínimo común. En Debian y Ubuntu <code>/bin/sh</code> <b>no es Bash</b>, es <code>dash</code>: más rápido, y sin <code>[[ ]]</code> ni arrays. Un script que funciona con <code>bash</code> puede fallar aquí.</td></tr>
+            <tr><td><code>#!/usr/bin/env bash</code></td><td>Busca Bash en el <code>PATH</code> en vez de fiarse de una ruta fija. Útil en sistemas donde Bash no está en <code>/bin</code>.</td></tr>
+            <tr><td><code>#!/usr/bin/python3</code></td><td>El mecanismo no es de Bash: sirve para cualquier intérprete. Con esta línea el fichero es un programa de Python que se lanza igual.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Sin shebang la cosa funciona… por accidente.</b> Si ejecutas un fichero sin esa línea, el kernel no sabe qué hacer y falla; entonces Bash, que es quien te obedece, tiene una red de seguridad: lo ejecuta él mismo. Parece que todo va bien, hasta que el fichero lo lanza <code>cron</code>, otro shell o un intérprete distinto. Pon siempre el shebang.
+      </div>
+
+      <h3>Comentarios</h3>
+      <div class="prose">
+        <p>Salvo en esa primera línea, todo lo que sigue a una <code>#</code> se ignora hasta el final de la línea. Sirve para explicar el porqué de una decisión, no para repetir lo que ya dice el código.</p>
+      </div>
+
+<pre class="block"><span class="sb">#!/bin/bash</span>
+<span class="c"># copia-logs.sh — copia los .log de un directorio a ~/copias</span>
+<span class="c"># Autor: ana · uso: ./copia-logs.sh /var/log</span>
+
+<span class="sb">mkdir</span> -p <span class="s">"$HOME/copias"</span>   <span class="c"># -p: no protesta si ya existe</span></pre>
+    </section>
+
+    <!-- ==================== EJECUTAR ==================== -->
+    <section id="ejecutar">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Ejecutarlo: <code>chmod</code> y ese <code>./</code></h2>
+      <div class="prose">
+        <p>Un fichero de texto no se ejecuta solo. Hay tres maneras de lanzarlo y no son intercambiables:</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Forma</th><th class="col-b">¿Hace falta <code>+x</code>?</th><th>Qué ocurre en realidad</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>bash copia.sh</code></td><td>No</td>
+              <td>Arrancas tú a Bash y le pasas el fichero como argumento, igual que <code>cat</code> recibe un fichero. El shebang <b>se ignora</b> porque ya has elegido el intérprete a mano.</td>
+            </tr>
+            <tr>
+              <td><code>./copia.sh</code></td><td><b>Sí</b></td>
+              <td>Ejecutas el fichero <i>en sí</i>. Aquí sí manda el shebang, y el sistema exige permiso de ejecución. Es la forma normal.</td>
+            </tr>
+            <tr>
+              <td><code>source copia.sh</code><br><code>. copia.sh</code></td><td>No</td>
+              <td>Las líneas se ejecutan <b>en tu shell actual</b>, no en uno nuevo. Lo que el script cambie —variables, directorio actual— se te queda puesto al terminar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <p>El <code>./</code> no es decorativo. Cuando escribes un nombre suelto, el shell lo busca en los directorios de la variable <code>PATH</code>, y el directorio actual <b>no está</b> en esa lista —a propósito, para que nadie te cuele un fichero llamado <code>ls</code> en una carpeta compartida. Con <code>./</code> le das una ruta explícita: «este de aquí, el del directorio en el que estoy».</p>
+        <p>Y el permiso de ejecución se pone con <code>chmod</code>, el mismo de la <a href="../sample_linux_permissions/">guía de permisos</a>:</p>
+      </div>
+
+<pre class="block"><span class="prompt">$ </span><span class="sb">chmod</span> +x copia.sh        <span class="c"># añade x a usuario, grupo y otros (según umask)</span>
+<span class="prompt">$ </span><span class="sb">chmod</span> 755 copia.sh       <span class="c"># lo mismo, en octal: rwx para mí, r-x para el resto</span>
+<span class="prompt">$ </span><span class="sb">chmod</span> u+x copia.sh       <span class="c"># solo para el dueño</span>
+<span class="prompt">$ </span><span class="sb">ls</span> -l copia.sh
+-rwxr-xr-x 1 ana ana 214 abr 12 10:30 copia.sh
+   <span class="c">↑ esas tres x son lo que faltaba</span></pre>
+
+      <h3>Los seis finales posibles</h3>
+      <div class="prose">
+        <p>Casi todos los tropiezos con un script recién escrito son uno de estos seis casos. Elige uno y mira la sesión completa.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="picker" id="run-pick" role="group" aria-label="Situaciones al ejecutar"></div>
+        <div class="term">
+          <div class="term-bar" id="run-bar"></div>
+          <pre id="run-out"></pre>
+          <p class="term-note" id="run-note"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VARIABLES ==================== -->
+    <section id="variables">
+      <p class="sec-mark">Guardar y mostrar</p>
+      <h2>Variables y <code>echo</code></h2>
+      <div class="prose">
+        <p>Una variable es un nombre con un valor guardado detrás. Se crea asignando, y se lee poniéndole un <code>$</code> delante:</p>
+      </div>
+
+<pre class="block"><span class="v">nombre</span>=<span class="s">"Ana"</span>
+<span class="v">carpeta</span>=/var/log
+
+<span class="sb">echo</span> <span class="s">"Hola, <span class="v">$nombre</span>"</span>          <span class="c"># → Hola, Ana</span>
+<span class="sb">echo</span> <span class="s">"Miro en <span class="v">${carpeta}</span>/syslog"</span>  <span class="c"># las llaves separan el nombre de lo que sigue</span></pre>
+
+      <div class="note warn">
+        <b>Sin espacios alrededor del <code>=</code>.</b> Esta es, con diferencia, la equivocación número uno. <code>nombre = "Ana"</code> no asigna nada: el shell lo lee como el comando <code>nombre</code> con dos argumentos, y responde <code>nombre: orden no encontrada</code>. <code>nombre="Ana"</code> pegado, siempre.
+      </div>
+
+      <div class="prose">
+        <p>Las llaves de <code>${carpeta}</code> solo hacen falta cuando el nombre toca algo que podría confundirse con él: <code>$carpeta/syslog</code> funciona porque <code>/</code> no puede formar parte de un nombre, pero <code>$nombre_apellido</code> buscaría una variable llamada <code>nombre_apellido</code>. Ponerlas siempre no estorba.</p>
+      </div>
+
+      <h3>Las comillas cambian el resultado</h3>
+      <div class="prose">
+        <p>Este es el otro punto donde todo el mundo se quema. Supongamos <code>fichero="mis notas.txt"</code>:</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Escribes</th><th class="col-b">Sale</th><th>Por qué</th></tr></thead>
+          <tbody>
+            <tr><td><code>echo "$fichero"</code></td><td><code>mis notas.txt</code></td><td>Comillas dobles: sustituye la variable y respeta el valor tal cual, con sus espacios. <b>Es lo que quieres casi siempre.</b></td></tr>
+            <tr><td><code>echo '$fichero'</code></td><td><code>$fichero</code></td><td>Comillas simples: no sustituye nada. Todo es texto literal.</td></tr>
+            <tr><td><code>echo $fichero</code></td><td><code>mis notas.txt</code></td><td>Se ve igual, pero <code>echo</code> ha recibido <b>dos</b> argumentos y los ha unido con un espacio. Con <code>rm $fichero</code> intentarías borrar dos ficheros que no existen.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note ok">
+        <b>Regla de oro:</b> pon comillas dobles alrededor de toda variable que uses como argumento — <code>cp "$origen" "$destino"</code>. Cuesta dos caracteres y elimina de golpe la familia entera de fallos por espacios en los nombres.
+      </div>
+
+      <h3>De dónde salen los valores</h3>
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Forma</th><th>Qué hace</th></tr></thead>
+          <tbody>
+            <tr><td><code>v="texto"</code></td><td>Asignación directa. Todo es texto: no hay tipos.</td></tr>
+            <tr><td><code>read v</code></td><td>Pide el valor por teclado y lo guarda. <code>read -p "Nombre: " v</code> muestra antes un aviso.</td></tr>
+            <tr><td><code>v=$(comando)</code></td><td><b>Sustitución de comando</b>: ejecuta el comando y guarda lo que imprime. <code>hoy=$(date +%F)</code>.</td></tr>
+            <tr><td><code>v=$((3 + 4))</code></td><td>Aritmética. Como todo es texto, sumar exige pedirlo explícitamente con <code>$(( ))</code>.</td></tr>
+            <tr><td><code>export v</code></td><td>Marca la variable para que la hereden los programas que lances desde aquí. Sin <code>export</code> solo existe en tu shell.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Variables de entorno que ya existen</h3>
+      <div class="prose">
+        <p>El sistema te da unas cuantas hechas. Se ven todas con <code>env</code>, y por convención van en mayúsculas:</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-b">Variable</th><th>Contiene</th></tr></thead>
+          <tbody>
+            <tr><td><code>$HOME</code></td><td>Tu directorio personal: <code>/home/ana</code>. Es lo que hay detrás de <code>~</code>.</td></tr>
+            <tr><td><code>$USER</code></td><td>Tu nombre de usuario.</td></tr>
+            <tr><td><code>$PWD</code></td><td>El directorio en el que estás ahora mismo.</td></tr>
+            <tr><td><code>$PATH</code></td><td>La lista de directorios donde el shell busca los comandos, separados por <code>:</code>.</td></tr>
+            <tr><td><code>$SHELL</code></td><td>Tu shell de inicio de sesión. Ojo: es el que te asignaron, no necesariamente el que corre ahora.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3><code>echo</code>: la ventana al interior</h3>
+      <div class="prose">
+        <p><code>echo</code> imprime sus argumentos y añade un salto de línea. Es trivial, y aun así es la herramienta con la que se depura el 90 % de los scripts: si algo no va, imprime la variable justo antes y mira qué había dentro de verdad.</p>
+      </div>
+
+<pre class="block"><span class="sb">echo</span> <span class="s">"Hola"</span>            <span class="c"># Hola, y salto de línea</span>
+<span class="sb">echo</span> -n <span class="s">"Sin salto: "</span>  <span class="c"># -n deja el cursor en la misma línea</span>
+<span class="sb">echo</span> -e <span class="s">"uno\tdos"</span>     <span class="c"># -e interpreta \t (tabulador) y \n (salto)</span>
+<span class="sb">echo</span> <span class="s">"Estoy en <span class="v">$PWD</span>"</span>   <span class="c"># las variables se sustituyen dentro de las comillas</span></pre>
+
+      <div class="note">
+        Para formatos serios existe <code>printf "%s tiene %d años\n" "$n" "$e"</code>, que se comporta igual en todos los sistemas. <code>echo -e</code> no es universal; <code>printf</code> sí. Para Linux Essentials basta con <code>echo</code>.
+      </div>
+    </section>
+
+    <!-- ==================== ARGUMENTOS ==================== -->
+    <section id="argumentos">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Argumentos de la línea de comandos</h2>
+      <div class="prose">
+        <p>Un script que siempre hace lo mismo sobre lo mismo sirve de poco. Lo que le da valor es recibir datos al lanzarlo, igual que <code>cp origen destino</code> los recibe.</p>
+        <p>Esos datos llegan en unas variables especiales que Bash rellena solo: <code>$1</code> es el primer argumento, <code>$2</code> el segundo, y así hasta donde haga falta. A partir del décimo hay que usar llaves: <code>${10}</code>.</p>
+        <p>Escribe abajo la línea que lanzarías —con comillas si quieres— y mira qué acaba dentro de cada variable.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="args-line">
+          <span class="dollar">$</span>
+          <input id="args-in" type="text" spellcheck="false" aria-label="Línea de comandos de ejemplo"
+                 value='./copia.sh informe.txt "mis notas.txt" /tmp'>
+        </div>
+        <div class="scroll-x">
+          <table class="args-table"><tbody id="args-out"></tbody></table>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>Las comillas se las come el shell, no el script.</b> Al escribir <code>"mis notas.txt"</code> le estás diciendo al shell que eso es <b>un</b> argumento aunque lleve un espacio. El script recibe el texto ya limpio, sin comillas. Prueba a quitarlas arriba y verás cómo un argumento se parte en dos.
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-b">Variable</th><th>Contiene</th></tr></thead>
+          <tbody>
+            <tr><td><code>$0</code></td><td>El nombre con el que se ha llamado al script. Se usa en los mensajes de uso: <code>echo "Uso: $0 fichero"</code>.</td></tr>
+            <tr><td><code>$1</code> … <code>$9</code></td><td>Los argumentos, en orden. Del décimo en adelante, <code>${10}</code>.</td></tr>
+            <tr><td><code>$#</code></td><td><b>Cuántos</b> argumentos han llegado. <code>$0</code> no cuenta.</td></tr>
+            <tr><td><code>"$@"</code></td><td>Todos los argumentos, cada uno como una palabra independiente. Es la forma correcta de reenviarlos a otro comando.</td></tr>
+            <tr><td><code>"$*"</code></td><td>Todos, pero pegados en <b>una sola</b> cadena. Rara vez es lo que quieres.</td></tr>
+            <tr><td><code>shift</code></td><td>Descarta <code>$1</code> y desplaza el resto: el antiguo <code>$2</code> pasa a ser <code>$1</code>. Sirve para ir consumiéndolos en un bucle.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <p>Un script bien educado comprueba lo primero de todo que le han dado lo que necesita:</p>
+      </div>
+
+<pre class="block"><span class="sb">#!/bin/bash</span>
+<span class="k">if</span> [ <span class="s">"<span class="v">$#</span>"</span> -lt 1 ]<span class="k">; then</span>
+  <span class="sb">echo</span> <span class="s">"Uso: <span class="v">$0</span> &lt;fichero&gt;"</span>
+  <span class="k">exit</span> 2
+<span class="k">fi</span>
+<span class="sb">echo</span> <span class="s">"Trabajando sobre <span class="v">$1</span>"</span></pre>
+    </section>
+
+    <!-- ==================== BUCLES ==================== -->
+    <section id="bucles">
+      <p class="sec-mark">Repetir</p>
+      <h2>El bucle <code>for</code></h2>
+      <div class="prose">
+        <p>Un <code>for</code> repite las mismas órdenes una vez por cada elemento de una lista. Su forma es siempre esta:</p>
+      </div>
+
+<pre class="block"><span class="k">for</span> <span class="v">variable</span> <span class="k">in</span> lista<span class="k">; do</span>
+    órdenes, usando <span class="v">$variable</span>
+<span class="k">done</span></pre>
+
+      <div class="prose">
+        <p>Las tres palabras <code>for</code>, <code>do</code> y <code>done</code> son obligatorias. El punto y coma antes de <code>do</code> solo hace falta si van en la misma línea; si <code>do</code> va en la línea siguiente, se quita.</p>
+        <p>Lo interesante no es el bucle: es <b>de dónde sale la lista</b>. El shell la construye <i>antes</i> de empezar a iterar, y esa expansión previa explica casi todo lo que sorprende. Elige un caso:</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="picker" id="loop-pick" role="group" aria-label="Ejemplos de bucle"></div>
+        <div class="term">
+          <div class="term-bar" id="loop-bar"></div>
+          <pre id="loop-out"></pre>
+          <p class="term-note" id="loop-note"></p>
+        </div>
+      </div>
+
+      <div class="note warn">
+        <b>No recorras <code>$(ls)</code>.</b> <code>for f in $(ls)</code> parece razonable y se rompe con el primer nombre que lleve un espacio: la salida de <code>ls</code> se trocea por espacios, no por líneas. Con <code>for f in *</code> el shell te entrega los nombres ya separados y enteros. Es más corto y además correcto.
+      </div>
+
+      <h3>El pariente cercano: <code>while</code></h3>
+      <div class="prose">
+        <p><code>while</code> repite <b>mientras</b> una condición se cumpla, en vez de recorrer una lista conocida. Se usa sobre todo para leer un fichero línea a línea, que es justo lo que <code>for</code> hace mal:</p>
+      </div>
+
+<pre class="block"><span class="k">while</span> <span class="sb">read</span> <span class="v">linea</span><span class="k">; do</span>
+  <span class="sb">echo</span> <span class="s">"Leído: <span class="v">$linea</span>"</span>
+<span class="k">done</span> &lt; usuarios.txt   <span class="c"># el fichero entra por la entrada estándar del bucle</span></pre>
+
+      <div class="note">
+        Para el examen basta con reconocer <code>while</code> y saber que existe. El que hay que saber escribir es <code>for</code>.
+      </div>
+    </section>
+
+    <!-- ==================== LÓGICA ==================== -->
+    <section id="logica">
+      <p class="sec-mark">Decidir</p>
+      <h2>Lógica básica: <code>if</code> y <code>test</code></h2>
+      <div class="prose">
+        <p>Aquí hay una idea que, entendida, ordena todo lo demás: <b>en Bash, <code>if</code> no evalúa una expresión: ejecuta un comando y mira si le fue bien.</b></p>
+      </div>
+
+<pre class="block"><span class="k">if</span> comando<span class="k">; then</span>
+    esto, si el comando terminó bien
+<span class="k">else</span>
+    esto, si terminó mal
+<span class="k">fi</span></pre>
+
+      <div class="prose">
+        <p>Por eso funciona <code>if grep -q error registro.log; then …</code> sin ninguna comparación: <code>grep</code> termina bien cuando encuentra algo, y mal cuando no.</p>
+        <p>¿Y las comparaciones normales? También son un comando. <code>[</code> —sí, el corchete— es un programa cuyo nombre es un corchete, y su último argumento tiene que ser <code>]</code>. Su forma con nombre legible es <code>test</code>: <code>[ -f x ]</code> y <code>test -f x</code> son idénticos.</p>
+      </div>
+
+      <div class="note warn">
+        <b>De ahí que los espacios sean obligatorios.</b> <code>[ "$a" = "b" ]</code> son cinco argumentos separados. <code>["$a"="b"]</code> es un comando llamado <code>[Ana=b]</code> que no existe. Un espacio después del <code>[</code>, otro antes del <code>]</code>, y otro a cada lado del operador.
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-b">Operador</th><th class="col-a">Cierto cuando</th><th>Ejemplo</th></tr></thead>
+          <tbody>
+            <tr><td colspan="3" style="font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Ficheros</td></tr>
+            <tr><td><code>-e</code></td><td>existe (sea lo que sea)</td><td><code>[ -e /etc/passwd ]</code></td></tr>
+            <tr><td><code>-f</code></td><td>existe y es un fichero normal</td><td><code>[ -f "$1" ]</code></td></tr>
+            <tr><td><code>-d</code></td><td>existe y es un directorio</td><td><code>[ -d /var/log ]</code></td></tr>
+            <tr><td><code>-r</code> · <code>-w</code> · <code>-x</code></td><td>puedo leerlo · escribirlo · ejecutarlo</td><td><code>[ -x copia.sh ]</code></td></tr>
+            <tr><td colspan="3" style="font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Texto</td></tr>
+            <tr><td><code>=</code> · <code>!=</code></td><td>las cadenas son iguales · distintas</td><td><code>[ "$modo" = "rapido" ]</code></td></tr>
+            <tr><td><code>-z</code></td><td>la cadena está vacía (<i>zero</i>)</td><td><code>[ -z "$1" ]</code></td></tr>
+            <tr><td><code>-n</code></td><td>la cadena tiene algo</td><td><code>[ -n "$RESPUESTA" ]</code></td></tr>
+            <tr><td colspan="3" style="font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Números</td></tr>
+            <tr><td><code>-eq</code> · <code>-ne</code></td><td>igual · distinto</td><td><code>[ "$#" -eq 0 ]</code></td></tr>
+            <tr><td><code>-lt</code> · <code>-le</code></td><td>menor · menor o igual</td><td><code>[ "$n" -lt 10 ]</code></td></tr>
+            <tr><td><code>-gt</code> · <code>-ge</code></td><td>mayor · mayor o igual</td><td><code>[ "$n" -ge 1 ]</code></td></tr>
+            <tr><td colspan="3" style="font-family:var(--mono);font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Combinar</td></tr>
+            <tr><td><code>!</code></td><td>niega lo que venga detrás</td><td><code>[ ! -d "$1" ]</code></td></tr>
+            <tr><td><code>&amp;&amp;</code> · <code>||</code></td><td>y · o, entre dos comprobaciones</td><td><code>[ -f x ] &amp;&amp; [ -r x ]</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <b><code>=</code> es para texto y <code>-eq</code> para números.</b> No son sinónimos: <code>[ "007" = "7" ]</code> es <b>falso</b> (las cadenas difieren) y <code>[ "007" -eq "7" ]</code> es <b>cierto</b> (los números son el mismo). Es una pregunta clásica.
+      </div>
+
+      <div class="prose">
+        <p>Con <code>elif</code> se encadenan varias comprobaciones, y el bloque se cierra siempre con <code>fi</code> —<code>if</code> del revés, igual que <code>esac</code> cierra un <code>case</code>:</p>
+      </div>
+
+<pre class="block"><span class="k">if</span> [ <span class="s">"<span class="v">$#</span>"</span> -eq 0 ]<span class="k">; then</span>
+  <span class="sb">echo</span> <span class="s">"No me has dicho qué fichero"</span>
+<span class="k">elif</span> [ ! -f <span class="s">"<span class="v">$1</span>"</span> ]<span class="k">; then</span>
+  <span class="sb">echo</span> <span class="s">"<span class="v">$1</span> no es un fichero"</span>
+<span class="k">else</span>
+  <span class="sb">wc</span> -l <span class="s">"<span class="v">$1</span>"</span>
+<span class="k">fi</span></pre>
+    </section>
+
+    <!-- ==================== SALIDA ==================== -->
+    <section id="salida">
+      <p class="sec-mark">Lo que nadie ve</p>
+      <h2>Estado de salida y <code>$?</code></h2>
+      <div class="prose">
+        <p>Todo comando, al terminar, devuelve al shell un número entre 0 y 255 que dice cómo le fue. Es su <b>estado de salida</b> (<i>exit status</i>), no se imprime en ningún sitio y es la base sobre la que se apoyan <code>if</code>, <code>&amp;&amp;</code> y <code>||</code>.</p>
+        <p>La convención es la contraria de lo que parece lógico:</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-b">Código</th><th>Significa</th></tr></thead>
+          <tbody>
+            <tr><td><code>0</code></td><td><b>Éxito.</b> Hay una sola forma de que algo salga bien, y es el cero.</td></tr>
+            <tr><td><code>1</code></td><td>Fallo genérico. Es el «algo ha ido mal» por defecto.</td></tr>
+            <tr><td><code>2</code></td><td>Uso incorrecto: faltan argumentos, una opción no existe. Convención, no norma.</td></tr>
+            <tr><td><code>126</code></td><td>El fichero se encontró pero <b>no se pudo ejecutar</b>: casi siempre falta el <code>+x</code>.</td></tr>
+            <tr><td><code>127</code></td><td><b>Comando no encontrado.</b> Un nombre mal escrito, o algo que no está en el <code>PATH</code>.</td></tr>
+            <tr><td><code>130</code></td><td>Lo interrumpiste con <kbd>Ctrl</kbd>+<kbd>C</kbd> (128 + la señal 2).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <p>Ese número queda guardado en la variable <code>$?</code>, y ahí es donde está la trampa: <b><code>$?</code> se refiere siempre al último comando ejecutado</b>, y <code>echo</code> también es un comando.</p>
+      </div>
+
+<pre class="block"><span class="prompt">$ </span><span class="sb">ls</span> /etc &gt; /dev/null
+<span class="prompt">$ </span><span class="sb">echo</span> <span class="v">$?</span>
+0                       <span class="c"># ls encontró el directorio</span>
+
+<span class="prompt">$ </span><span class="sb">ls</span> /no-existe 2&gt; /dev/null
+<span class="prompt">$ </span><span class="sb">echo</span> <span class="v">$?</span>
+2                       <span class="c"># ls avisa de que no está</span>
+<span class="prompt">$ </span><span class="sb">echo</span> <span class="v">$?</span>
+0                       <span class="c"># ¡el 0 es del echo anterior, que funcionó!</span>
+
+<span class="prompt">$ </span><span class="sb">comandoquenoexiste</span>
+bash: comandoquenoexiste: orden no encontrada
+<span class="prompt">$ </span><span class="sb">echo</span> <span class="v">$?</span>
+127</pre>
+
+      <div class="note warn">
+        <b>Si necesitas el estado dos veces, guárdalo:</b> <code>resultado=$?</code> justo después del comando, antes de hacer nada más. En cuanto ejecutes cualquier otra cosa, <code>$?</code> ya no vale.
+      </div>
+
+      <h3>Devolver un estado desde tu script</h3>
+      <div class="prose">
+        <p><code>exit N</code> termina el script inmediatamente y hace que <b>ese</b> sea el número que reciba quien lo llamó. Si no pones ninguno, el script devuelve el estado de su última orden, que casi nunca es lo que quieres decir.</p>
+      </div>
+
+<pre class="block"><span class="k">if</span> [ ! -f <span class="s">"<span class="v">$1</span>"</span> ]<span class="k">; then</span>
+  <span class="sb">echo</span> <span class="s">"No encuentro <span class="v">$1</span>"</span> &gt;&amp;2   <span class="c"># los errores, al canal de errores</span>
+  <span class="k">exit</span> 1
+<span class="k">fi</span>
+<span class="c"># ... el trabajo de verdad ...</span>
+<span class="k">exit</span> 0                          <span class="c"># todo bien, dicho explícitamente</span></pre>
+
+      <h3><code>&amp;&amp;</code> y <code>||</code>: encadenar según el resultado</h3>
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-a">Escribes</th><th>Se lee</th></tr></thead>
+          <tbody>
+            <tr><td><code>a &amp;&amp; b</code></td><td>Ejecuta <code>b</code> <b>solo si</b> <code>a</code> terminó con 0. «Haz esto y, si sale bien, esto otro.»</td></tr>
+            <tr><td><code>a || b</code></td><td>Ejecuta <code>b</code> <b>solo si</b> <code>a</code> falló. «Haz esto o, si no puedes, esto otro.»</td></tr>
+            <tr><td><code>a ; b</code></td><td>Ejecuta <code>b</code> siempre, pase lo que pase con <code>a</code>.</td></tr>
+            <tr><td><code>mkdir d &amp;&amp; cd d</code></td><td>Entra en el directorio solo si se pudo crear. El idioma más repetido de todos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Un atajo útil dentro de los scripts:</b> <code>set -e</code> en la segunda línea hace que el script se pare en cuanto un comando falle, en vez de seguir adelante haciendo cosas sobre un estado roto. No entra en el examen, pero explica muchos scripts reales que verás.
+      </div>
+    </section>
+
+    <!-- ==================== SCRIPT COMPLETO ==================== -->
+    <section id="completo">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Un script entero, línea por línea</h2>
+      <div class="prose">
+        <p>Todo lo anterior junto, en veintiocho líneas que hacen algo real. Pulsa cualquier línea para ver qué aporta y por qué está escrita así.</p>
+      </div>
+
+      <div class="wide">
+        <div class="dissect">
+          <div class="code" id="code" role="group" aria-label="copia-logs.sh, línea por línea">
+<button type="button" class="ln" data-i="1" aria-pressed="true"><span class="no">1</span><span class="sb">#!/bin/bash</span></button>
+<button type="button" class="ln" data-i="2" aria-pressed="false"><span class="no">2</span><span class="c"># copia-logs.sh — copia los .log a ~/copias</span></button>
+<button type="button" class="ln blank" data-i="0" tabindex="-1" aria-hidden="true"><span class="no">3</span> </button>
+<button type="button" class="ln" data-i="4" aria-pressed="false"><span class="no">4</span><span class="v">destino</span>=<span class="s">"<span class="v">$HOME</span>/copias"</span></button>
+<button type="button" class="ln" data-i="5" aria-pressed="false"><span class="no">5</span><span class="v">origen</span>=<span class="s">"<span class="v">$1</span>"</span></button>
+<button type="button" class="ln blank" data-i="0" tabindex="-1" aria-hidden="true"><span class="no">6</span> </button>
+<button type="button" class="ln" data-i="7" aria-pressed="false"><span class="no">7</span><span class="k">if</span> [ -z <span class="s">"<span class="v">$origen</span>"</span> ]<span class="k">; then</span></button>
+<button type="button" class="ln" data-i="8" aria-pressed="false"><span class="no">8</span>  <span class="sb">echo</span> <span class="s">"Uso: <span class="v">$0</span> &lt;directorio&gt;"</span> &gt;&amp;2</button>
+<button type="button" class="ln" data-i="9" aria-pressed="false"><span class="no">9</span>  <span class="k">exit</span> 2</button>
+<button type="button" class="ln" data-i="10" aria-pressed="false"><span class="no">10</span><span class="k">fi</span></button>
+<button type="button" class="ln blank" data-i="0" tabindex="-1" aria-hidden="true"><span class="no">11</span> </button>
+<button type="button" class="ln" data-i="12" aria-pressed="false"><span class="no">12</span><span class="k">if</span> [ ! -d <span class="s">"<span class="v">$origen</span>"</span> ]<span class="k">; then</span></button>
+<button type="button" class="ln" data-i="13" aria-pressed="false"><span class="no">13</span>  <span class="sb">echo</span> <span class="s">"No es un directorio: <span class="v">$origen</span>"</span> &gt;&amp;2</button>
+<button type="button" class="ln" data-i="14" aria-pressed="false"><span class="no">14</span>  <span class="k">exit</span> 1</button>
+<button type="button" class="ln" data-i="15" aria-pressed="false"><span class="no">15</span><span class="k">fi</span></button>
+<button type="button" class="ln blank" data-i="0" tabindex="-1" aria-hidden="true"><span class="no">16</span> </button>
+<button type="button" class="ln" data-i="17" aria-pressed="false"><span class="no">17</span><span class="sb">mkdir</span> -p <span class="s">"<span class="v">$destino</span>"</span></button>
+<button type="button" class="ln" data-i="18" aria-pressed="false"><span class="no">18</span><span class="v">copiados</span>=0</button>
+<button type="button" class="ln blank" data-i="0" tabindex="-1" aria-hidden="true"><span class="no">19</span> </button>
+<button type="button" class="ln" data-i="20" aria-pressed="false"><span class="no">20</span><span class="k">for</span> <span class="v">f</span> <span class="k">in</span> <span class="s">"<span class="v">$origen</span>"</span>/*.log<span class="k">; do</span></button>
+<button type="button" class="ln" data-i="21" aria-pressed="false"><span class="no">21</span>  [ -e <span class="s">"<span class="v">$f</span>"</span> ] || <span class="k">continue</span></button>
+<button type="button" class="ln" data-i="22" aria-pressed="false"><span class="no">22</span>  <span class="sb">cp</span> <span class="s">"<span class="v">$f</span>"</span> <span class="s">"<span class="v">$destino</span>"</span></button>
+<button type="button" class="ln" data-i="23" aria-pressed="false"><span class="no">23</span>  <span class="sb">echo</span> <span class="s">"Copiado: <span class="v">$f</span>"</span></button>
+<button type="button" class="ln" data-i="24" aria-pressed="false"><span class="no">24</span>  <span class="v">copiados</span>=$((copiados + 1))</button>
+<button type="button" class="ln" data-i="25" aria-pressed="false"><span class="no">25</span><span class="k">done</span></button>
+<button type="button" class="ln blank" data-i="0" tabindex="-1" aria-hidden="true"><span class="no">26</span> </button>
+<button type="button" class="ln" data-i="27" aria-pressed="false"><span class="no">27</span><span class="sb">echo</span> <span class="s">"Terminado: <span class="v">$copiados</span> fichero(s) en <span class="v">$destino</span>"</span></button>
+<button type="button" class="ln" data-i="28" aria-pressed="false"><span class="no">28</span><span class="k">exit</span> 0</button>
+          </div>
+          <aside class="dissect-aside">
+            <h4 id="dis-title"></h4>
+            <div id="dis-body"></div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>Y así se comporta al usarlo, con sus tres finales posibles:</p>
+      </div>
+
+<pre class="block"><span class="prompt">$ </span><span class="sb">chmod</span> +x copia-logs.sh
+
+<span class="prompt">$ </span>./copia-logs.sh
+Uso: ./copia-logs.sh &lt;directorio&gt;
+<span class="prompt">$ </span><span class="sb">echo</span> <span class="v">$?</span>
+2
+
+<span class="prompt">$ </span>./copia-logs.sh /etc/hostname
+No es un directorio: /etc/hostname
+<span class="prompt">$ </span><span class="sb">echo</span> <span class="v">$?</span>
+1
+
+<span class="prompt">$ </span>./copia-logs.sh /var/log
+Copiado: /var/log/alternatives.log
+Copiado: /var/log/dpkg.log
+Copiado: /var/log/kern.log
+Terminado: 3 fichero(s) en /home/ana/copias
+<span class="prompt">$ </span><span class="sb">echo</span> <span class="v">$?</span>
+0</pre>
+    </section>
+
+    <!-- ==================== ERRORES ==================== -->
+    <section id="errores">
+      <p class="sec-mark">Lo que va a pasarte</p>
+      <h2>Los ocho errores de siempre</h2>
+      <div class="prose">
+        <p>Casi todos los atascos de un principiante son uno de estos ocho, y se reconocen por el mensaje.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-e1">El mensaje</th><th class="col-e2">La causa</th><th>El arreglo</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code class="wrap">bash: ./s.sh: Permiso denegado</code></td>
+              <td>El fichero no tiene el bit de ejecución.</td>
+              <td><code>chmod +x s.sh</code></td>
+            </tr>
+            <tr>
+              <td><code class="wrap">bash: s.sh: orden no encontrada</code></td>
+              <td>Lo has llamado sin ruta, y el directorio actual no está en el <code>PATH</code>.</td>
+              <td><code>./s.sh</code></td>
+            </tr>
+            <tr>
+              <td><code class="wrap">/bin/bash^M: bad interpreter</code></td>
+              <td>El fichero viene de Windows y cada línea acaba en <code>CR LF</code>. Ese <code>^M</code> sobrante forma parte del nombre del intérprete.</td>
+              <td><code>dos2unix s.sh</code> o <code class="wrap">sed -i 's/\r$//' s.sh</code></td>
+            </tr>
+            <tr>
+              <td><code class="wrap">nombre: orden no encontrada</code></td>
+              <td>Espacios alrededor del <code>=</code>: <code>nombre = Ana</code>.</td>
+              <td>Pégalo todo: <code>nombre=Ana</code></td>
+            </tr>
+            <tr>
+              <td><code class="wrap">[: falta «]»</code></td>
+              <td>Falta un espacio dentro de los corchetes, o el propio <code>]</code>.</td>
+              <td>Un espacio a cada lado de todo: <code>[ "$a" = "b" ]</code></td>
+            </tr>
+            <tr>
+              <td><code class="wrap">[: se esperaba un operador unario</code></td>
+              <td>Una variable vacía y sin comillas: <code>[ $v = x ]</code> se queda en <code>[ = x ]</code>.</td>
+              <td>Comillas siempre: <code>[ "$v" = x ]</code></td>
+            </tr>
+            <tr>
+              <td><code class="wrap">cp: el destino no es un directorio</code></td>
+              <td>Una variable con espacios sin comillas se ha partido en varios argumentos.</td>
+              <td><code>cp "$origen" "$destino"</code></td>
+            </tr>
+            <tr>
+              <td>No sale ningún error, pero <i>no ha hecho nada</i></td>
+              <td>Un <code>cd</code> dentro del script solo afecta al script: se ejecuta en un shell aparte que muere al terminar.</td>
+              <td>Si de verdad quieres que te cambie de directorio, ejecútalo con <code>source</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>La forma rápida de depurar:</b> <code>bash -x s.sh</code> imprime cada línea, ya con las variables sustituidas, justo antes de ejecutarla. Verás al instante que la variable que creías llena estaba vacía.
+      </div>
+    </section>
+
+    <!-- ==================== QUIZ ==================== -->
+    <section id="quiz">
+      <p class="sec-mark">Comprobación</p>
+      <h2>Doce preguntas</h2>
+      <div class="prose">
+        <p>Del tipo que cae en el examen. Elige una opción y te explico por qué.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="quiz" id="quiz-list"></div>
+      </div>
+    </section>
+
+    <!-- ==================== CHULETA ==================== -->
+    <section id="chuleta">
+      <p class="sec-mark">Para tener a mano</p>
+      <h2>Chuleta</h2>
+
+      <div class="wide panel">
+        <div class="cheat">
+          <div class="cheat-row"><b>#!/bin/bash</b><span>Primera línea, siempre. Dice quién interpreta el fichero.</span></div>
+          <div class="cheat-row"><b>chmod +x s.sh</b><span>Lo convierte en ejecutable.</span></div>
+          <div class="cheat-row"><b>./s.sh</b><span>Lo lanza. El <code>./</code> es obligatorio.</span></div>
+          <div class="cheat-row"><b>bash s.sh</b><span>Lo lanza sin necesitar permiso de ejecución.</span></div>
+          <div class="cheat-row"><b>source s.sh</b><span>Lo ejecuta en tu propio shell: los cambios se quedan.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>v="valor"</b><span>Asignar. Sin espacios en el <code>=</code>.</span></div>
+          <div class="cheat-row"><b>"$v"</b><span>Leer, protegida de los espacios. Con comillas dobles.</span></div>
+          <div class="cheat-row"><b>v=$(comando)</b><span>Guardar la salida de un comando.</span></div>
+          <div class="cheat-row"><b>$(( a + 1 ))</b><span>Aritmética.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>$0 · $1 · $#</b><span>Nombre del script · primer argumento · cuántos hay.</span></div>
+          <div class="cheat-row"><b>"$@"</b><span>Todos los argumentos, cada uno entero.</span></div>
+          <div class="cheat-row"><b>$?</b><span>Estado del <b>último</b> comando. 0 es éxito.</span></div>
+          <div class="cheat-row"><b>exit 0</b><span>Terminar diciendo que todo fue bien.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>for x in a b c; do … done</b><span>Repetir por cada elemento de la lista.</span></div>
+          <div class="cheat-row"><b>if [ -f "$1" ]; then … fi</b><span>Decidir. Espacios dentro de los corchetes.</span></div>
+          <div class="cheat-row"><b>-f · -d · -z · -n</b><span>Es fichero · es directorio · está vacía · tiene algo.</span></div>
+          <div class="cheat-row"><b>= · -eq</b><span>Comparar texto · comparar números.</span></div>
+          <div class="cheat-row"><b>a &amp;&amp; b · a || b</b><span>b solo si a fue bien · b solo si a falló.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>nano: ^O ^X</b><span>Guardar · salir.</span></div>
+          <div class="cheat-row"><b>vi: i · Esc · :wq · :q!</b><span>Escribir · volver · guardar y salir · salir tirándolo todo.</span></div>
+          <div class="cheat-row"><b>bash -x s.sh</b><span>Ejecutar mostrando cada línea. Para depurar.</span></div>
+        </div>
+      </div>
+
+      <div class="note">
+        Sigue con la <a href="../linux_basic_commands/">guía de comandos</a> si algo de las tuberías se te resiste, con la <a href="../sample_linux_permissions/">guía de permisos</a> para entender del todo qué hace <code>chmod +x</code>, o ponte a prueba en el <a href="../lpi_practice_exam/">examen de práctica</a>.
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="shell"><a href="../">Índice</a> · objetivo 3.3 · shebang · variables · bucles · estado de salida</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  /* Una salida de terminal es una lista de [texto, tipo].
+     tipo: "cmd" (lleva prompt) | "err" | "ok" | "dim" | "" */
+  function paint(el, rows){
+    el.innerHTML = rows.map(function(r){
+      var t = esc(r[0]);
+      if (r[1] === "cmd") return '<span class="prompt">$ </span>' + t;
+      if (r[1] === "err") return '<span class="err">' + t + "</span>";
+      if (r[1] === "ok")  return '<span class="good">' + t + "</span>";
+      if (r[1] === "dim") return '<span class="prompt">' + t + "</span>";
+      return t;
+    }).join("\n");
+  }
+
+  /* Monta un panel de "picker + terminal" a partir de una lista de casos. */
+  function mountTerm(pickId, barId, outId, noteId, CASES){
+    var pick = document.getElementById(pickId);
+    var bar  = document.getElementById(barId);
+    var out  = document.getElementById(outId);
+    var note = document.getElementById(noteId);
+    if (!pick) return;
+
+    CASES.forEach(function(c, i){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "pick";
+      b.textContent = c.label;
+      b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+      b.addEventListener("click", function(){ show(i); });
+      pick.appendChild(b);
+    });
+
+    function show(i){
+      var c = CASES[i];
+      Array.prototype.forEach.call(pick.children, function(b, n){
+        b.setAttribute("aria-pressed", n === i ? "true" : "false");
+      });
+      bar.textContent = c.bar;
+      paint(out, c.rows);
+      note.textContent = c.note;
+    }
+    show(0);
+  }
+
+  /* ==========================================================
+     1 · SIMULADOR DE vi
+     ========================================================== */
+  var viBuf  = document.getElementById("vi-buf");
+  var viMode = document.getElementById("vi-mode");
+  var viMsg  = document.getElementById("vi-msg");
+  var viLog  = document.getElementById("vi-log");
+  var viKeys = document.getElementById("vi-keys");
+
+  var VI_KEYS = [
+    ["i",     "i — insertar"],
+    ["a",     "a — insertar detrás"],
+    ["o",     "o — línea nueva"],
+    ["esc",   "Esc"],
+    ["type",  "teclear «echo hola»"],
+    ["x",     "x — borrar carácter"],
+    ["dd",    "dd — borrar línea"],
+    ["u",     "u — deshacer"],
+    ["w",     ":w — guardar"],
+    ["q",     ":q — salir"],
+    ["wq",    ":wq — guardar y salir"],
+    ["qbang", ":q! — salir sin guardar"],
+    ["reset", "↺ reiniciar"]
+  ];
+
+  var vi;
+  function viReset(){
+    vi = { mode:"normal", buf:[""], savedBuf:null, dirty:false, out:false, hist:null,
+           msg:'"script.sh" [fichero nuevo]',
+           log:"vi acaba de abrir un fichero vacío. Estás en modo normal: si empiezas a teclear no se escribirá nada. Pulsa i primero." };
+  }
+  viReset();
+
+  function snap(){ vi.hist = vi.buf.slice(); }
+  function last(){ return vi.buf[vi.buf.length - 1]; }
+  function setLast(t){ vi.buf[vi.buf.length - 1] = t; }
+
+  var VI_ACT = {
+    i: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + "i"); vi.dirty = true;
+        vi.log = "Ya estabas en modo inserción, así que la i se ha escrito como una letra más. Es lo que pasa cuando se pulsa i dos veces."; return; }
+      vi.mode = "insert"; vi.msg = "";
+      vi.log = "Modo inserción. A partir de ahora las teclas se escriben en el fichero, como en cualquier editor.";
+    },
+    a: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + "a"); vi.dirty = true;
+        vi.log = "En modo inserción, la a es simplemente una a."; return; }
+      vi.mode = "insert"; vi.msg = "";
+      vi.log = "También entra en modo inserción, pero una posición más a la derecha. Con el cursor al final de la línea, i y a hacen lo mismo.";
+    },
+    o: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + "o"); vi.dirty = true;
+        vi.log = "En modo inserción, la o es una o."; return; }
+      snap(); vi.buf.push(""); vi.mode = "insert"; vi.dirty = true; vi.msg = "";
+      vi.log = "Abre una línea nueva debajo y entra en modo inserción de un golpe. Es el atajo que más se usa para escribir un script de cero.";
+    },
+    esc: function(){
+      if (vi.mode === "normal"){
+        vi.log = "Ya estabas en modo normal. Esc de más nunca hace daño: es la tecla a la que volver cuando no sabes dónde estás."; return;
+      }
+      vi.mode = "normal"; vi.msg = "";
+      vi.log = "De vuelta al modo normal. Ahora las letras vuelven a ser órdenes, y los dos puntos abren la línea de comandos para guardar o salir.";
+    },
+    type: function(){
+      if (vi.mode === "insert"){
+        snap(); setLast(last() + "echo hola"); vi.dirty = true;
+        vi.log = "Texto escrito. Esto es lo único que hace falta saber del modo inserción.";
+      }else{
+        vi.msg = "";
+        vi.log = "No se ha escrito nada. En modo normal cada letra es una orden distinta: e salta al final de la palabra, c espera un movimiento, h mueve a la izquierda, o abre una línea… Ninguna escribe «echo hola». Este es exactamente el punto en el que todo el mundo se atasca con vi.";
+      }
+    },
+    x: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + "x"); vi.dirty = true;
+        vi.log = "En modo inserción, la x se escribe."; return; }
+      if (!last().length){ vi.log = "No hay nada que borrar en esta línea."; return; }
+      snap(); setLast(last().slice(0, -1)); vi.dirty = true;
+      vi.log = "x borra un carácter, sin necesidad de entrar en ningún modo. En modo normal el teclado entero son órdenes como esta.";
+    },
+    dd: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + "dd"); vi.dirty = true;
+        vi.log = "En modo inserción, dd son dos letras d."; return; }
+      snap();
+      if (vi.buf.length > 1) vi.buf.pop(); else vi.buf = [""];
+      vi.dirty = true;
+      vi.log = "dd borra la línea entera. Se pulsa la d dos veces seguidas, y no hay confirmación: para eso está u.";
+    },
+    u: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + "u"); vi.dirty = true;
+        vi.log = "En modo inserción, la u es una u. Para deshacer hay que salir antes con Esc."; return; }
+      if (!vi.hist){ vi.log = "No hay nada que deshacer todavía."; return; }
+      vi.buf = vi.hist.slice(); vi.hist = null;
+      vi.log = "Deshecho el último cambio. u es el seguro de vida del modo normal.";
+    },
+    w: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + ":w"); vi.dirty = true;
+        vi.log = "Se ha escrito «:w» dentro del fichero. Los dos puntos solo abren la línea de órdenes desde el modo normal; aquí son dos caracteres más. Pulsa Esc antes."; return; }
+      vi.savedBuf = vi.buf.slice(); vi.dirty = false;
+      var bytes = vi.buf.join("\n").length + 1;
+      vi.msg = '"script.sh" ' + vi.buf.length + "L, " + bytes + "B escritos";
+      vi.log = "Guardado. El fichero ya existe en el disco, pero vi sigue abierto: guardar y salir son dos cosas distintas.";
+    },
+    q: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + ":q"); vi.dirty = true;
+        vi.log = "Otra vez: en modo inserción los dos puntos son texto. Esc primero."; return; }
+      if (vi.dirty){
+        vi.msg = "E37: no se guardaron los cambios (añade ! para forzar)";
+        vi.log = "vi se niega a salir tirando tu trabajo. Tienes dos salidas: :wq para guardar y salir, o :q! para salir perdiendo los cambios a propósito.";
+        return;
+      }
+      vi.out = true;
+      vi.log = "Fuera. Como no había cambios pendientes, :q ha bastado.";
+    },
+    wq: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + ":wq"); vi.dirty = true;
+        vi.log = "Escrito dentro del fichero, no ejecutado. Esc primero."; return; }
+      vi.savedBuf = vi.buf.slice(); vi.dirty = false; vi.out = true;
+      vi.log = "Guardado y cerrado en una sola orden. Esta es la secuencia normal para terminar: Esc, :wq, Enter.";
+    },
+    qbang: function(){
+      if (vi.mode === "insert"){ snap(); setLast(last() + ":q!"); vi.dirty = true;
+        vi.log = "Escrito dentro del fichero. Esc primero."; return; }
+      vi.out = true;
+      vi.log = "Fuera, tirando todo lo que no estuviera guardado. Mira abajo qué contiene el fichero ahora: solo lo que llegaste a guardar con :w.";
+    },
+    reset: function(){
+      viReset();
+    }
+  };
+
+  function renderVi(){
+    if (vi.out){
+      var body = (vi.savedBuf && vi.savedBuf.join("").length)
+        ? esc(vi.savedBuf.join("\n"))
+        : '<span class="err">cat: script.sh: No existe el fichero o el directorio</span>';
+      viBuf.innerHTML = '<span class="prompt">$ </span>cat script.sh\n' + body +
+                        '\n<span class="prompt">$ </span><span class="cursor"> </span>';
+      viMode.textContent = "FUERA DE vi";
+      viMode.className = "mode out";
+      viMsg.textContent = "";
+    }else{
+      var lines = vi.buf.map(function(l, i){
+        var t = esc(l);
+        return (i === vi.buf.length - 1) ? t + '<span class="cursor"> </span>' : t;
+      });
+      while (lines.length < 6) lines.push('<span class="tilde">~</span>');
+      viBuf.innerHTML = lines.join("\n");
+      viMode.textContent = (vi.mode === "insert") ? "-- INSERTAR --" : "MODO NORMAL";
+      viMode.className = "mode " + (vi.mode === "insert" ? "ins" : "nor");
+      viMsg.textContent = vi.msg;
+    }
+    viLog.textContent = vi.log;
+  }
+
+  if (viKeys){
+    VI_KEYS.forEach(function(k){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "key" + (k[0] === "reset" ? " reset" : "");
+      b.textContent = k[1];
+      b.addEventListener("click", function(){
+        if (vi.out && k[0] !== "reset"){
+          vi.log = "vi ya está cerrado. Pulsa «reiniciar» para volver a abrirlo.";
+          renderVi();
+          return;
+        }
+        VI_ACT[k[0]]();
+        renderVi();
+      });
+      viKeys.appendChild(b);
+    });
+    renderVi();
+  }
+
+  /* ==========================================================
+     2 · LOS CINCO FINALES AL EJECUTAR
+     ========================================================== */
+  mountTerm("run-pick", "run-bar", "run-out", "run-note", [
+    { label: "bash saludo.sh",
+      bar: "el intérprete, invocado a mano",
+      rows: [
+        ["ls -l saludo.sh", "cmd"],
+        ["-rw-r--r-- 1 ana ana 46 abr 12 10:30 saludo.sh", ""],
+        ["bash saludo.sh", "cmd"],
+        ["Hola, ana", "ok"]
+      ],
+      note: "Sin permiso de ejecución, y funciona: no estás ejecutando el fichero, estás ejecutando bash y pasándoselo como argumento. El shebang ni se mira. Útil para probar algo a medias." },
+
+    { label: "./saludo.sh sin chmod",
+      bar: "falta el bit de ejecución",
+      rows: [
+        ["ls -l saludo.sh", "cmd"],
+        ["-rw-r--r-- 1 ana ana 46 abr 12 10:30 saludo.sh", ""],
+        ["./saludo.sh", "cmd"],
+        ["bash: ./saludo.sh: Permiso denegado", "err"],
+        ["echo $?", "cmd"],
+        ["126", ""]
+      ],
+      note: "126 significa literalmente «lo he encontrado, pero no he podido ejecutarlo». Es el error más frecuente con un script recién creado, porque los ficheros nuevos nacen sin el bit x." },
+
+    { label: "chmod +x y listo",
+      bar: "la forma normal",
+      rows: [
+        ["chmod +x saludo.sh", "cmd"],
+        ["ls -l saludo.sh", "cmd"],
+        ["-rwxr-xr-x 1 ana ana 46 abr 12 10:30 saludo.sh", ""],
+        ["./saludo.sh", "cmd"],
+        ["Hola, ana", "ok"],
+        ["echo $?", "cmd"],
+        ["0", ""]
+      ],
+      note: "Las tres x nuevas son la única diferencia con el caso anterior. Ese chmod se hace una sola vez en la vida del fichero." },
+
+    { label: "saludo.sh sin ./",
+      bar: "el PATH no incluye el directorio actual",
+      rows: [
+        ["saludo.sh", "cmd"],
+        ["bash: saludo.sh: orden no encontrada", "err"],
+        ["echo $?", "cmd"],
+        ["127", ""],
+        ["./saludo.sh", "cmd"],
+        ["Hola, ana", "ok"]
+      ],
+      note: "127 es «no lo encuentro». El shell ha buscado saludo.sh por todos los directorios del PATH, y el directorio actual no está en esa lista a propósito: si lo estuviera, bastaría con dejar un fichero llamado ls en una carpeta compartida para engañarte." },
+
+    { label: "shebang con ^M",
+      bar: "el fichero viene de Windows",
+      rows: [
+        ["head -1 saludo.sh | cat -A", "cmd"],
+        ["#!/bin/bash^M$", ""],
+        ["./saludo.sh", "cmd"],
+        ["bash: ./saludo.sh: /bin/bash^M: bad interpreter: No existe el fichero o el directorio", "err"],
+        ["sed -i 's/\\r$//' saludo.sh", "cmd"],
+        ["./saludo.sh", "cmd"],
+        ["Hola, ana", "ok"]
+      ],
+      note: "En Windows cada línea acaba en dos caracteres, CR y LF; en Linux solo en LF. Ese CR sobrante se pega al final de la ruta, así que el kernel busca un intérprete llamado «/bin/bash^M», que no existe. cat -A hace visible el culpable." },
+
+    { label: "source frente a ./",
+      bar: "shell hijo o shell propio",
+      rows: [
+        ["cat entorno.sh", "cmd"],
+        ["#!/bin/bash", ""],
+        ["PROYECTO=demo", ""],
+        ["cd /tmp", ""],
+        ["", ""],
+        ["./entorno.sh", "cmd"],
+        ["echo \"[$PROYECTO] $PWD\"", "cmd"],
+        ["[] /home/ana", ""],
+        ["", ""],
+        ["source entorno.sh", "cmd"],
+        ["echo \"[$PROYECTO] $PWD\"", "cmd"],
+        ["[demo] /tmp", ""]
+      ],
+      note: "Con ./ el script corre en un shell hijo que muere al acabar y se lleva consigo sus variables y su cd. Con source corre dentro del tuyo, y los cambios se quedan puestos. Por eso los ficheros de configuración del entorno se cargan con source y nunca con ./." }
+  ]);
+
+  /* ==========================================================
+     3 · SIMULADOR DE ARGUMENTOS
+     ========================================================== */
+  var argsIn  = document.getElementById("args-in");
+  var argsOut = document.getElementById("args-out");
+
+  /* Trocea una línea como lo haría el shell: los espacios separan,
+     las comillas agrupan y desaparecen. */
+  function tokenize(line){
+    var toks = [], cur = "", quote = null, started = false;
+    for (var i = 0; i < line.length; i++){
+      var c = line.charAt(i);
+      if (quote){
+        if (c === quote) quote = null; else cur += c;
+        started = true;
+        continue;
+      }
+      if (c === '"' || c === "'"){ quote = c; started = true; continue; }
+      if (c === " " || c === "\t"){
+        if (started){ toks.push(cur); cur = ""; started = false; }
+        continue;
+      }
+      cur += c; started = true;
+    }
+    if (started) toks.push(cur);
+    return toks;
+  }
+
+  function row(name, value, why, empty){
+    var v = empty
+      ? '<em>(vacía)</em>'
+      : (value === "" ? '<em>(cadena vacía)</em>' : esc(value));
+    return '<tr><td class="name">' + esc(name) + '</td>' +
+           '<td class="val">' + v + "</td>" +
+           '<td class="why">' + why + "</td></tr>";
+  }
+
+  function renderArgs(){
+    var toks = tokenize(argsIn.value);
+    var name = toks.length ? toks[0] : "";
+    var args = toks.slice(1);
+    var html = "";
+
+    html += row("$0", name, "El nombre con el que se ha llamado al script.", !toks.length);
+
+    var shown = Math.max(args.length, 3);
+    if (shown > 9) shown = 9;
+    for (var i = 1; i <= shown; i++){
+      var has = i <= args.length;
+      html += row("$" + i, has ? args[i-1] : "",
+        has ? "Argumento " + i + "." : "No se pasó ningún argumento en esta posición.", !has);
+    }
+    if (args.length > 9){
+      for (var j = 10; j <= args.length; j++){
+        html += row("${" + j + "}", args[j-1],
+          "A partir del décimo hacen falta las llaves: <code>$" + j + "</code> se leería como <code>$" + (j+"").charAt(0) + "</code> seguido de un " + (j+"").slice(1) + ".", false);
+      }
+    }
+
+    html += row("$#", String(args.length),
+      "Cuántos argumentos han llegado. <code>$0</code> no se cuenta.", false);
+
+    var chips = args.length
+      ? args.map(function(a){ return '<span class="word">' + esc(a) + "</span>"; }).join("")
+      : '<em>(ninguno)</em>';
+    html += '<tr><td class="name">"$@"</td><td class="val">' + chips +
+            '</td><td class="why">Todos los argumentos, cada uno como una palabra independiente. Cada recuadro es una palabra separada.</td></tr>';
+
+    var star = args.join(" ");
+    html += '<tr><td class="name">"$*"</td><td class="val">' +
+            (args.length ? '<span class="word">' + esc(star) + "</span>" : "<em>(ninguno)</em>") +
+            '</td><td class="why">Lo mismo, pero pegado en una sola palabra. Casi nunca es lo que quieres.</td></tr>';
+
+    argsOut.innerHTML = html;
+  }
+
+  if (argsIn){
+    argsIn.addEventListener("input", renderArgs);
+    renderArgs();
+  }
+
+  /* ==========================================================
+     4 · EL BUCLE, DESPLEGADO
+     ========================================================== */
+  mountTerm("loop-pick", "loop-bar", "loop-out", "loop-note", [
+    { label: "lista literal",
+      bar: "for f in uno dos tres",
+      rows: [
+        ["for f in uno dos tres; do echo \"Hola $f\"; done", "cmd"],
+        ["Hola uno", ""],
+        ["Hola dos", ""],
+        ["Hola tres", ""]
+      ],
+      note: "La lista más simple: tres palabras separadas por espacios, tres vueltas. En cada una, f vale una cosa distinta." },
+
+    { label: "comodín *.log",
+      bar: "la expansión ocurre antes del bucle",
+      rows: [
+        ["ls", "cmd"],
+        ["error.log  notas.txt  sistema.log", ""],
+        ["for f in *.log; do echo \"[$f]\"; done", "cmd"],
+        ["[error.log]", ""],
+        ["[sistema.log]", ""]
+      ],
+      note: "El shell sustituye *.log por los nombres que existen antes de que el bucle empiece: el for nunca llega a ver el asterisco. Y si no hubiera ningún .log, la lista sería el texto literal «*.log» y el bucle daría una vuelta con ese valor absurdo — por eso los scripts serios comprueban que el fichero existe." },
+
+    { label: "rango {1..5}",
+      bar: "expansión de llaves",
+      rows: [
+        ["for i in {1..5}; do echo -n \"$i \"; done; echo", "cmd"],
+        ["1 2 3 4 5", ""],
+        ["for i in $(seq 1 3); do echo \"Intento $i\"; done", "cmd"],
+        ["Intento 1", ""],
+        ["Intento 2", ""],
+        ["Intento 3", ""]
+      ],
+      note: "{1..5} se convierte en cinco palabras antes que nada. Ojo: {1..$n} no funciona, porque las llaves se expanden antes que las variables; ahí es donde entra $(seq 1 \"$n\")." },
+
+    { label: "salida de un comando",
+      bar: "for u in $(cat usuarios.txt)",
+      rows: [
+        ["cat usuarios.txt", "cmd"],
+        ["ana", ""],
+        ["luis", ""],
+        ["for u in $(cat usuarios.txt); do echo \"Hola, $u\"; done", "cmd"],
+        ["Hola, ana", ""],
+        ["Hola, luis", ""]
+      ],
+      note: "$(...) ejecuta el comando y su salida se trocea por espacios y saltos de línea. Funciona mientras ningún valor lleve espacios; en cuanto los lleve, ese valor se parte en dos vueltas." },
+
+    { label: "los argumentos",
+      bar: "for a in \"$@\"",
+      rows: [
+        ["cat listar.sh", "cmd"],
+        ["#!/bin/bash", ""],
+        ["for a in \"$@\"; do echo \"- $a\"; done", ""],
+        ["", ""],
+        ["./listar.sh uno \"dos palabras\" tres", "cmd"],
+        ["- uno", ""],
+        ["- dos palabras", ""],
+        ["- tres", ""]
+      ],
+      note: "Gracias a las comillas de \"$@\" cada argumento llega entero. Sin ellas, «dos palabras» se convertiría en dos vueltas del bucle. Es el motivo por el que $@ casi siempre se escribe entrecomillado." },
+
+    { label: "contar dentro del bucle",
+      bar: "acumular en una variable",
+      rows: [
+        ["n=0", "cmd"],
+        ["for f in *.txt; do n=$((n + 1)); done", "cmd"],
+        ["echo \"$n ficheros\"", "cmd"],
+        ["7 ficheros", ""]
+      ],
+      note: "El patrón más repetido: una variable a cero antes del bucle y una suma dentro. Va entre $(( )) porque lo que hay guardado es texto, y sin ellas n valdría literalmente «0+1»." }
+  ]);
+
+  /* ==========================================================
+     5 · DISECTOR DEL SCRIPT
+     ========================================================== */
+  var DIS = {
+    1:  ["La línea shebang",
+         ["Los dos primeros caracteres del fichero, <code>#!</code>, le dicen al kernel que esto no es un binario sino un guion, y que quien debe interpretarlo es <code>/bin/bash</code>.",
+          "Sin esta línea, <code>./copia-logs.sh</code> depende de la buena voluntad de quien lo lance."]],
+    2:  ["Comentario de cabecera",
+         ["Todo lo que sigue a <code>#</code> se ignora hasta el final de la línea.",
+          "Dos líneas diciendo qué hace el script y cómo se usa es lo que agradecerás dentro de seis meses, cuando ya no te acuerdes."]],
+    4:  ["Una ruta guardada en una variable",
+         ["<code>$HOME</code> es una variable de entorno que ya existe: tu directorio personal. Dentro de comillas dobles se sustituye por su valor, así que <code>destino</code> acaba valiendo <code>/home/ana/copias</code>.",
+          "Las comillas protegen el resultado por si la ruta llevara espacios."]],
+    5:  ["El primer argumento, con nombre",
+         ["<code>$1</code> es lo que se escribió detrás del nombre del script al llamarlo.",
+          "Copiarlo a una variable con nombre propio no es obligatorio, pero hace legible el resto: veinte líneas más abajo <code>$1</code> no dice nada y <code>$origen</code> sí."]],
+    7:  ["¿Me han dado algo?",
+         ["<code>-z</code> es cierto cuando la cadena está vacía, que es justo lo que ocurre si no se pasó ningún argumento.",
+          "Fíjate en los espacios: <code>[</code>, <code>-z</code>, <code>\"$origen\"</code> y <code>]</code> son cuatro cosas separadas, porque <code>[</code> es un comando y los demás son sus argumentos."]],
+    8:  ["El mensaje de uso",
+         ["<code>$0</code> es el nombre con el que se llamó al script, de modo que el mensaje se adapta solo si algún día lo renombras.",
+          "El <code>&gt;&amp;2</code> manda el texto al canal de errores en vez de al de salida: así un aviso no ensucia la tubería de quien esté usando el script dentro de otra cosa."]],
+    9:  ["Salir con 2",
+         ["<code>exit</code> corta el script aquí mismo; las líneas siguientes ni se leen.",
+          "Por convención, <b>2</b> significa «me has llamado mal». Lo distingue de un fallo al trabajar, que sería 1. Quien invoque el script puede mirar <code>$?</code> y saber cuál de las dos cosas pasó."]],
+    10: ["Fin del primer bloque",
+         ["<code>fi</code> cierra el <code>if</code>: la palabra escrita al revés, la misma broma que <code>esac</code> para <code>case</code>.",
+          "Si falta, Bash sigue leyendo hasta el final del fichero buscándolo y protesta con un error que señala la última línea, no la culpable."]],
+    12: ["¿Es un directorio de verdad?",
+         ["<code>-d</code> comprueba que existe <b>y</b> es un directorio. El <code>!</code> delante lo niega: «si NO es un directorio».",
+          "Comprobar antes de actuar es lo que separa un script que avisa de uno que deja el sistema a medias."]],
+    13: ["Un error concreto",
+         ["El mensaje dice qué ha fallado y con qué valor. «Error» a secas obliga a adivinar; «No es un directorio: /etc/hostname» se arregla solo."]],
+    14: ["Salir con 1",
+         ["Fallo genérico: el script se llamó bien, pero lo que se le pidió no se puede hacer.",
+          "Dos códigos distintos para dos problemas distintos es lo que permite que otro script reaccione de forma diferente a cada uno."]],
+    15: ["Fin del segundo bloque",
+         ["A partir de aquí el resto del script puede dar por hecho que <code>$origen</code> existe y es un directorio.",
+          "Ese es el propósito de agrupar todas las comprobaciones al principio: el cuerpo queda limpio."]],
+    17: ["Preparar el destino",
+         ["<code>mkdir -p</code> crea la ruta entera si falta y no protesta si ya estaba.",
+          "Sin <code>-p</code>, la segunda ejecución del script fallaría por intentar crear algo que ya existe."]],
+    18: ["Un contador a cero",
+         ["En Bash todo es texto, incluido este <code>0</code>.",
+          "Se inicializa aquí, fuera del bucle, para poder sumarle dentro y leerlo después."]],
+    20: ["El bucle",
+         ["La lista es <code>\"$origen\"/*.log</code>. El shell la expande <b>antes</b> de empezar: busca los ficheros que encajan y los convierte en la lista de palabras que recorrerá <code>f</code>.",
+          "Las comillas rodean solo a la variable, no al comodín. Si también lo encerraran, el asterisco dejaría de expandirse y sería un carácter más."]],
+    21: ["La red de seguridad del comodín",
+         ["Si no hay ningún <code>.log</code>, Bash deja la lista con el texto literal <code>/ruta/*.log</code> y el bucle daría una vuelta con un fichero que no existe.",
+          "Esta línea comprueba que <code>$f</code> existe de verdad y, si no, salta a la vuelta siguiente con <code>continue</code>. Es el idioma <code>comprobación || continue</code>."]],
+    22: ["La copia",
+         ["Las dos variables van entre comillas dobles.",
+          "Es la costumbre que evita que un nombre con espacios se parta en varios argumentos y <code>cp</code> acabe copiando lo que no era."]],
+    23: ["Contar en voz alta",
+         ["Un script silencioso genera desconfianza: no se sabe si está trabajando o colgado.",
+          "Decir qué se está copiando cuesta una línea y convierte la salida en un registro de lo ocurrido."]],
+    24: ["Sumar uno",
+         ["<code>$(( ))</code> es aritmética. Sin ella, <code>copiados=copiados+1</code> guardaría literalmente el texto <code>0+1</code>, y en la vuelta siguiente <code>0+1+1</code>.",
+          "Dentro de los dobles paréntesis el <code>$</code> de las variables es opcional; por eso se escribe <code>copiados + 1</code> y no <code>$copiados + 1</code>."]],
+    25: ["Cierre del bucle",
+         ["<code>done</code> cierra el <code>for</code>, igual que <code>fi</code> cierra el <code>if</code>.",
+          "Las tres palabras <code>for … do … done</code> van siempre juntas."]],
+    27: ["El resumen final",
+         ["Dos variables dentro de una misma cadena, cada una sustituida por su valor.",
+          "Un script que termina diciendo qué ha hecho se puede lanzar desde <code>cron</code> y auditar después leyendo su salida."]],
+    28: ["Salir con 0",
+         ["Éxito, dicho a propósito.",
+          "Sin este <code>exit</code>, el script devolvería el estado de su última orden —el <code>echo</code>—, que da 0 por casualidad y no porque el trabajo saliera bien. La diferencia importa en cuanto alguien encadene este script con <code>&amp;&amp;</code>."]]
+  };
+
+  var code     = document.getElementById("code");
+  var disTitle = document.getElementById("dis-title");
+  var disBody  = document.getElementById("dis-body");
+
+  function showLine(i){
+    var d = DIS[i];
+    if (!d) return;
+    Array.prototype.forEach.call(code.children, function(b){
+      b.setAttribute("aria-pressed", b.dataset.i === String(i) ? "true" : "false");
+    });
+    disTitle.textContent = d[0];
+    disBody.innerHTML = d[1].map(function(p){ return "<p>" + p + "</p>"; }).join("");
+  }
+
+  if (code){
+    Array.prototype.forEach.call(code.children, function(b){
+      if (b.classList.contains("blank")) return;
+      b.addEventListener("click", function(){ showLine(Number(b.dataset.i)); });
+    });
+    showLine(1);
+  }
+
+  /* ==========================================================
+     6 · QUIZ
+     ========================================================== */
+  var QUESTIONS = [
+    { q:"¿Qué hace la primera línea, #!/bin/bash?",
+      opts:["Indica al sistema qué intérprete debe ejecutar el fichero",
+            "Es un comentario, no tiene ningún efecto",
+            "Carga las funciones de Bash en memoria",
+            "Da permiso de ejecución al fichero"], ok:0,
+      exp:"Es el shebang, y lo lee el kernel: al ejecutar el fichero, arranca /bin/bash y le pasa el script. Que además sea un comentario para Bash es lo que hace que el truco funcione sin estorbar." },
+
+    { q:"Acabas de escribir copia.sh y al lanzar ./copia.sh responde «Permiso denegado». ¿Qué falta?",
+      opts:["chmod +x copia.sh", "Ejecutarlo con sudo", "Añadir el shebang", "Mover el fichero a un directorio del PATH"], ok:0,
+      exp:"Los ficheros nuevos nacen sin el bit de ejecución. Ejecutar el fichero en sí exige ese bit; el estado de salida en ese caso es 126, «encontrado pero no ejecutable»." },
+
+    { q:"Dentro de un script, la línea  nombre = Ana  produce…",
+      opts:["Un error: el shell busca un comando llamado nombre",
+            "Una variable nombre con el valor Ana",
+            "Una variable de entorno exportada",
+            "Un error de sintaxis en el signo ="], ok:0,
+      exp:"Los espacios convierten la línea en «ejecuta el comando nombre con los argumentos = y Ana». La asignación se escribe pegada: nombre=Ana." },
+
+    { q:"Se llama a un script con  ./s.sh uno dos tres  ¿Cuánto vale $# ?",
+      opts:["3", "4", "uno dos tres", "El nombre del script"], ok:0,
+      exp:"$# cuenta los argumentos, y $0 —el nombre del script— no entra en la cuenta. Aquí $1 vale uno, $2 vale dos y $3 vale tres." },
+
+    { q:"Un script termina con  exit 0  ¿Qué está diciendo?",
+      opts:["Que todo ha ido bien", "Que no ha hecho nada", "Que ha fallado", "Que devuelve el valor cero al que lo llamó para que lo imprima"], ok:0,
+      exp:"En los estados de salida la convención va al revés de lo intuitivo: 0 es éxito y cualquier otro número es alguna forma de fallo. Solo hay una manera de salir bien." },
+
+    { q:"¿Qué imprime  for i in 1 2 3; do echo -n \"$i\"; done  ?",
+      opts:["123", "1 2 3", "iii", "1, luego 2, luego 3 en líneas distintas"], ok:0,
+      exp:"El bucle da tres vueltas, pero echo -n no añade el salto de línea, así que los tres valores salen pegados en la misma línea." },
+
+    { q:"Ejecutas  ls /no-existe , luego  echo $?  y sale 2. Vuelves a ejecutar  echo $?  y ahora sale 0. ¿Por qué?",
+      opts:["Porque $? es siempre el estado del último comando, y el último fue el echo anterior, que funcionó",
+            "Porque $? se pone a cero al leerlo",
+            "Porque ls no devuelve estado de salida",
+            "Porque el segundo echo se ejecuta en otro shell"], ok:0,
+      exp:"$? cambia con cada comando, echo incluido. Si necesitas conservar un estado, cópialo a una variable inmediatamente: resultado=$?" },
+
+    { q:"Estás en vi, has escrito el script y quieres guardarlo y salir. ¿Qué secuencia?",
+      opts:["Esc y luego :wq", "Ctrl+O y luego Ctrl+X", ":save y luego :exit", "Ctrl+S"], ok:0,
+      exp:"Esc devuelve al modo normal y :wq guarda y sale. Ctrl+O y Ctrl+X son de nano, no de vi. Si no quisieras guardar, :q!" },
+
+    { q:"Quieres comprobar dentro de un if que la variable n es mayor que 10. ¿Qué escribes?",
+      opts:["[ \"$n\" -gt 10 ]", "[ \"$n\" > 10 ]", "[ \"$n\" greater 10 ]", "[ $n gt 10 ]"], ok:0,
+      exp:"Los números se comparan con -gt, -lt, -eq y compañía. El símbolo > dentro de los corchetes no compara: redirige la salida a un fichero llamado 10." },
+
+    { q:"¿En qué se diferencia  source copia.sh  de  ./copia.sh ?",
+      opts:["source lo ejecuta en el shell actual, así que sus variables y su cd se quedan puestos",
+            "source es más rápido porque no lee el shebang",
+            "No hay ninguna diferencia, son sinónimos",
+            "source exige permiso de ejecución y ./ no"], ok:0,
+      exp:"Con ./ el script corre en un shell hijo que muere al terminar y se lleva sus cambios. Con source corre dentro del tuyo. Por eso los ficheros de entorno se cargan con source." },
+
+    { q:"Con  v=\"mis notas.txt\" , ¿qué imprime  echo '$v' ?",
+      opts:["$v", "mis notas.txt", "mis", "Nada, da error"], ok:0,
+      exp:"Las comillas simples no sustituyen nada: todo lo que hay dentro es texto literal. Las dobles sí sustituyen la variable y además protegen el valor de los espacios." },
+
+    { q:"Un comando termina con estado 127. ¿Qué ha pasado?",
+      opts:["No se ha encontrado el comando", "El comando no tenía permiso de ejecución", "Lo has interrumpido con Ctrl+C", "Ha terminado correctamente"], ok:0,
+      exp:"127 es «orden no encontrada»: un nombre mal escrito, o algo que no está en el PATH — por ejemplo un script llamado sin el ./ delante. 126 sería el de permisos y 130 el de Ctrl+C." }
+  ];
+
+  function shuffled(opts, ok){
+    var a = opts.map(function(t, i){ return [t, i === ok]; });
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  var quiz = document.getElementById("quiz-list");
+
+  if (quiz) QUESTIONS.forEach(function(item){
+    var wrap = document.createElement("div");
+    wrap.className = "q";
+
+    var p = document.createElement("p");
+    p.className = "q-text";
+    p.textContent = item.q;
+    wrap.appendChild(p);
+
+    var opts = document.createElement("div");
+    opts.className = "q-opts";
+    var exp = document.createElement("p");
+    exp.className = "q-exp";
+    exp.hidden = true;
+    exp.textContent = item.exp;
+
+    shuffled(item.opts, item.ok).forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt";
+      b.textContent = pair[0];
+      b.dataset.ok = pair[1] ? "1" : "0";
+      b.addEventListener("click", function(){
+        /* al responder se bloquea la pregunta y se marca la correcta */
+        Array.prototype.forEach.call(opts.children, function(o){ o.disabled = true; });
+        if (pair[1]){
+          b.classList.add("good");
+        }else{
+          b.classList.add("bad");
+          Array.prototype.forEach.call(opts.children, function(o){
+            if (o.dataset.ok === "1") o.classList.add("good");
+          });
+        }
+        exp.hidden = false;
+      });
+      opts.appendChild(b);
+    });
+
+    wrap.appendChild(opts);
+    wrap.appendChild(exp);
+    quiz.appendChild(wrap);
+  });
+
+  /* ==========================================================
+     7 · ÍNDICE LATERAL
+     ========================================================== */
+  var links = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".rail a"), function(a){
+    links[a.getAttribute("href").slice(1)] = a;
+  });
+  if ("IntersectionObserver" in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var a = links[e.target.id];
+        if (a) a.classList.toggle("is-active", e.isIntersecting);
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("main section"), function(s){ obs.observe(s); });
+  }
+})();
+</script>
+
+</body>
+</html>
