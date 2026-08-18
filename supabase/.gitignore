@@ -1,0 +1,11 @@
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+
+# nunca commitear credenciales locales de supabase
+.env

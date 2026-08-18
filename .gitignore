@@ -1,0 +1,8 @@
+# credenciales locales: nunca al repo (es público)
+.env
+.env.*
+!.env.example
+
+# temporales
+*.log
+.DS_Store

@@ -4,6 +4,7 @@
 **User story**: "Monta una base de datos en Supabase para esta aplicación que se registre el nombre del usuario, su IP, el # de intento con su nota, y si es la versión de prueba de 60 o la 100."
 **Estado**: Draft
 **Fecha**: 2026-08-17
+**Revisión**: 2026-08-18 — contrato alineado con la implementación real de `lpi_practice_exam/index.html`: mapeo de `modo`, `total_preguntas` derivado, redondeo de la duración y cola write-ahead
 **Aplicación objetivo**: `lpi_practice_exam/index.html` (banco de 145 preguntas, 2 modos)
 **Pipeline siguiente**: /impact → /arch → /tdd-plan → /why
 
@@ -15,12 +16,13 @@
 |---|---|---|
 | Backend de datos | Supabase (Postgres + Edge Functions) | Pedido explícito del usuario |
 | Identificación de "versión" | `modo ∈ {'simulacro_60min','completo'}` + `total_preguntas` + `limite_minutos` | Los dos modos ya existentes de la app: simulacro (40 preguntas / 60 min) y banco completo (145 preguntas / sin límite). No se altera el diseño del examen |
+| Mapeo del modo | `MODE_MAP = { sim: 'simulacro_60min', full: 'completo' }`, aplicado solo al construir el payload | En el código `S.mode` vale `'sim'` o `'full'` (`newAttempt(mode)`); renombrar el estado rompería los intentos ya guardados en `localStorage` bajo `lpi-010-160-attempt-v1`, así que la traducción vive en el borde de salida |
 | Captura del nombre | Campo obligatorio en la pantalla de inicio; sin nombre válido no arranca el intento | Garantiza que toda fila tenga autor; se recuerda en `localStorage` para intentos siguientes |
 | Obtención de la IP | Edge Function de Supabase que lee la IP de la petición y hace el insert | El cliente nunca envía ni puede falsificar la IP |
 | Numeración del intento | `intento_num` secuencial por usuario, asignado en la BD por trigger | Consistente aunque el usuario cambie de navegador o borre datos locales |
 | Credenciales | `anon key` en el HTML (pública); `service_role` **solo** en el entorno de la Edge Function | La anon key sin políticas RLS no da acceso a datos |
 | Escritura desde el cliente | Prohibida directamente contra la tabla; todo pasa por la Edge Function | Un único punto de validación y de asignación de IP |
-| Fallo de red | Nunca bloquea el resultado local; el intento se encola y se reintenta | El valor principal de la app es el examen, no la telemetría |
+| Fallo de red | Nunca bloquea el resultado local; el payload se escribe en la cola **antes** del primer `fetch` (write-ahead) y se desencola al confirmarse | El valor principal de la app es el examen, no la telemetría. Encolar solo en el `catch` pierde el intento si la pestaña se cierra durante el envío |
 | Idempotencia | `client_attempt_id` (UUID generado en el navegador) con constraint `unique` | Reintentos y dobles clics no duplican filas |
 
 ---
@@ -136,14 +138,17 @@ Ejemplo: `"  Jorge  Rodríguez "` → `"jorge rodriguez"`.
 ### Invariantes del modelo
 
 1. `correctas + incorrectas + sin_responder = total_preguntas` en toda fila.
-2. `aprobado` es siempre exactamente `porcentaje >= 65`; nunca se envía desde el cliente como dato independiente sin validarlo.
-3. `intento_num` es único y contiguo desde 1 para cada `usuario_key`; lo asigna la BD, nunca el cliente.
-4. `modo = 'simulacro_60min'` implica `limite_minutos = 60`; `modo = 'completo'` implica `limite_minutos IS NULL`.
-5. `duracion_segundos` nunca excede el límite del modo cuando existe límite.
-6. `client_attempt_id` identifica un intento del navegador de forma única: reintentar el envío jamás crea una segunda fila.
-7. La `ip` la escribe exclusivamente el servidor; cualquier campo `ip` presente en el body se ignora.
-8. Ninguna clave `service_role` aparece en el HTML ni en ningún archivo servido al navegador.
-9. Un intento se registra solo cuando el examen ha finalizado (`S.finished = true`); los intentos abandonados no llegan a la BD.
+2. `total_preguntas` es siempre `S.items.length`, nunca un literal. El tamaño del simulacro es derivado —`Σ min(SIM_PLAN[t], pool[t])`— y hoy vale 40 solo porque todos los pools son holgados (18/29/38/30/30 contra un plan de 7/8/10/8/7). Si el banco cambia y se escribió `40` a mano, los conteos dejan de sumar y la fila es rechazada.
+3. `aprobado` es siempre exactamente `porcentaje >= 65`; nunca se envía desde el cliente como dato independiente sin validarlo.
+4. `intento_num` es único y contiguo desde 1 para cada `usuario_key`; lo asigna la BD, nunca el cliente.
+5. `modo` solo toma los dos valores del contrato; el cliente nunca envía `'sim'` ni `'full'` sin pasar por `MODE_MAP`.
+6. `modo = 'simulacro_60min'` implica `limite_minutos = 60`; `modo = 'completo'` implica `limite_minutos IS NULL`.
+7. `duracion_segundos = Math.floor(S.elapsedMs / 1000)`; nunca `ceil` ni `round`. `finish()` topa `elapsedMs` en `limitMs` exacto (3 600 000 ms en simulacro), así que redondear hacia arriba produce 3601 y viola `exam_attempts_duracion_limite_ck` justo en el caso más frecuente: tiempo agotado.
+8. `duracion_segundos` nunca excede el límite del modo cuando existe límite.
+9. `client_attempt_id` identifica un intento del navegador de forma única: reintentar el envío jamás crea una segunda fila.
+10. La `ip` la escribe exclusivamente el servidor; cualquier campo `ip` presente en el body se ignora.
+11. Ninguna clave `service_role` aparece en el HTML ni en ningún archivo servido al navegador.
+12. Un intento se registra solo cuando el examen ha finalizado (`S.finished = true`); los intentos abandonados no llegan a la BD.
 
 ---
 
@@ -164,14 +169,14 @@ Un único endpoint público. La tabla no se expone vía PostREST (RLS sin polít
   "client_attempt_id": "b3f1c0de-1111-4222-8333-444455556666",  // uuid v4
   "usuario_nombre":    "Jorge Rodríguez",                        // 2..80 tras trim
   "modo":              "simulacro_60min",                        // | "completo"
-  "total_preguntas":   40,
-  "limite_minutos":    60,                                       // null si completo
+  "total_preguntas":   40,                                       // = S.items.length, nunca un literal
+  "limite_minutos":    60,                                       // S.limitMs/60000; null si completo
   "correctas":         30,
   "incorrectas":       6,
   "sin_responder":     4,
   "porcentaje":        75.0,
   "puntuacion_escala": 586,
-  "duracion_segundos": 2410,
+  "duracion_segundos": 2410,                                     // floor(elapsedMs/1000), <= limite_minutos*60
   "desglose_temas":    { "101": {"n":7,"ok":4} },
   "idioma":            "both",                                   // both | es | en
   "app_version":       "1.0.0+bank145"
@@ -208,6 +213,27 @@ Un único endpoint público. La tabla no se expone vía PostREST (RLS sin polít
 
 ## Generación / lógica especial
 
+### Derivación del payload desde el estado del cliente
+
+`buildAttemptPayload` no contiene ningún literal del contrato: cada campo se deriva del intento
+finalizado. Los valores del código (`'sim'`, `'full'`, `S.limitMs` en ms) no son los del contrato.
+
+| Campo del contrato | Origen en `lpi_practice_exam/index.html` | Regla de derivación |
+|---|---|---|
+| `modo` | `S.mode` (`'sim'` \| `'full'`) | `MODE_MAP[S.mode]`; si la clave no existe no se envía nada y se registra el error en consola |
+| `total_preguntas` | `S.items` | `S.items.length` |
+| `limite_minutos` | `S.limitMs` (`SIM_MINUTES*60*1000` o `0`) | `S.limitMs ? S.limitMs / 60000 : null` |
+| `duracion_segundos` | `S.elapsedMs`, fijado en `finish()` | `Math.floor(S.elapsedMs / 1000)` |
+| `correctas` / `incorrectas` / `sin_responder` / `porcentaje` | `summarizeAttempt(S)` | La misma agregación que consume `renderResult()`; ninguna cuenta se recalcula por separado |
+| `puntuacion_escala` | `scaled(pct)` | Función ya existente, sin cambios |
+| `desglose_temas` | agregación por `byId(it.id).topic` | Claves = tema (`101`…`105`) como cadena |
+| `idioma` | `localStorage[LANG_KEY]` | `'both'` si no hay valor guardado |
+| `app_version` | constante nueva `APP_VERSION` | Incluye el tamaño del banco, p. ej. `1.0.0+bank145` |
+| `client_attempt_id` | `crypto.randomUUID()` | Se genera una sola vez por intento finalizado y se conserva dentro del payload encolado |
+
+La Edge Function no confía en estas derivaciones: valida `total_preguntas` contra la suma de conteos
+y `limite_minutos` contra el modo. Un cliente desactualizado recibe 400, nunca produce una fila inconsistente.
+
 ### Orden de operaciones de la Edge Function
 
 1. Responder al preflight `OPTIONS`.
@@ -224,11 +250,13 @@ Un único endpoint público. La tabla no se expone vía PostREST (RLS sin polít
    - Si el error es `23505` sobre `exam_attempts_usuario_intento_uk` (carrera extrema) → reintentar el insert hasta 3 veces.
 7. Responder con `id` e `intento_num`.
 
-### Cola de reenvío en el cliente
+### Cola de reenvío en el cliente (write-ahead)
 
 - Clave `lpi-010-160-cola` en `localStorage`: array de payloads pendientes, máximo 20 (FIFO, se descarta el más antiguo).
-- Se intenta vaciar la cola al cargar la app y tras cada envío manual.
-- Un payload se elimina de la cola con respuesta 2xx o con un 400 (payload irreparable: se descarta y se registra en consola). Los 429/500/errores de red lo mantienen en cola.
+- **La cola es la lista de pendientes, no la lista de fallos.** `recordAttempt` escribe el payload en la cola *antes* de lanzar el `fetch`, y solo lo borra con 2xx (registrado) o 400 (irreparable, se registra en consola). Un 429, un 5xx o un error de red no requieren acción: el payload ya está donde tiene que estar.
+- Motivo: `finish()` marca `S.finished = true` y ejecuta `clearSave()`, con lo que el guard de `beforeunload` deja de pedir confirmación. Si el usuario cierra la pestaña con el POST en vuelo, el `catch` nunca corre; encolar como reacción al fallo perdería el intento sin dejar rastro ni en la BD ni en el navegador.
+- El reenvío es seguro porque `client_attempt_id` viaja dentro del payload encolado: si el POST original sí llegó al servidor, el reintento desde la cola devuelve 200 con `duplicado: true` y no crea una segunda fila.
+- Se intenta vaciar la cola al cargar la app (`init()`) y tras cada envío manual.
 
 ---
 
@@ -252,7 +280,9 @@ Cliente (JSDoc, en `lpi_practice_exam/index.html`):
 ```js
 /**
  * Construye el registro que se enviará a Supabase a partir de un intento finalizado.
- * No realiza ninguna operación de red y no modifica el estado recibido.
+ * Traduce S.mode con MODE_MAP y deriva total_preguntas, limite_minutos y duracion_segundos
+ * del estado; no contiene literales del contrato. No realiza ninguna operación de red
+ * y no modifica el estado recibido.
  *
  * @param {object} attempt  Intento finalizado (S), con items respondidos y elapsedMs fijado.
  * @param {string} nombre   Nombre del usuario tal como lo escribió, sin normalizar.
@@ -263,6 +293,8 @@ function buildAttemptPayload(attempt, nombre) {}
 
 /**
  * Registra un intento en Supabase, con idempotencia por client_attempt_id.
+ * Escribe el payload en la cola de localStorage ANTES de enviarlo (write-ahead) y solo
+ * lo desencola con una respuesta 2xx o 400.
  *
  * @param {object} payload  Registro devuelto por buildAttemptPayload.
  * @returns {Promise<{ok:boolean, intento_num?:number, encolado?:boolean, error?:string}>}
@@ -314,7 +346,8 @@ function clientIp(req: Request): string | null;
 
 - [ ] Nombres de variables y funciones expresan intención (`buildAttemptPayload`, no `getData`)
 - [ ] Funciones que hacen una sola cosa: construir, enviar, encolar y pintar están separadas
-- [ ] Sin números mágicos: `PASS_PCT`, `MAX_QUEUE = 20`, `RATE_LIMIT_HOUR = 60`, `NOMBRE_MIN = 2`, `NOMBRE_MAX = 80` como constantes nombradas
+- [ ] Sin números mágicos: `PASS_PCT`, `MAX_QUEUE = 20`, `RATE_LIMIT_HOUR = 60`, `NOMBRE_MIN = 2`, `NOMBRE_MAX = 80`, `APP_VERSION` y `MODE_MAP` como constantes nombradas
+- [ ] Ningún valor del contrato escrito a mano en el payload (`40`, `'completo'`, `3600`): todo sale del estado del intento o de `MODE_MAP`
 - [ ] Manejo explícito de errores: cada rama de fallo del envío produce un estado visible en la UI; nada se silencia con un `catch {}` vacío
 - [ ] La configuración de Supabase vive en un único bloque de constantes al inicio del script, no repartida por el código
 - [ ] Cero duplicación del cálculo del resultado: `renderResult` y `buildAttemptPayload` consumen la misma función de agregación (`summarizeAttempt(S)`)
@@ -334,16 +367,20 @@ function clientIp(req: Request): string | null;
 
 ### Envío del intento (pantalla de resultado)
 
-Estados: `sin_enviar` → `enviando` → `guardado` | `fallido` → `en_cola`.
+Estados: `sin_enviar` → `en_cola` → `enviando` → `guardado` | `fallido` (permanece en cola) | `descartado`.
+
+El paso por `en_cola` es obligatorio y precede a cualquier actividad de red: no existe la transición
+directa `sin_enviar` → `enviando`.
 
 | # | Transición | Disparador |
 |---|---|---|
-| 1 | `sin_enviar` → `enviando` | `finish()` termina de calcular el resultado |
-| 2 | `enviando` → `guardado` | Respuesta 2xx; se muestra "Intento #N registrado" |
-| 3 | `enviando` → `fallido` | Error de red, 429 o 5xx |
-| 4 | `fallido` → `enviando` | El usuario pulsa "Reintentar" |
-| 5 | `fallido` → `en_cola` | Automático: el payload queda en `localStorage` |
+| 1 | `sin_enviar` → `en_cola` | `finish()` termina de calcular; el payload se escribe en `localStorage` **antes** de tocar la red |
+| 2 | `en_cola` → `enviando` | Se lanza el POST, inmediatamente después de la transición 1 |
+| 3 | `enviando` → `guardado` | Respuesta 2xx; se borra de la cola y se muestra "Intento #N registrado" |
+| 4 | `enviando` → `fallido` | Error de red, 429 o 5xx; el payload **sigue** en la cola, sin acción adicional |
+| 5 | `fallido` → `enviando` | El usuario pulsa "Reintentar" |
 | 6 | `en_cola` → `enviando` | Al abrir la app de nuevo (`flushAttemptQueue`) |
+| 7 | `enviando` → `descartado` | Respuesta 400: payload irreparable; se borra de la cola y no se ofrece reintento |
 
 **Estado optimista**: sí. El resultado completo (nota, desglose, revisión) se pinta de inmediato y el estado del envío se muestra como una línea secundaria dentro del bloque de veredicto. Un 400 muestra "no se pudo registrar" sin ofrecer reintento.
 
@@ -361,6 +398,7 @@ Estados: `sin_enviar` → `enviando` → `guardado` | `fallido` → `en_cola`.
 | 6 | La respuesta de la API nunca incluye datos de otros usuarios |
 | 7 | El contenido de las respuestas pregunta por pregunta no sale del navegador; solo agregados |
 | 8 | La pantalla de inicio informa, antes de empezar, de que se registrarán nombre, IP y resultado |
+| 9 | Un intento finalizado queda persistido en la cola local antes de que salga el primer byte a la red: cerrar la pestaña durante el envío no lo pierde |
 
 ---
 
