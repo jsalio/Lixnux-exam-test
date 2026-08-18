@@ -13,13 +13,17 @@ conexión.
 
 | Ruta | Qué es |
 |---|---|
-| `index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
+| `index.html` | Portada: navega a las dos aplicaciones |
+| `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `docs/specs/registro-intentos-supabase.spec.md` | Especificación SDD (en estado *Draft*, **no implementada**) |
 
+Cada aplicación vive en su propia carpeta con un `index.html`, de modo que su URL
+es el directorio. La portada enlaza a ambas y ambas enlazan de vuelta a la portada.
+
 ---
 
-## 1. Simulador de examen — `index.html`
+## 1. Simulador de examen — `lpi_practice_exam/index.html`
 
 ### Modos
 
@@ -115,20 +119,34 @@ e impacto en ficheros existentes. Los siguientes pasos del pipeline
 
 ## Uso
 
-No requiere instalación. Basta con abrir el fichero:
+No requiere instalación. Basta con abrir la portada:
 
 ```bash
 xdg-open index.html
-xdg-open sample_linux_permissions/index.html
 ```
 
 Si prefieres servirlo por HTTP:
 
 ```bash
 python3 -m http.server 8000
-# http://localhost:8000/index.html
-# http://localhost:8000/sample_linux_permissions/
+# http://localhost:8000/
 ```
+
+### Publicación
+
+El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz:
+
+| Página | URL |
+|---|---|
+| Portada | <https://jsalio.github.io/Lixnux-exam-test/> |
+| Examen | <https://jsalio.github.io/Lixnux-exam-test/lpi_practice_exam/> |
+| Permisos | <https://jsalio.github.io/Lixnux-exam-test/sample_linux_permissions/> |
+
+Al ser un *project site*, el sitio cuelga de `/Lixnux-exam-test/` y no de la raíz
+del dominio. Por eso **todos los enlaces internos son relativos**: una ruta que
+empiece por `/` apuntaría fuera del proyecto y daría 404. El fichero `.nojekyll`
+desactiva el procesado Jekyll, que no aporta nada aquí y solo añade reglas
+sorpresa sobre nombres de fichero.
 
 ---
 
