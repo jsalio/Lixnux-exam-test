@@ -69,6 +69,18 @@ table.topics th,table.topics td{text-align:left; padding:7px 8px; border-bottom:
 table.topics td.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
 .note{font-size:.85rem; color:var(--muted); border-left:3px solid var(--border); padding:6px 0 6px 12px; margin:16px 0}
 
+/* ---- identidad y registro del intento ---- */
+.ident{margin-bottom:18px}
+.ident input{width:100%; max-width:420px; font:inherit; padding:10px 12px; margin-top:4px;
+  border:1px solid var(--border); border-radius:9px; background:var(--panel2); color:var(--text)}
+.ident input:focus{outline:2px solid var(--accent); outline-offset:1px}
+.ident input.bad{border-color:var(--bad)}
+.ident .aviso{font-size:.8rem; color:var(--muted); margin:12px 0 0}
+.sync{font-size:.88rem; color:var(--muted); margin:0 0 18px; display:flex; gap:9px;
+  align-items:center; flex-wrap:wrap; min-height:1.4em}
+.sync.ok{color:var(--ok)}
+.sync.err{color:var(--warn)}
+
 /* ---- examen ---- */
 .examhead{position:sticky; top:57px; z-index:15; background:var(--bg); padding:12px 0 8px}
 .metaline{display:flex; gap:14px; align-items:center; flex-wrap:wrap; font-size:.85rem; color:var(--muted)}
@@ -161,6 +173,19 @@ footer.foot{max-width:900px; margin:0 auto; padding:24px 16px 40px; color:var(--
     Banco de preguntas bilingüe basado en los objetivos oficiales v1.6.
     Elige un modo para comenzar.
   </p>
+
+  <div class="card ident" id="identCard">
+    <h3 style="margin-top:0">¿Quién hace el intento?</h3>
+    <label for="nombre" style="font-size:.9rem; color:var(--muted)">Nombre</label><br>
+    <input id="nombre" type="text" maxlength="80" autocomplete="name" spellcheck="false"
+           placeholder="Nombre y apellido" aria-describedby="nombreHelp">
+    <p id="nombreHelp" class="hint" style="margin-top:8px">Escribe tu nombre para habilitar los modos.</p>
+    <p class="aviso">
+      Al finalizar cada intento se registran tu <b>nombre</b>, tu <b>dirección IP</b> y el
+      <b>resultado</b> (nota, modo, duración y aciertos por tema) para llevar el histórico
+      de intentos. No se guarda ninguna de tus respuestas concretas.
+    </p>
+  </div>
 
   <div id="resume" class="card hidden" style="margin-bottom:18px">
     <h3 style="margin-top:0">Intento sin terminar</h3>
@@ -266,6 +291,7 @@ footer.foot{max-width:900px; margin:0 auto; padding:24px 16px 40px; color:var(--
 <section id="screen-result" class="wrap hidden">
   <h1>Resultado del intento</h1>
   <div id="verdict" class="verdict"></div>
+  <p id="sync" class="sync"></p>
 
   <h2>Desempeño por tema</h2>
   <div class="card">
@@ -1574,6 +1600,18 @@ const STORE_KEY  = 'lpi-010-160-attempt-v1';
 const LANG_KEY   = 'lpi-010-160-lang';
 const KEYS       = 'ABCDEFGH';
 
+/* ---- registro de intentos en Supabase (capa opcional) ---- */
+const SUPABASE_URL      = 'https://gzmlvgdumscpztwqnvsl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6bWx2Z2R1bXNjcHp0d3FudnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNjAzNTUsImV4cCI6MjEwMjYzNjM1NX0.mYkhYMbtooTK0pXCw9xNzoSzjW2c6kbtMu7cMnPRl04';
+const APP_VERSION       = '1.0.0+bank145';
+const NAME_KEY          = 'lpi-010-160-nombre';
+const QUEUE_KEY         = 'lpi-010-160-cola';
+const MODE_MAP          = { sim:'simulacro_60min', full:'completo' };
+const MAX_QUEUE         = 20;
+const NOMBRE_MIN        = 2;
+const NOMBRE_MAX        = 80;
+const IDIOMAS           = ['both','es','en'];
+
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
@@ -1619,6 +1657,13 @@ let timerId = null;
 let filter = 'all';
 
 function newAttempt(mode){
+  // Único punto de entrada a un intento: cubre los botones de modo y "Nuevo intento".
+  if(!nombreValido(nombreGuardado())){
+    showStart();
+    const i = $('#nombre');
+    if(i){ i.focus(); }
+    return;
+  }
   let picked;
   if(mode === 'sim'){
     picked = [];
@@ -1630,8 +1675,10 @@ function newAttempt(mode){
   }else{
     picked = Q.slice().sort((a,b) => a.topic - b.topic || a.id - b.id);
   }
+  sync = { estado:'sin_enviar' };   // el estado del envío anterior no se arrastra
   S = {
     mode: mode,
+    cid: uuid(),           // identidad del intento para la idempotencia del registro
     idx: 0,
     started: Date.now(),
     limitMs: mode === 'sim' ? SIM_MINUTES*60*1000 : 0,
@@ -1675,6 +1722,232 @@ function isCorrect(item){
   return a === b;
 }
 
+/* ================= REGISTRO DEL INTENTO =================
+   Capa opcional: si Supabase no responde, el examen funciona igual.
+   La cola es "write-ahead": el payload se guarda ANTES de tocar la red,
+   porque finish() ya borró el intento local y desactivó el aviso de cierre. */
+
+/**
+ * Genera un identificador único para el intento.
+ * @returns {string} UUID v4.
+ */
+function uuid(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+/**
+ * Normaliza un nombre para agrupar los intentos de la misma persona.
+ * Recorta, colapsa espacios, pasa a minúsculas y elimina diacríticos.
+ * Misma regla que aplica la Edge Function en el servidor.
+ *
+ * @param {string} nombre  Nombre escrito por el usuario.
+ * @returns {string} Clave de agrupación estable; cadena vacía si el nombre no es válido.
+ */
+function normalizeUserKey(nombre){
+  return String(nombre || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 '\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Valida el nombre. Única fuente de verdad: la usan el formulario y el envío.
+ * @param {string} nombre
+ * @returns {boolean}
+ */
+function nombreValido(nombre){
+  const t = String(nombre || '').trim();
+  return t.length >= NOMBRE_MIN && t.length <= NOMBRE_MAX && normalizeUserKey(t) !== '';
+}
+
+/** @returns {string} Nombre guardado, o cadena vacía. */
+function nombreGuardado(){
+  try{ return localStorage.getItem(NAME_KEY) || ''; }catch(e){ return ''; }
+}
+
+/**
+ * Agrega el resultado de un intento. Única función de cálculo: la consumen
+ * renderResult() y buildAttemptPayload(), para que no haya dos verdades.
+ *
+ * @param {object} a  Intento (S) con sus items.
+ * @returns {{total:number, ok:number, ko:number, blank:number, pct:number, pass:boolean, temas:object}}
+ */
+function summarizeAttempt(a){
+  const total = a.items.length;
+  const ok    = a.items.filter(isCorrect).length;
+  const blank = a.items.filter(it => !isAnswered(it)).length;
+  const ko    = total - ok - blank;
+  const pct   = total ? ok/total*100 : 0;
+  const temas = {};
+  a.items.forEach(it => {
+    const t = byId(it.id).topic;
+    temas[t] = temas[t] || { n:0, ok:0 };
+    temas[t].n++;
+    if(isCorrect(it)) temas[t].ok++;
+  });
+  return { total, ok, ko, blank, pct, pass: pct >= PASS_PCT, temas };
+}
+
+/**
+ * Construye el registro que se enviará a Supabase a partir de un intento finalizado.
+ * Traduce el modo con MODE_MAP y deriva total, límite y duración del estado:
+ * no contiene ningún literal del contrato. No hace red ni modifica el intento.
+ *
+ * @param {object} attempt  Intento finalizado (S), con elapsedMs fijado.
+ * @param {string} nombre   Nombre tal como lo escribió el usuario, sin normalizar.
+ * @returns {object} Payload listo para POST /functions/v1/record-attempt.
+ * @throws {Error} Si el intento no está finalizado, no tiene preguntas o el modo es desconocido.
+ */
+function buildAttemptPayload(attempt, nombre){
+  if(!attempt || !attempt.finished)          throw new Error('el intento no está finalizado');
+  if(!attempt.items || !attempt.items.length) throw new Error('el intento no tiene preguntas');
+  const modo = MODE_MAP[attempt.mode];
+  if(!modo) throw new Error('modo desconocido: ' + attempt.mode);
+
+  const s = summarizeAttempt(attempt);
+  let idioma = 'both';
+  try{ const l = localStorage.getItem(LANG_KEY); if(IDIOMAS.indexOf(l) >= 0) idioma = l; }catch(e){}
+
+  return {
+    client_attempt_id: attempt.cid,
+    usuario_nombre:    String(nombre).trim(),
+    modo:              modo,
+    total_preguntas:   s.total,
+    limite_minutos:    attempt.limitMs ? Math.round(attempt.limitMs/60000) : null,
+    correctas:         s.ok,
+    incorrectas:       s.ko,
+    sin_responder:     s.blank,
+    porcentaje:        Math.round(s.pct*100)/100,
+    puntuacion_escala: scaled(s.pct),
+    duracion_segundos: Math.floor(attempt.elapsedMs/1000),   // floor: nunca por encima del límite
+    desglose_temas:    s.temas,
+    idioma:            idioma,
+    app_version:       APP_VERSION
+  };
+}
+
+/* ---- cola de pendientes en localStorage ---- */
+function queueRead(){
+  try{ const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); return Array.isArray(q) ? q : []; }
+  catch(e){ return []; }
+}
+function queueWrite(q){
+  try{ localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-MAX_QUEUE))); }catch(e){}
+}
+function queuePush(payload){
+  const q = queueRead().filter(x => x.client_attempt_id !== payload.client_attempt_id);
+  q.push(payload);
+  queueWrite(q);
+}
+function queueDrop(cid){
+  queueWrite(queueRead().filter(x => x.client_attempt_id !== cid));
+}
+
+/**
+ * Registra un intento en Supabase, con idempotencia por client_attempt_id.
+ * Encola el payload ANTES de enviarlo y solo lo desencola con 2xx (registrado)
+ * o con 400/403 (irreparable). Nunca lanza: los fallos van en el valor de retorno.
+ *
+ * @param {object} payload  Registro devuelto por buildAttemptPayload.
+ * @returns {Promise<{ok:boolean, intento_num?:number, duplicado?:boolean, encolado?:boolean, error?:string}>}
+ */
+async function recordAttempt(payload){
+  queuePush(payload);
+  if(!SUPABASE_URL || SUPABASE_ANON_KEY.indexOf('__') === 0){
+    return { ok:false, encolado:true, error:'sin_configurar' };
+  }
+  try{
+    const res = await fetch(SUPABASE_URL + '/functions/v1/record-attempt', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify(payload)
+    });
+    let data = null;
+    try{ data = await res.json(); }catch(e){}
+
+    if(res.ok){
+      queueDrop(payload.client_attempt_id);
+      return { ok:true, intento_num: data && data.intento_num, duplicado: !!(data && data.duplicado) };
+    }
+    if(res.status === 400 || res.status === 403){
+      // Payload o configuración irreparables: reintentar no cambiaría nada.
+      queueDrop(payload.client_attempt_id);
+      console.error('registro rechazado', res.status, data);
+      return { ok:false, error: (data && data.error) || 'rechazado' };
+    }
+    return { ok:false, encolado:true, error: (data && data.error) || ('http_' + res.status) };
+  }catch(e){
+    return { ok:false, encolado:true, error:'red' };
+  }
+}
+
+/**
+ * Reintenta los envíos pendientes en localStorage, en orden de llegada.
+ * @returns {Promise<{enviados:number, pendientes:number}>} Resumen del vaciado.
+ */
+async function flushAttemptQueue(){
+  const pendientes = queueRead();
+  let enviados = 0;
+  for(const p of pendientes){
+    const r = await recordAttempt(p);
+    if(r.ok) enviados++;
+  }
+  return { enviados, pendientes: queueRead().length };
+}
+
+/* ---- estado del envío en la pantalla de resultado ---- */
+let sync = { estado:'sin_enviar' };
+
+function renderSync(){
+  const el = $('#sync');
+  if(!el) return;
+  let cls = 'sync', h = '';
+  if(sync.estado === 'enviando'){
+    h = 'Registrando el intento…';
+  }else if(sync.estado === 'guardado'){
+    cls += ' ok';
+    h = '✓ Intento #' + (sync.intento || '?') + ' registrado' + (sync.duplicado ? ' (ya constaba)' : '');
+  }else if(sync.estado === 'fallido'){
+    cls += ' err';
+    h = '⚠ No se pudo registrar el intento (' + esc(sync.error || '') + ')'
+      + (sync.reintentable ? ' · queda en cola para el próximo arranque' : '');
+  }
+  el.className = cls;
+  el.innerHTML = h + (sync.estado === 'fallido' && sync.reintentable
+    ? ' <button class="btn" id="btnRetrySync" style="padding:4px 10px">Reintentar</button>' : '');
+  const b = $('#btnRetrySync');
+  if(b) b.addEventListener('click', sendCurrentAttempt);
+}
+
+/** Envía el intento en curso y refleja el estado en la UI. Nunca rompe el resultado. */
+async function sendCurrentAttempt(){
+  let payload;
+  try{
+    payload = buildAttemptPayload(S, nombreGuardado());
+  }catch(e){
+    sync = { estado:'fallido', error:e.message, reintentable:false };
+    renderSync();
+    return;
+  }
+  sync = { estado:'enviando' };
+  renderSync();
+  const r = await recordAttempt(payload);
+  sync = r.ok
+    ? { estado:'guardado', intento:r.intento_num, duplicado:r.duplicado }
+    : { estado:'fallido', error:r.error, reintentable: !!r.encolado };
+  renderSync();
+}
+
 /* ---------- pantallas ---------- */
 function show(id){
   ['screen-start','screen-exam','screen-result'].forEach(s => $('#'+s).classList.toggle('hidden', s !== id));
@@ -1683,6 +1956,7 @@ function show(id){
 function showStart(){
   stopTimer();
   show('screen-start');
+  setNombreState();
   const stored = loadStored();
   $('#resume').classList.toggle('hidden', !stored);
   if(stored){
@@ -1831,6 +2105,7 @@ function finish(auto){
   clearSave();
   if(auto) alert('Se agotó el tiempo. El intento se envió automáticamente.');
   renderResult();
+  sendCurrentAttempt();      // el resultado ya está pintado: un fallo aquí no lo afecta
 }
 
 function scaled(pct){
@@ -1841,12 +2116,13 @@ function scaled(pct){
 
 function renderResult(){
   show('screen-result');
-  const total = S.items.length;
-  const okCount    = S.items.filter(isCorrect).length;
-  const blankCount = S.items.filter(it => !isAnswered(it)).length;
-  const koCount    = total - okCount - blankCount;
-  const pct        = total ? okCount/total*100 : 0;
-  const pass       = pct >= PASS_PCT;
+  const resumen    = summarizeAttempt(S);
+  const total      = resumen.total;
+  const okCount    = resumen.ok;
+  const blankCount = resumen.blank;
+  const koCount    = resumen.ko;
+  const pct        = resumen.pct;
+  const pass       = resumen.pass;
 
   $('#verdict').className = 'verdict ' + (pass ? 'pass' : 'fail');
   $('#verdict').innerHTML =
@@ -1858,13 +2134,10 @@ function renderResult(){
     + ' · Umbral usado: ' + PASS_PCT + '%'
     + '<br>Equivalencia aproximada en la escala oficial 200-800: <b>' + scaled(pct) + '</b> (se aprueba con 500).</p>';
 
-  // por tema
-  const agg = {};
-  S.items.forEach(it => {
-    const t = byId(it.id).topic;
-    agg[t] = agg[t] || { n:0, ok:0 };
-    agg[t].n++; if(isCorrect(it)) agg[t].ok++;
-  });
+  renderSync();
+
+  // por tema: mismo desglose que viaja en el payload
+  const agg = resumen.temas;
   $('#resTopics').innerHTML = Object.keys(agg).sort().map(t => {
     const a = agg[t], p = a.ok/a.n*100;
     return '<tr><td>' + t + ' · ' + esc(TOPICS[t][0]) + '</td>'
@@ -1917,7 +2190,28 @@ function renderReview(){
   $('#review').innerHTML = h || '<div class="card">Sin preguntas en este filtro.</div>';
 }
 
+/* ---------- formulario de nombre ---------- */
+/**
+ * Refleja la validez del nombre en la UI: habilita o bloquea los modos,
+ * marca el campo y persiste el nombre válido para los siguientes intentos.
+ */
+function setNombreState(){
+  const inp = $('#nombre');
+  if(!inp) return;
+  const bruto = inp.value;
+  const ok    = nombreValido(bruto);
+  inp.classList.toggle('bad', bruto.trim() !== '' && !ok);
+  $$('[data-mode]').forEach(b => { b.disabled = !ok; });
+  $('#nombreHelp').textContent = ok
+    ? 'Listo. Elige un modo para empezar.'
+    : (bruto.trim() === ''
+        ? 'Escribe tu nombre para habilitar los modos.'
+        : 'Entre ' + NOMBRE_MIN + ' y ' + NOMBRE_MAX + ' caracteres, con alguna letra o número.');
+  if(ok){ try{ localStorage.setItem(NAME_KEY, bruto.trim()); }catch(e){} }
+}
+
 /* ---------- eventos ---------- */
+$('#nombre').addEventListener('input', setNombreState);
 $$('[data-mode]').forEach(b => b.addEventListener('click', () => {
   if(loadStored() && !confirm('Se descartará el intento sin terminar. ¿Continuar?')) return;
   newAttempt(b.dataset.mode);
@@ -1962,6 +2256,14 @@ window.addEventListener('beforeunload', e => {
 /* ---------- arranque ---------- */
 (function init(){
   try{ const l = localStorage.getItem(LANG_KEY); if(l) setLang(l); }catch(e){}
+
+  $('#nombre').value = nombreGuardado();
+
+  // Los intentos que quedaron en cola de sesiones anteriores salen ahora.
+  flushAttemptQueue().then(r => {
+    if(r.enviados) console.info('Intentos pendientes registrados:', r.enviados);
+    if(r.pendientes) console.warn('Intentos aún en cola:', r.pendientes);
+  });
 
   const counts = { single:0, multi:0, fill:0 };
   const perTopic = {};
