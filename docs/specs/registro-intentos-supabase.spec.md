@@ -4,7 +4,7 @@
 **User story**: "Monta una base de datos en Supabase para esta aplicación que se registre el nombre del usuario, su IP, el # de intento con su nota, y si es la versión de prueba de 60 o la 100."
 **Estado**: Draft
 **Fecha**: 2026-08-17
-**Aplicación objetivo**: `lpi-linux-essentials/index.html` (banco de 145 preguntas, 2 modos)
+**Aplicación objetivo**: `lpi_practice_exam/index.html` (banco de 145 preguntas, 2 modos)
 **Pipeline siguiente**: /impact → /arch → /tdd-plan → /why
 
 ---
@@ -247,7 +247,7 @@ LSP no aplica: no hay jerarquías de tipos en este feature.
 
 ## Documentación esperada de funciones públicas
 
-Cliente (JSDoc, en `index.html`):
+Cliente (JSDoc, en `lpi_practice_exam/index.html`):
 
 ```js
 /**
@@ -366,19 +366,21 @@ Estados: `sin_enviar` → `enviando` → `guardado` | `fallido` → `en_cola`.
 
 ## Impacto en archivos existentes
 
-Tabla preliminar; el detalle se produce en `/impact`.
+Tabla preliminar; el detalle se produce en `/impact`. Las rutas son relativas a la
+raíz del repositorio.
 
 | Archivo | Cambio | Capa |
 |---|---|---|
-| `lpi-linux-essentials/index.html` | modificado: campo de nombre + aviso en el inicio, estado de envío en el resultado, módulo de telemetría, constantes de Supabase | UI + infraestructura cliente |
+| `lpi_practice_exam/index.html` | modificado: campo de nombre + aviso en el inicio, estado de envío en el resultado, módulo de telemetría, constantes de Supabase | UI + infraestructura cliente |
 | `supabase/migrations/0001_exam_attempts.sql` | NUEVO: tabla, constraints, índices, RLS, trigger | persistencia |
 | `supabase/functions/record-attempt/index.ts` | NUEVO: validación, IP, rate limit, insert | backend |
 | `supabase/functions/record-attempt/deno.json` | NUEVO: dependencias de la función | backend |
 | `supabase/config.toml` | NUEVO: configuración del proyecto local | infraestructura |
 | `docs/specs/registro-intentos-supabase.spec.md` | NUEVO: este contrato | documentación |
-| `index.html` (app antigua en la raíz) | sin cambios | — |
+| `index.html` (portada del sitio) | sin cambios | — |
+| `../index.html` (app de práctica antigua, **fuera** de este repositorio) | sin cambios | — |
 
-Funciones concretas que se tocan en `index.html`: `showStart()` (validación del nombre), `newAttempt()` (bloqueo si no hay nombre), `finish()` (disparar el envío), `renderResult()` (línea de estado del envío) y el bloque `init()` (vaciado de la cola).
+Funciones concretas que se tocan en `lpi_practice_exam/index.html`: `showStart()` (validación del nombre), `newAttempt()` (bloqueo si no hay nombre), `finish()` (disparar el envío), `renderResult()` (línea de estado del envío) y el bloque `init()` (vaciado de la cola).
 
 ---
 
@@ -399,7 +401,7 @@ Funciones concretas que se tocan en `index.html`: `showStart()` (validación del
 
 ## Próximos pasos del pipeline
 
-1. `/impact` — analizar side-effects en `index.html` (orden de `finish`, `beforeunload` con cola pendiente, arranque sin configuración) y en la BD.
+1. `/impact` — analizar side-effects en `lpi_practice_exam/index.html` (orden de `finish`, `beforeunload` con cola pendiente, arranque sin configuración) y en la BD.
 2. `/arch` — confirmar la separación cliente/Edge Function y dónde vive el módulo de telemetría dentro de un archivo único.
 3. `/tdd-plan` — plan Red/Green/Refactor: validación de payload, normalización de `usuario_key`, idempotencia, asignación de `intento_num` bajo concurrencia, cola offline.
 4. `/why` — documentar el motivo de cada cambio antes de commitear.

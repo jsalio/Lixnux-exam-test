@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Los directorios de Linux</title>
+<meta name="description" content="Qué hace cada directorio de la raíz de Linux: /dev, /proc, /sys, /run y el resto del árbol, explicados de forma interactiva.">
+<style>
+/* ============================================================
+   TOKENS — mismos que la guía de permisos
+   ============================================================ */
+:root{
+  color-scheme: light;
+
+  --bg:        #eef1f4;
+  --surface:   #ffffff;
+  --surface-2: #e6eaef;
+  --line:      #ccd4dc;
+  --line-2:    #9aa6b3;
+
+  --ink:   #131920;
+  --ink-2: #3f4a57;
+  --ink-3: #6d7884;
+
+  /* naturaleza de cada directorio */
+  --disk: #a8481a;   /* en disco */
+  --ram:  #10695a;   /* generado en memoria */
+  --link: #464fa2;   /* enlace simbólico */
+
+  --warn: #8a5300;
+  --ok:   #10695a;
+
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Cantarell, sans-serif;
+
+  --fs-xs: .75rem;
+  --fs-sm: .8125rem;
+  --fs-ui: .9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.1875rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2.125rem;
+  --fs-3xl: clamp(2.6rem, 7vw, 4.5rem);
+
+  --r: 3px;
+  --maxw: 68ch;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:        #0d1218;
+    --surface:   #161d26;
+    --surface-2: #1e2733;
+    --line:      #2c3644;
+    --line-2:    #4a5768;
+
+    --ink:   #dde5ed;
+    --ink-2: #a7b3c0;
+    --ink-3: #79868f;
+
+    --disk: #e18c58;
+    --ram:  #4cc2a8;
+    --link: #949ceb;
+
+    --warn: #dda63f;
+    --ok:   #4cc2a8;
+  }
+}
+
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #0d1218;
+  --surface:   #161d26;
+  --surface-2: #1e2733;
+  --line:      #2c3644;
+  --line-2:    #4a5768;
+
+  --ink:   #dde5ed;
+  --ink-2: #a7b3c0;
+  --ink-3: #79868f;
+
+  --disk: #e18c58;
+  --ram:  #4cc2a8;
+  --link: #949ceb;
+
+  --warn: #dda63f;
+  --ok:   #4cc2a8;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{ box-sizing: border-box; }
+
+body{
+  margin:0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--fs-base);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection{ background: var(--ink); color: var(--bg); }
+a{ color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+code, kbd, samp{ font-family: var(--mono); font-size: .92em; }
+h1,h2,h3{ text-wrap: balance; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.shell{ max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+
+.body-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  padding-bottom: 5rem;
+}
+@media (min-width: 1000px){
+  .body-grid{ grid-template-columns: 13rem minmax(0,1fr); gap: 4rem; }
+}
+main{ min-width: 0; }
+.prose{ max-width: var(--maxw); }
+
+section{
+  padding-block: clamp(3rem, 7vw, 5rem);
+  border-top: 1px solid var(--line);
+}
+section:first-of-type{ border-top: 0; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{
+  border-bottom: 1px solid var(--line);
+  padding-block: clamp(3.5rem, 10vw, 7rem) clamp(3rem, 8vw, 5rem);
+}
+.eyebrow{
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.75rem;
+}
+.eyebrow a{ color: inherit; text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.eyebrow a:hover{ color: var(--ink); border-color: var(--ink); }
+
+h1{
+  font-family: var(--mono);
+  font-size: var(--fs-3xl);
+  font-weight: 600;
+  letter-spacing: -.045em;
+  line-height: .95;
+  margin: 0;
+}
+.hero-lede{ max-width: 46ch; margin: 1.75rem 0 0; font-size: var(--fs-lg); color: var(--ink-2); }
+
+.hero-string{
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  font-family: var(--mono);
+  font-size: clamp(1.1rem, 4.2vw, 2.1rem);
+  letter-spacing: .02em;
+  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .1em .55em;
+  font-weight: 600;
+}
+.hero-string span{ animation: drop .5s cubic-bezier(.2,.8,.3,1) backwards; }
+.hs-disk{ color: var(--disk); }
+.hs-ram{ color: var(--ram); }
+.hs-link{ color: var(--link); }
+
+@keyframes drop{
+  from{ opacity:0; transform: translateY(-.28em); }
+  to{ opacity:1; transform: none; }
+}
+
+.hero-legend{
+  display: flex; flex-wrap: wrap; gap: .5rem 1.5rem;
+  margin-top: 1.5rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+.hero-legend b{ font-weight: 600; }
+.hero-legend .k-disk{ color: var(--disk); }
+.hero-legend .k-ram{ color: var(--ram); }
+.hero-legend .k-link{ color: var(--link); }
+
+/* ============================================================
+   ÍNDICE LATERAL
+   ============================================================ */
+.rail{ display: none; }
+@media (min-width: 1000px){
+  .rail{
+    display: block; position: sticky; top: 0; align-self: start;
+    padding-top: clamp(3rem, 7vw, 5rem);
+    max-height: 100vh; overflow-y: auto;
+  }
+}
+.rail ol{
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: .55rem;
+  font-family: var(--mono); font-size: var(--fs-sm);
+}
+.rail a{ color: var(--ink-3); text-decoration: none; display: flex; gap: .6rem; transition: color .15s; }
+.rail a:hover{ color: var(--ink); }
+.rail a .glyph{ color: var(--line-2); width: 1.1em; flex: none; }
+.rail a.is-active{ color: var(--ink); }
+.rail a.is-active .glyph{ color: var(--disk); }
+
+/* ============================================================
+   TIPOGRAFÍA DE SECCIÓN
+   ============================================================ */
+.sec-mark{
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 .9rem;
+}
+h2{
+  font-family: var(--mono); font-size: var(--fs-2xl); font-weight: 600;
+  letter-spacing: -.035em; line-height: 1.1; margin: 0 0 1.25rem;
+}
+h3{
+  font-family: var(--mono); font-size: var(--fs-lg); font-weight: 600;
+  letter-spacing: -.02em; margin: 2.5rem 0 .75rem;
+}
+p{ margin: 0 0 1.1rem; }
+.prose ul, .prose ol{ padding-left: 1.2rem; margin: 0 0 1.2rem; }
+.prose li{ margin-bottom: .5rem; }
+
+.note{
+  font-size: var(--fs-ui); font-family: var(--sans); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem;
+  margin: 1.5rem 0; max-width: var(--maxw);
+}
+.note b{ color: var(--ink); }
+
+/* ============================================================
+   BLOQUES ANCHOS
+   ============================================================ */
+.wide{ margin: 2rem 0; }
+.panel{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(1.25rem, 3vw, 2rem);
+}
+.scroll-x{ overflow-x: auto; }
+
+/* ============================================================
+   TABLAS
+   ============================================================ */
+table{
+  border-collapse: collapse; width: 100%; min-width: 34rem;
+  font-family: var(--sans); font-size: var(--fs-ui);
+}
+th, td{ text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th{
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2); font-weight: 600;
+}
+tbody tr:last-child td{ border-bottom: 0; }
+td code{ color: var(--ink); }
+.tnum{ font-variant-numeric: tabular-nums; }
+.col-path{ width: 11rem; }
+
+/* ============================================================
+   EXPLORADOR
+   ============================================================ */
+.filters{
+  display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem;
+}
+.filter{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .4rem .8rem; cursor: pointer; transition: all .12s;
+}
+.filter:hover{ border-color: var(--ink-3); color: var(--ink); }
+.filter[aria-pressed="true"]{ border-color: var(--ink); color: var(--ink); font-weight: 600; background: var(--surface-2); }
+
+.explorer{ display: grid; gap: 1.5rem; }
+@media (min-width: 820px){
+  .explorer{ grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
+}
+
+.tree{
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 1px;
+  font-family: var(--mono); font-size: var(--fs-ui);
+  max-height: 30rem; overflow-y: auto;
+}
+.tree button{
+  width: 100%; text-align: left; font: inherit; cursor: pointer;
+  background: transparent; color: var(--ink-2);
+  border: 1px solid transparent; border-radius: var(--r);
+  padding: .35rem .6rem;
+  display: flex; align-items: baseline; gap: .5rem;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.tree button:hover{ background: var(--surface-2); color: var(--ink); }
+.tree button[aria-pressed="true"]{ background: var(--surface-2); border-color: var(--line-2); color: var(--ink); font-weight: 600; }
+.tree .dot{ width: .5em; height: .5em; border-radius: 50%; flex: none; align-self: center; }
+.tree .dot[data-kind="disk"]{ background: var(--disk); }
+.tree .dot[data-kind="ram"]{ background: var(--ram); }
+.tree .dot[data-kind="link"]{ background: var(--link); }
+.tree .hint{ margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); font-weight: 400; }
+.tree li.is-hidden{ display: none; }
+
+.detail{
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent, var(--line-2));
+  border-radius: var(--r); padding: 1.25rem 1.4rem;
+}
+.detail[data-kind="disk"]{ --accent: var(--disk); }
+.detail[data-kind="ram"]{ --accent: var(--ram); }
+.detail[data-kind="link"]{ --accent: var(--link); }
+
+.detail h3{ font-size: var(--fs-xl); margin: 0 0 .1rem; color: var(--accent); }
+.detail .sub{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 1rem;
+}
+.detail .desc{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); margin: 0 0 1rem; }
+.detail dl{
+  margin: 0 0 1rem; display: grid; gap: .35rem .9rem;
+  grid-template-columns: auto minmax(0,1fr);
+  font-size: var(--fs-sm);
+}
+.detail dt{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.detail dd{ margin: 0; font-family: var(--sans); color: var(--ink-2); }
+.detail dd code{ color: var(--ink); }
+.detail .cmds{ display: flex; flex-direction: column; gap: .35rem; }
+
+.cmd{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: .5rem .7rem;
+  overflow-x: auto; white-space: nowrap;
+}
+.cmd .prompt{ color: var(--ink-3); }
+
+/* ============================================================
+   VISOR DE FICHEROS VIRTUALES
+   ============================================================ */
+.viewer{ display: grid; gap: 1.5rem; }
+@media (min-width: 820px){
+  .viewer{ grid-template-columns: minmax(0, 17rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
+}
+.files{ display: flex; flex-direction: column; gap: .35rem; }
+.file{
+  font-family: var(--mono); font-size: var(--fs-sm); text-align: left;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .45rem .7rem; cursor: pointer; transition: all .12s;
+}
+.file:hover{ border-color: var(--ink-3); color: var(--ink); }
+.file[aria-pressed="true"]{ border-color: var(--ram); color: var(--ram); font-weight: 600; background: color-mix(in srgb, var(--ram) 10%, transparent); }
+
+.term{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); overflow: hidden;
+}
+.term-bar{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding: .5rem .8rem; border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.term pre{
+  margin: 0; padding: .9rem; overflow-x: auto;
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.5; color: var(--ink);
+}
+.term pre .prompt{ color: var(--ink-3); }
+.term-note{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  padding: .8rem .9rem; border-top: 1px solid var(--line); margin: 0;
+}
+
+/* ============================================================
+   QUIZ
+   ============================================================ */
+.quiz{ display: flex; flex-direction: column; gap: 1.5rem; }
+.q{ border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; }
+.q:last-child{ border-bottom: 0; padding-bottom: 0; }
+.q-text{ font-size: var(--fs-lg); margin: 0 0 .8rem; }
+.q-opts{ display: flex; flex-wrap: wrap; gap: .5rem; }
+.opt{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .45rem .8rem; cursor: pointer; transition: all .12s;
+}
+.opt:hover:not(:disabled){ border-color: var(--ink-3); color: var(--ink); }
+.opt:disabled{ cursor: default; }
+.opt.good{ border-color: var(--ok); color: var(--ok); font-weight: 600; background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.opt.bad{ border-color: var(--warn); color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); text-decoration: line-through; }
+.q-exp{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: .9rem 0 0;
+}
+.q-exp[hidden]{ display: none; }
+
+/* ============================================================
+   CHULETA
+   ============================================================ */
+.cheat{ display: grid; gap: .1rem; font-family: var(--mono); font-size: var(--fs-ui); }
+.cheat-row{
+  display: grid; grid-template-columns: minmax(0, 13rem) minmax(0,1fr);
+  gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--line); align-items: baseline;
+}
+.cheat-row:last-child{ border-bottom: 0; }
+.cheat-row span{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); }
+.cheat-row b{ font-weight: 600; }
+
+footer{
+  border-top: 1px solid var(--line);
+  padding-block: 2.5rem 4rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="shell">
+    <p class="eyebrow"><a href="../">← Índice</a> · Guía visual · jerarquía del sistema de archivos</p>
+    <h1>Los directorios de Linux</h1>
+    <p class="hero-lede">No hay unidad C:. Hay un solo árbol que empieza en <code>/</code>, y buena parte de él no está guardado en ningún disco: lo inventa el kernel cada vez que arrancas.</p>
+
+    <div class="hero-string" aria-label="Directorios de la raíz">
+      <span class="hs-disk" style="animation-delay:.00s">/etc</span><span class="hs-ram" style="animation-delay:.04s">/proc</span><span class="hs-disk" style="animation-delay:.08s">/home</span><span class="hs-ram" style="animation-delay:.12s">/sys</span><span class="hs-link" style="animation-delay:.16s">/bin</span><span class="hs-ram" style="animation-delay:.20s">/dev</span><span class="hs-disk" style="animation-delay:.24s">/var</span><span class="hs-ram" style="animation-delay:.28s">/run</span><span class="hs-disk" style="animation-delay:.32s">/usr</span>
+    </div>
+
+    <p class="hero-legend">
+      <b class="k-disk">■ en disco</b>
+      <b class="k-ram">■ generado en memoria</b>
+      <b class="k-link">■ enlace simbólico</b>
+    </p>
+  </div>
+</header>
+
+<div class="shell body-grid">
+
+  <nav class="rail" aria-label="Índice">
+    <ol>
+      <li><a href="#arbol"><span class="glyph">/</span> Un solo árbol</a></li>
+      <li><a href="#explorador"><span class="glyph">▸</span> Explorador</a></li>
+      <li><a href="#virtuales"><span class="glyph">~</span> Sin disco</a></li>
+      <li><a href="#visor"><span class="glyph">$</span> Visor</a></li>
+      <li><a href="#permisos"><span class="glyph">r</span> Permisos</a></li>
+      <li><a href="#reinicio"><span class="glyph">↻</span> Tras reiniciar</a></li>
+      <li><a href="#quiz"><span class="glyph">?</span> ¿Dónde vive?</a></li>
+      <li><a href="#chuleta"><span class="glyph">*</span> Chuleta</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ÁRBOL -->
+    <section id="arbol">
+      <p class="sec-mark">Punto de partida</p>
+      <h2>Un solo árbol</h2>
+      <div class="prose">
+        <p>En Windows cada disco recibe una letra y cada letra tiene su propio árbol. En Linux hay <b>un único árbol</b> que nace en <code>/</code>, y los discos se cuelgan de una rama cualquiera mediante un <i>montaje</i>. Un USB no es «la unidad E:»: es un directorio como <code>/media/ana/USB</code> que resulta que está respaldado por otro dispositivo.</p>
+        <p>La organización de ese árbol no es capricho de cada distribución: la fija el <b>FHS</b> (Filesystem Hierarchy Standard). Por eso <code>/etc</code> es configuración en Debian, en Fedora y en Arch. Y el criterio del FHS no es «qué programa lo usa» sino dos preguntas distintas: <b>¿se puede modificar?</b> y <b>¿se puede compartir entre máquinas?</b></p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th></th><th>Estático (no cambia solo)</th><th>Variable (cambia mientras corre)</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Compartible</b><br><span style="color:var(--ink-3);font-size:var(--fs-sm)">sirve a varias máquinas</span></td>
+              <td><code>/usr</code> · <code>/opt</code></td>
+              <td><code>/var/mail</code> · <code>/var/spool</code> · <code>/home</code></td>
+            </tr>
+            <tr>
+              <td><b>No compartible</b><br><span style="color:var(--ink-3);font-size:var(--fs-sm)">propio de esta máquina</span></td>
+              <td><code>/etc</code> · <code>/boot</code></td>
+              <td><code>/var/log</code> · <code>/var/lock</code> · <code>/run</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Y una tercera categoría que el FHS original no contemplaba.</b> <code>/proc</code>, <code>/sys</code>, <code>/dev</code> y <code>/run</code> no están en ningún disco. Son interfaces del kernel disfrazadas de directorios: existen solo mientras el sistema está encendido. De ellas va casi toda esta página.
+      </div>
+    </section>
+
+    <!-- EXPLORADOR -->
+    <section id="explorador">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Explorador de la raíz</h2>
+      <div class="prose">
+        <p>Pulsa cualquier directorio para ver qué guarda, de qué naturaleza es y qué comando lo abre. El color indica si vive en el disco, si lo genera el kernel en memoria o si solo es un enlace a otro sitio.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="filters" role="group" aria-label="Filtrar por naturaleza">
+          <button class="filter" type="button" data-filter="all" aria-pressed="true">Todos</button>
+          <button class="filter" type="button" data-filter="disk" aria-pressed="false">En disco</button>
+          <button class="filter" type="button" data-filter="ram" aria-pressed="false">En memoria</button>
+          <button class="filter" type="button" data-filter="link" aria-pressed="false">Enlaces</button>
+        </div>
+
+        <div class="explorer">
+          <ul class="tree" id="tree" role="list"></ul>
+          <div class="detail" id="detail" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>La lista no es igual en todas las distribuciones.</b> Debian y Ubuntu modernas aplican el <i>usr-merge</i>: <code>/bin</code>, <code>/sbin</code> y <code>/lib</code> ya no son directorios reales, sino enlaces a <code>/usr/bin</code>, <code>/usr/sbin</code> y <code>/usr/lib</code>. Existen únicamente para que no se rompa el <code>#!/bin/sh</code> de miles de scripts.
+      </div>
+    </section>
+
+    <!-- VIRTUALES -->
+    <section id="virtuales">
+      <p class="sec-mark">Lo que no está en el disco</p>
+      <h2>Directorios que el kernel inventa</h2>
+      <div class="prose">
+        <p>Si desconectas el disco duro, <code>/proc</code> sigue teniendo contenido. Sus ficheros no ocupan sectores: cuando los lees, el kernel ejecuta código y te devuelve el resultado con formato de texto. Por eso <code>ls -l</code> les asigna tamaño <code>0</code> y por eso su fecha es siempre «ahora».</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="col-path">Montado en</th><th>Tipo</th><th>Qué expone</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/proc</code></td>
+              <td><code>proc</code></td>
+              <td>Un directorio por proceso, con su PID de nombre, más ficheros globales del kernel: <code>cpuinfo</code>, <code>meminfo</code>, <code>uptime</code>, <code>version</code>.</td>
+            </tr>
+            <tr>
+              <td><code>/sys</code></td>
+              <td><code>sysfs</code></td>
+              <td>El modelo de dispositivos del kernel: buses, drivers, y una perilla por cada parámetro ajustable del hardware.</td>
+            </tr>
+            <tr>
+              <td><code>/dev</code></td>
+              <td><code>devtmpfs</code></td>
+              <td>Un fichero por dispositivo. El kernel lo puebla al arrancar y <code>udev</code> lo mantiene al conectar y desconectar cosas.</td>
+            </tr>
+            <tr>
+              <td><code>/run</code></td>
+              <td><code>tmpfs</code></td>
+              <td>Estado volátil de los servicios en marcha: ficheros PID, <i>sockets</i>, bloqueos. Se vacía en cada arranque.</td>
+            </tr>
+            <tr>
+              <td><code>/dev/shm</code></td>
+              <td><code>tmpfs</code></td>
+              <td>Memoria compartida entre procesos, expuesta como ficheros.</td>
+            </tr>
+            <tr>
+              <td><code>/sys/fs/cgroup</code></td>
+              <td><code>cgroup2</code></td>
+              <td>Límites de CPU y memoria por grupo de procesos. Es la base de los contenedores.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <h3>Ficheros de dispositivo: <code>c</code> y <code>b</code></h3>
+        <p>En <code>/dev</code> el primer carácter de <code>ls -l</code> no es <code>-</code> ni <code>d</code>. Es <code>c</code> si el dispositivo se lee carácter a carácter (un teclado, un puerto serie, <code>/dev/null</code>) o <code>b</code> si se lee por bloques y admite acceso aleatorio (un disco, <code>/dev/sda</code>). Donde debería ir el tamaño aparecen dos números —<i>major</i> y <i>minor</i>— que le dicen al kernel qué driver atiende ese fichero y a cuál de sus dispositivos.</p>
+      </div>
+
+      <div class="note">
+        <b><code>/proc</code> y <code>/sys</code> no son lo mismo, aunque lo parezcan.</b> <code>/proc</code> nació para los procesos y acabó siendo un cajón de sastre de información del kernel. <code>/sys</code> se creó después, con estructura estricta, para el hardware. Regla práctica: si preguntas <i>qué está corriendo</i>, mira en <code>/proc</code>; si preguntas <i>qué hardware hay y cómo está configurado</i>, mira en <code>/sys</code>.
+      </div>
+    </section>
+
+    <!-- VISOR -->
+    <section id="visor">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Qué devuelve cada fichero</h2>
+      <div class="prose">
+        <p>Estos ficheros no se abren con un editor: se leen con <code>cat</code> y ya. Elige uno para ver una salida real y qué significa lo que estás mirando.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="viewer">
+          <div class="files" id="files" role="group" aria-label="Ficheros virtuales"></div>
+          <div class="term">
+            <div class="term-bar" id="term-bar">salida</div>
+            <pre id="term-out" aria-live="polite"></pre>
+            <p class="term-note" id="term-note"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>Las salidas son reales</b>, capturadas en una Debian con kernel 6.1 sobre un Intel i7. En tu máquina los números serán otros; el formato, el mismo.
+      </div>
+    </section>
+
+    <!-- PERMISOS -->
+    <section id="permisos">
+      <p class="sec-mark">Enlaza con la otra guía</p>
+      <h2>Permisos de los directorios especiales</h2>
+      <div class="prose">
+        <p>Estos directorios usan exactamente el mismo modelo de nueve bits que cualquier archivo tuyo —si necesitas repasarlo, está en la <a href="../sample_linux_permissions/">guía de permisos</a>—. Lo interesante es <b>qué decisión</b> codifica cada uno.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="col-path">Ruta</th><th class="tnum">Modo</th><th>Qué decisión expresa</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/tmp</code></td>
+              <td><code>drwxrwxrwt</code><br>1777</td>
+              <td>Todos escriben, pero el <i>sticky bit</i> impide que borres lo que no es tuyo. Sin él, cualquiera podría borrar los temporales de los demás.</td>
+            </tr>
+            <tr>
+              <td><code>/root</code></td>
+              <td><code>drwx------</code><br>700</td>
+              <td>El home de root. Ni siquiera se puede listar sin ser root: es el único home que por defecto se cierra a cal y canto.</td>
+            </tr>
+            <tr>
+              <td><code>/proc</code> y <code>/sys</code></td>
+              <td><code>dr-xr-xr-x</code><br>555</td>
+              <td>Nadie escribe <b>en el directorio</b>, ni root: no se crean ficheros ahí a mano. Los permisos de escritura viven en cada fichero de dentro.</td>
+            </tr>
+            <tr>
+              <td><code>/proc/&lt;pid&gt;</code></td>
+              <td><code>dr-xr-xr-x</code><br>usuario del proceso</td>
+              <td>El dueño es quien lanzó el proceso. Por eso ves tus procesos con detalle y de los ajenos solo lo que el kernel considera público.</td>
+            </tr>
+            <tr>
+              <td><code>/dev/null</code></td>
+              <td><code>crw-rw-rw-</code><br>666</td>
+              <td>Escribir en el vacío no es peligroso, así que se abre a todo el mundo. Lo mismo <code>/dev/zero</code> y <code>/dev/urandom</code>.</td>
+            </tr>
+            <tr>
+              <td><code>/dev/sda</code></td>
+              <td><code>brw-rw----</code><br>root:disk</td>
+              <td>El disco entero en crudo. Leerlo salta cualquier permiso de archivo, así que solo root y el grupo <code>disk</code>. Meter a un usuario en ese grupo equivale a darle la máquina.</td>
+            </tr>
+            <tr>
+              <td><code>/etc/shadow</code></td>
+              <td><code>-rw-r-----</code><br>root:shadow</td>
+              <td>Los hashes de contraseñas. <code>/etc/passwd</code> es legible por todos porque solo tiene nombres y UIDs; los secretos se movieron aquí precisamente por eso.</td>
+            </tr>
+            <tr>
+              <td><code>/run/user/1000</code></td>
+              <td><code>drwx------</code><br>700, tu UID</td>
+              <td>Tu sesión gráfica: sockets, claves de agente, temporales. Uno por usuario conectado, y privado por definición.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>En <code>/sys</code>, escribir es configurar.</b> Un fichero como <code>/sys/class/net/eth0/mtu</code> se ve <code>-rw-r--r--</code>: cualquiera lo lee, solo root lo cambia. Y cambiarlo no guarda nada en un disco, aplica el ajuste al hardware en ese instante. Es la forma más directa que hay de tocar el kernel: <code>echo 1500 &gt; .../mtu</code>.
+      </div>
+    </section>
+
+    <!-- REINICIO -->
+    <section id="reinicio">
+      <p class="sec-mark">La prueba definitiva</p>
+      <h2>Qué sobrevive a un reinicio</h2>
+      <div class="prose">
+        <p>La mejor forma de entender la diferencia entre estos directorios es preguntarse qué queda de ellos después de apagar. Es también la respuesta a por qué guardar algo en <code>/tmp</code> o <code>/run</code> es una mala idea si te importa.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="col-path">Directorio</th><th>Tras reiniciar</th><th>Por qué</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/etc</code> <code>/home</code> <code>/var</code> <code>/usr</code> <code>/opt</code> <code>/srv</code> <code>/boot</code></td><td><b style="color:var(--ok)">Intacto</b></td><td>Está escrito en el disco.</td></tr>
+            <tr><td><code>/proc</code> <code>/sys</code> <code>/dev</code></td><td><b style="color:var(--warn)">Se regenera de cero</b></td><td>Lo reconstruye el kernel al arrancar, según el hardware y los procesos que haya <i>en ese momento</i>.</td></tr>
+            <tr><td><code>/run</code> <code>/dev/shm</code></td><td><b style="color:var(--warn)">Vacío</b></td><td>Es un <code>tmpfs</code>: vive en RAM, no tiene respaldo en disco.</td></tr>
+            <tr><td><code>/tmp</code></td><td><b style="color:var(--warn)">Depende</b></td><td>En muchas distribuciones es <code>tmpfs</code> y se pierde. En otras está en disco pero <code>systemd-tmpfiles</code> limpia lo antiguo. Nunca cuentes con que siga ahí.</td></tr>
+            <tr><td><code>/var/tmp</code></td><td><b style="color:var(--ok)">Sobrevive</b></td><td>Es el temporal <i>que sí</i> debe aguantar reinicios. Esa es toda la diferencia con <code>/tmp</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz">
+      <p class="sec-mark">Compruébalo</p>
+      <h2>¿Dónde vive esto?</h2>
+      <div class="prose">
+        <p>Ocho preguntas del tipo que cae en el examen. Elige y te explico por qué.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="quiz" id="quiz"></div>
+      </div>
+    </section>
+
+    <!-- CHULETA -->
+    <section id="chuleta">
+      <p class="sec-mark">Para tener a mano</p>
+      <h2>Chuleta</h2>
+
+      <div class="wide panel">
+        <div class="cheat">
+          <div class="cheat-row"><b>/etc</b><span>Configuración del sistema, siempre en texto plano. Nunca binarios ni programas.</span></div>
+          <div class="cheat-row"><b>/home · /root</b><span>Datos de los usuarios y del administrador.</span></div>
+          <div class="cheat-row"><b>/usr</b><span>Programas y datos instalados, de solo lectura en la práctica.</span></div>
+          <div class="cheat-row"><b>/var</b><span>Lo que crece solo: registros, colas, cachés, bases de datos.</span></div>
+          <div class="cheat-row"><b>/proc</b><span>Procesos e información del kernel. Un directorio por PID.</span></div>
+          <div class="cheat-row"><b>/sys</b><span>Hardware: dispositivos, drivers y sus parámetros ajustables.</span></div>
+          <div class="cheat-row"><b>/dev</b><span>Un fichero por dispositivo. <code>c</code> = carácter, <code>b</code> = bloque.</span></div>
+          <div class="cheat-row"><b>/run</b><span>Estado de los servicios en marcha. Se vacía al reiniciar.</span></div>
+          <div class="cheat-row"><b>/tmp · /var/tmp</b><span>Temporal que se pierde · temporal que sobrevive al reinicio.</span></div>
+          <div class="cheat-row"><b>/boot</b><span>Kernel, initrd y el gestor de arranque.</span></div>
+          <div class="cheat-row"><b>/mnt · /media</b><span>Montaje manual y puntual · montaje automático de extraíbles.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>df -h</b><span>Qué hay montado y cuánto espacio queda.</span></div>
+          <div class="cheat-row"><b>mount | column -t</b><span>Todos los montajes con su tipo de sistema de archivos.</span></div>
+          <div class="cheat-row"><b>du -sh *</b><span>Cuánto ocupa cada subdirectorio.</span></div>
+          <div class="cheat-row"><b>lsblk</b><span>Discos y particiones, y dónde está montada cada una.</span></div>
+          <div class="cheat-row"><b>man hier</b><span>La jerarquía completa explicada, ya instalada en tu máquina.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="shell">Guía visual de la jerarquía de archivos · FHS · /proc · /sys · /dev</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ==========================================================
+     DATOS
+     ========================================================== */
+  var DIRS = [
+    { p:"/bin", k:"link", t:"enlace a /usr/bin",
+      d:"Los comandos esenciales que tiene que haber aunque solo esté montada la raíz: ls, cp, mv, cat, bash. En Debian y Ubuntu modernas ya no es un directorio real.",
+      perm:"lrwxrwxrwx root root", live:"Enlace: apunta a usr/bin",
+      cmds:["ls -l /bin", "ls /bin | head"] },
+
+    { p:"/boot", k:"disk", t:"arranque",
+      d:"El kernel (vmlinuz), la imagen initrd y la configuración de GRUB. Suele ser una partición propia; si se llena, el sistema no arranca tras actualizar.",
+      perm:"drwxr-xr-x root root", live:"Sobrevive al reinicio",
+      cmds:["ls /boot", "uname -r"] },
+
+    { p:"/dev", k:"ram", t:"devtmpfs · dispositivos",
+      d:"Un fichero por cada dispositivo del sistema. El kernel lo crea al arrancar y udev lo actualiza cuando conectas o desconectas hardware.",
+      perm:"drwxr-xr-x root root", live:"Se regenera en cada arranque",
+      cmds:["ls -l /dev/null /dev/sda", "echo hola > /dev/null"] },
+
+    { p:"/etc", k:"disk", t:"configuración",
+      d:"Configuración de todo el sistema, siempre en texto plano y siempre local a esta máquina. Aquí viven passwd, fstab, hostname y los ficheros de cada servicio.",
+      perm:"drwxr-xr-x root root", live:"Sobrevive al reinicio",
+      cmds:["cat /etc/hostname", "ls /etc | head"] },
+
+    { p:"/home", k:"disk", t:"usuarios",
+      d:"Un directorio por usuario, normalmente 700 o 755. Es lo que hay que respaldar: todo lo demás se reinstala.",
+      perm:"drwxr-xr-x root root", live:"Sobrevive al reinicio",
+      cmds:["ls /home", "echo $HOME"] },
+
+    { p:"/lib", k:"link", t:"enlace a /usr/lib",
+      d:"Bibliotecas compartidas que necesitan los binarios de /bin y /sbin, y los módulos del kernel en /lib/modules.",
+      perm:"lrwxrwxrwx root root", live:"Enlace: apunta a usr/lib",
+      cmds:["ls /lib/modules", "ldd /bin/ls"] },
+
+    { p:"/media", k:"disk", t:"montaje automático",
+      d:"Donde el escritorio monta solo los medios extraíbles: USB, tarjetas, DVD. Suele quedar /media/tu-usuario/ETIQUETA.",
+      perm:"drwxr-xr-x root root", live:"El directorio persiste; su contenido no",
+      cmds:["ls /media", "lsblk"] },
+
+    { p:"/mnt", k:"disk", t:"montaje manual",
+      d:"Punto de montaje temporal para cuando eres tú quien monta algo a mano. Está vacío en un sistema recién instalado, y así debería quedarse.",
+      perm:"drwxr-xr-x root root", live:"El directorio persiste; su contenido no",
+      cmds:["sudo mount /dev/sdb1 /mnt", "mount | grep /mnt"] },
+
+    { p:"/opt", k:"disk", t:"software de terceros",
+      d:"Programas que se instalan enteros en su propia carpeta, fuera del gestor de paquetes: /opt/google/chrome, /opt/nombre-del-producto.",
+      perm:"drwxr-xr-x root root", live:"Sobrevive al reinicio",
+      cmds:["ls /opt", "du -sh /opt/*"] },
+
+    { p:"/proc", k:"ram", t:"procfs · procesos y kernel",
+      d:"Un directorio por proceso, con el PID de nombre, más ficheros globales del kernel. No ocupa disco: al leerlo, el kernel genera la respuesta al vuelo.",
+      perm:"dr-xr-xr-x root root", live:"Se regenera en cada arranque",
+      cmds:["cat /proc/uptime", "ls /proc/self", "cat /proc/meminfo | head -3"] },
+
+    { p:"/root", k:"disk", t:"home de root",
+      d:"El directorio personal del administrador. Está fuera de /home a propósito: si /home es otra partición y no monta, root sigue teniendo su casa.",
+      perm:"drwx------ root root", live:"Sobrevive al reinicio",
+      cmds:["sudo ls -a /root", "ls -ld /root"] },
+
+    { p:"/run", k:"ram", t:"tmpfs · estado en ejecución",
+      d:"Ficheros PID, sockets y bloqueos de los servicios que están corriendo ahora mismo. Vive en RAM. Sustituyó al viejo /var/run, que hoy es un enlace aquí.",
+      perm:"drwxr-xr-x root root", live:"Vacío en cada arranque",
+      cmds:["ls /run", "ls -ld /run/user/$(id -u)"] },
+
+    { p:"/sbin", k:"link", t:"enlace a /usr/sbin",
+      d:"Binarios de administración: fdisk, ip, mount, systemctl. Históricamente separados de /bin porque solo los usa root.",
+      perm:"lrwxrwxrwx root root", live:"Enlace: apunta a usr/sbin",
+      cmds:["ls -l /sbin", "ls /sbin | head"] },
+
+    { p:"/srv", k:"disk", t:"datos servidos",
+      d:"Datos que esta máquina sirve a otras: sitios web, FTP, repositorios. Muchas distribuciones lo dejan vacío y usan /var/www.",
+      perm:"drwxr-xr-x root root", live:"Sobrevive al reinicio",
+      cmds:["ls /srv"] },
+
+    { p:"/sys", k:"ram", t:"sysfs · hardware",
+      d:"El modelo de dispositivos del kernel, ordenado por bus, clase y driver. Además de mirar, aquí se configura: escribir en un fichero aplica el cambio al instante.",
+      perm:"dr-xr-xr-x root root", live:"Se regenera en cada arranque",
+      cmds:["ls /sys/class", "cat /sys/class/net/lo/operstate"] },
+
+    { p:"/tmp", k:"disk", t:"temporal volátil",
+      d:"Temporales de cualquier usuario. Modo 1777: todos escriben, pero el sticky bit impide borrar lo ajeno. En muchas distribuciones es tmpfs y vive en RAM.",
+      perm:"drwxrwxrwt root root", live:"Se pierde (o se limpia) al reiniciar",
+      cmds:["ls -ld /tmp", "mktemp"] },
+
+    { p:"/usr", k:"disk", t:"jerarquía secundaria",
+      d:"Casi todo el sistema instalado: /usr/bin, /usr/lib, /usr/share (documentación, iconos, traducciones) y /usr/local para lo que compilas tú. De solo lectura en la práctica.",
+      perm:"drwxr-xr-x root root", live:"Sobrevive al reinicio",
+      cmds:["ls /usr", "du -sh /usr"] },
+
+    { p:"/var", k:"disk", t:"datos variables",
+      d:"Lo que crece mientras la máquina funciona: /var/log (registros), /var/spool (colas de impresión y correo), /var/cache, /var/lib (estado de los servicios).",
+      perm:"drwxr-xr-x root root", live:"Sobrevive al reinicio",
+      cmds:["ls /var", "sudo du -sh /var/log"] }
+  ];
+
+  var FILES = [
+    { f:"/proc/uptime", label:"/proc/uptime",
+      out:"5856.71 39865.66",
+      note:"Dos números en segundos: tiempo encendido y tiempo total que las CPU han pasado ociosas. El segundo supera al primero porque suma todos los núcleos." },
+
+    { f:"/proc/loadavg", label:"/proc/loadavg",
+      out:"0.37 0.69 0.96 1/2169 697257",
+      note:"Carga media a 1, 5 y 15 minutos; después, procesos ejecutándose sobre el total, y el último PID asignado. Es la fuente de la que bebe uptime." },
+
+    { f:"/proc/meminfo", label:"/proc/meminfo",
+      out:"$ head -3 /proc/meminfo\nMemTotal:       32803372 kB\nMemFree:        16104568 kB\nMemAvailable:   22274736 kB",
+      note:"Memoria en kilobytes. Fíjate en MemAvailable, no en MemFree: la memoria «libre» es baja a propósito porque el kernel la usa de caché y la suelta cuando hace falta." },
+
+    { f:"/proc/cpuinfo", label:"/proc/cpuinfo",
+      out:"$ grep -m1 'model name' /proc/cpuinfo\nmodel name\t: Intel(R) Core(TM) i7-6700HQ CPU @ 2.60GHz",
+      note:"Un bloque por núcleo lógico. Aquí se ha filtrado una sola línea; el fichero completo trae frecuencia, caché y las banderas de instrucciones soportadas." },
+
+    { f:"/proc/version", label:"/proc/version",
+      out:"Linux version 6.1.0-42-amd64 (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14+deb12u1) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.159-1 (2025-12-30)",
+      note:"Versión del kernel y con qué compilador se construyó. Es lo que resume uname -a." },
+
+    { f:"/proc/1/cmdline", label:"/proc/1/cmdline",
+      out:"/sbin/init",
+      note:"La orden exacta con la que arrancó el proceso 1, el padre de todos los demás. Cada proceso tiene su propio directorio /proc/<PID> con esta misma estructura." },
+
+    { f:"/proc/self/cwd", label:"/proc/self/cwd",
+      out:"$ ls -l /proc/self/cwd\nlrwxrwxrwx 1 jorge jorge 0 ago 17 21:12 /proc/self/cwd -> /home/jorge/Downloads/cert",
+      note:"self es un atajo al proceso que está leyendo. cwd es un enlace a su directorio actual, y exe apunta al binario que se está ejecutando." },
+
+    { f:"/sys/class/net/*/operstate", label:"/sys/class/net/…/operstate",
+      out:"$ cat /sys/class/net/enp2s0/operstate\nup\n$ cat /sys/class/net/lo/operstate\nunknown",
+      note:"Estado de cada interfaz de red, una palabra por fichero. Así es todo /sys: un valor por fichero, en lugar de un formato que haya que parsear." },
+
+    { f:"/sys/class/thermal/thermal_zone0/temp", label:"/sys/class/…/temp",
+      out:"57000",
+      note:"Temperatura en milésimas de grado: 57000 son 57 °C. Los sensores del portátil salen de aquí, no de ningún programa mágico." },
+
+    { f:"/proc/mounts", label:"/proc/mounts",
+      out:"sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0\nproc /proc proc rw,nosuid,nodev,noexec,relatime 0 0\nudev /dev devtmpfs rw,nosuid,relatime,size=16356496k,mode=755 0 0\ntmpfs /run tmpfs rw,nosuid,nodev,noexec,relatime,size=3280340k,mode=755 0 0",
+      note:"Todo lo que está montado ahora mismo. Es lo que lee el comando mount cuando lo ejecutas sin argumentos." }
+  ];
+
+  var QUESTIONS = [
+    { q:"El fichero de configuración de un servidor web recién instalado",
+      opts:["/etc", "/var", "/usr", "/opt"], ok:0,
+      exp:"Toda la configuración del sistema va a /etc, en texto plano. /var guardaría sus registros y /usr sus binarios." },
+
+    { q:"Los registros (logs) que va generando ese mismo servidor",
+      opts:["/var/log", "/etc/log", "/proc", "/tmp"], ok:0,
+      exp:"/var es «datos variables»: lo que crece mientras la máquina funciona. Los registros son el ejemplo de manual." },
+
+    { q:"La temperatura actual de la CPU",
+      opts:["/sys", "/proc", "/dev", "/etc"], ok:0,
+      exp:"Es un dato del hardware, así que /sys: /sys/class/thermal/thermal_zone0/temp. Regla práctica: hardware en /sys, procesos en /proc." },
+
+    { q:"La línea de comandos con la que arrancó el proceso 4321",
+      opts:["/proc/4321/cmdline", "/sys/proc/4321", "/var/run/4321", "/dev/proc/4321"], ok:0,
+      exp:"Cada proceso tiene un directorio en /proc con su PID de nombre. Dentro, cmdline, exe, cwd, status y mucho más." },
+
+    { q:"El fichero que representa al primer disco SATA",
+      opts:["/dev/sda", "/sys/sda", "/proc/sda", "/mnt/sda"], ok:0,
+      exp:"En /dev, y es un dispositivo de bloque: su ls -l empieza por b. /sys describe ese disco, pero el fichero con el que se trabaja está en /dev." },
+
+    { q:"Un temporal que necesitas que siga existiendo tras reiniciar",
+      opts:["/var/tmp", "/tmp", "/run", "/dev/shm"], ok:0,
+      exp:"Esa es exactamente la diferencia entre los dos: /tmp puede desaparecer en cada arranque, /var/tmp está pensado para sobrevivir." },
+
+    { q:"El kernel que carga la máquina al encenderse",
+      opts:["/boot", "/proc", "/lib/kernel", "/usr/kernel"], ok:0,
+      exp:"/boot guarda vmlinuz, el initrd y la configuración de GRUB. /proc/version solo informa de qué kernel está corriendo; no lo contiene." },
+
+    { q:"El socket de un servicio que está corriendo en este momento",
+      opts:["/run", "/etc", "/var/lib", "/sys"], ok:0,
+      exp:"/run es estado volátil de los servicios en marcha: PIDs, sockets y bloqueos. Vive en RAM y se vacía en cada arranque." }
+  ];
+
+  /* ==========================================================
+     UTILIDADES
+     ========================================================== */
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  /* baraja sin tocar el original; devuelve pares [texto, esCorrecta] */
+  function shuffled(opts, ok){
+    var a = opts.map(function(t,i){ return [t, i === ok]; });
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  /* ==========================================================
+     EXPLORADOR
+     ========================================================== */
+  var tree = document.getElementById("tree");
+  var detail = document.getElementById("detail");
+  var current = 0;
+
+  var KIND = { disk:"en disco", ram:"en memoria", link:"enlace" };
+
+  DIRS.forEach(function(d, i){
+    var li = document.createElement("li");
+    li.dataset.kind = d.k;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.innerHTML = '<span class="dot" data-kind="' + d.k + '"></span>' +
+                  esc(d.p) + '<span class="hint">' + KIND[d.k] + "</span>";
+    b.addEventListener("click", function(){ select(i); });
+    li.appendChild(b);
+    tree.appendChild(li);
+  });
+
+  function select(i){
+    current = i;
+    var d = DIRS[i];
+    Array.prototype.forEach.call(tree.querySelectorAll("button"), function(b, n){
+      b.setAttribute("aria-pressed", n === i ? "true" : "false");
+    });
+    detail.dataset.kind = d.k;
+    detail.innerHTML =
+      "<h3>" + esc(d.p) + "</h3>" +
+      '<p class="sub">' + esc(d.t) + "</p>" +
+      '<p class="desc">' + esc(d.d) + "</p>" +
+      "<dl>" +
+        "<dt>Naturaleza</dt><dd>" + KIND[d.k] + "</dd>" +
+        "<dt>Permisos</dt><dd><code>" + esc(d.perm) + "</code></dd>" +
+        "<dt>Reinicio</dt><dd>" + esc(d.live) + "</dd>" +
+      "</dl>" +
+      '<div class="cmds">' +
+        d.cmds.map(function(c){
+          return '<div class="cmd"><span class="prompt">$</span> ' + esc(c) + "</div>";
+        }).join("") +
+      "</div>";
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".filter"), function(btn){
+    btn.addEventListener("click", function(){
+      var f = btn.dataset.filter;
+      Array.prototype.forEach.call(document.querySelectorAll(".filter"), function(o){
+        o.setAttribute("aria-pressed", o === btn ? "true" : "false");
+      });
+      var firstVisible = -1;
+      Array.prototype.forEach.call(tree.children, function(li, i){
+        var show = (f === "all" || li.dataset.kind === f);
+        li.classList.toggle("is-hidden", !show);
+        if (show && firstVisible < 0) firstVisible = i;
+      });
+      /* si el seleccionado queda oculto, saltamos al primero visible */
+      if (tree.children[current].classList.contains("is-hidden") && firstVisible >= 0){
+        select(firstVisible);
+      }
+    });
+  });
+
+  select(0);
+
+  /* ==========================================================
+     VISOR
+     ========================================================== */
+  var files = document.getElementById("files");
+  var termBar = document.getElementById("term-bar");
+  var termOut = document.getElementById("term-out");
+  var termNote = document.getElementById("term-note");
+
+  FILES.forEach(function(f, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "file";
+    b.textContent = f.label;
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", function(){ showFile(i); });
+    files.appendChild(b);
+  });
+
+  function showFile(i){
+    var f = FILES[i];
+    Array.prototype.forEach.call(files.children, function(b, n){
+      b.setAttribute("aria-pressed", n === i ? "true" : "false");
+    });
+    termBar.textContent = f.f;
+    /* si la salida ya trae sus propios prompts, no añadimos otro */
+    var body = f.out.indexOf("$ ") === 0
+      ? esc(f.out).replace(/^\$ /gm, '<span class="prompt">$ </span>')
+      : '<span class="prompt">$ cat ' + esc(f.f) + "</span>\n" + esc(f.out);
+    termOut.innerHTML = body;
+    termNote.textContent = f.note;
+  }
+  showFile(0);
+
+  /* ==========================================================
+     QUIZ
+     ========================================================== */
+  var quiz = document.getElementById("quiz");
+
+  QUESTIONS.forEach(function(item){
+    var wrap = document.createElement("div");
+    wrap.className = "q";
+
+    var p = document.createElement("p");
+    p.className = "q-text";
+    p.textContent = item.q;
+    wrap.appendChild(p);
+
+    var opts = document.createElement("div");
+    opts.className = "q-opts";
+    var exp = document.createElement("p");
+    exp.className = "q-exp";
+    exp.hidden = true;
+    exp.textContent = item.exp;
+
+    shuffled(item.opts, item.ok).forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt";
+      b.textContent = pair[0];
+      b.addEventListener("click", function(){
+        /* al responder se bloquea la pregunta y se marca la correcta */
+        Array.prototype.forEach.call(opts.children, function(o){ o.disabled = true; });
+        if (pair[1]) b.classList.add("good");
+        else{
+          b.classList.add("bad");
+          Array.prototype.forEach.call(opts.children, function(o, n){
+            if (shuffledIsOk(opts, n)) o.classList.add("good");
+          });
+        }
+        exp.hidden = false;
+      });
+      b.dataset.ok = pair[1] ? "1" : "0";
+      opts.appendChild(b);
+    });
+
+    function shuffledIsOk(container, n){ return container.children[n].dataset.ok === "1"; }
+
+    wrap.appendChild(opts);
+    wrap.appendChild(exp);
+    quiz.appendChild(wrap);
+  });
+
+  /* ==========================================================
+     ÍNDICE LATERAL
+     ========================================================== */
+  var links = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".rail a"), function(a){
+    links[a.getAttribute("href").slice(1)] = a;
+  });
+  if ("IntersectionObserver" in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var a = links[e.target.id];
+        if (a) a.classList.toggle("is-active", e.isIntersecting);
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("main section"), function(s){ obs.observe(s); });
+  }
+})();
+</script>
+
+</body>
+</html>

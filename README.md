@@ -16,6 +16,7 @@ conexión.
 | `index.html` | Portada: navega a las dos aplicaciones |
 | `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
+| `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
 | `docs/specs/registro-intentos-supabase.spec.md` | Especificación SDD (en estado *Draft*, **no implementada**) |
 
 Cada aplicación vive en su propia carpeta con un `index.html`, de modo que su URL
@@ -104,7 +105,26 @@ La calculadora no guarda estado: es puramente cliente y sin almacenamiento.
 
 ---
 
-## 3. Especificación pendiente — `docs/specs/`
+## 3. Guía de directorios — `linux_special_directories/index.html`
+
+Página sobre la jerarquía del sistema de archivos (FHS) y, sobre todo, sobre los
+directorios que no viven en ningún disco.
+
+- **Explorador de la raíz**: los 18 directorios de `/`, filtrables por naturaleza
+  (en disco / generado en memoria / enlace simbólico). Cada uno muestra qué
+  guarda, sus permisos reales, si sobrevive a un reinicio y los comandos que lo abren.
+- **Visor de ficheros virtuales**: `/proc/uptime`, `/proc/meminfo`, `/proc/cpuinfo`,
+  `/proc/1/cmdline`, `/proc/mounts`, `/sys/class/net/…/operstate` y otros, con la
+  salida real capturada en una Debian con kernel 6.1 y una nota de qué significa.
+- **Permisos de los directorios especiales**: qué decisión codifica el modo de
+  `/tmp` (1777), `/root` (700), `/proc` (555), `/dev/sda` (`root:disk`) o
+  `/etc/shadow` (`root:shadow`). Enlaza con la guía de permisos.
+- **Qué sobrevive a un reinicio** y por qué `/tmp` y `/var/tmp` no son lo mismo.
+- **Ocho preguntas** de autoevaluación con opciones barajadas y explicación.
+
+---
+
+## 4. Especificación pendiente — `docs/specs/`
 
 `registro-intentos-supabase.spec.md` es un contrato SDD para persistir en Supabase
 cada intento finalizado (nombre, IP, número de intento, nota y modo).
@@ -141,6 +161,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 | Portada | <https://jsalio.github.io/Lixnux-exam-test/> |
 | Examen | <https://jsalio.github.io/Lixnux-exam-test/lpi_practice_exam/> |
 | Permisos | <https://jsalio.github.io/Lixnux-exam-test/sample_linux_permissions/> |
+| Directorios | <https://jsalio.github.io/Lixnux-exam-test/linux_special_directories/> |
 
 Al ser un *project site*, el sitio cuelga de `/Lixnux-exam-test/` y no de la raíz
 del dominio. Por eso **todos los enlaces internos son relativos**: una ruta que
