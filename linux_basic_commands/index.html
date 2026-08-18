@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comandos básicos de Linux</title>
+<meta name="description" content="Los comandos de Linux que se usan a diario y cómo se combinan de verdad: anatomía de una orden, tuberías, redirección y procesos.">
+<style>
+/* ============================================================
+   TOKENS — compartidos con las otras guías
+   ============================================================ */
+:root{
+  color-scheme: light;
+
+  --bg:        #eef1f4;
+  --surface:   #ffffff;
+  --surface-2: #e6eaef;
+  --line:      #ccd4dc;
+  --line-2:    #9aa6b3;
+
+  --ink:   #131920;
+  --ink-2: #3f4a57;
+  --ink-3: #6d7884;
+
+  /* piezas de una orden */
+  --cmd:   #a8481a;
+  --opt:   #10695a;
+  --arg:   #464fa2;
+  --flow:  #7a3ea1;
+
+  --warn: #8a5300;
+  --ok:   #10695a;
+
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Cantarell, sans-serif;
+
+  --fs-xs: .75rem;
+  --fs-sm: .8125rem;
+  --fs-ui: .9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.1875rem;
+  --fs-2xl: 2.125rem;
+  --fs-3xl: clamp(2.4rem, 6.5vw, 4rem);
+
+  --r: 3px;
+  --maxw: 68ch;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:        #0d1218;
+    --surface:   #161d26;
+    --surface-2: #1e2733;
+    --line:      #2c3644;
+    --line-2:    #4a5768;
+
+    --ink:   #dde5ed;
+    --ink-2: #a7b3c0;
+    --ink-3: #79868f;
+
+    --cmd:  #e18c58;
+    --opt:  #4cc2a8;
+    --arg:  #949ceb;
+    --flow: #c69bf0;
+
+    --warn: #dda63f;
+    --ok:   #4cc2a8;
+  }
+}
+
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #0d1218;
+  --surface:   #161d26;
+  --surface-2: #1e2733;
+  --line:      #2c3644;
+  --line-2:    #4a5768;
+
+  --ink:   #dde5ed;
+  --ink-2: #a7b3c0;
+  --ink-3: #79868f;
+
+  --cmd:  #e18c58;
+  --opt:  #4cc2a8;
+  --arg:  #949ceb;
+  --flow: #c69bf0;
+
+  --warn: #dda63f;
+  --ok:   #4cc2a8;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{ box-sizing: border-box; }
+body{
+  margin:0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: var(--fs-base); line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+::selection{ background: var(--ink); color: var(--bg); }
+a{ color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+code, kbd, samp{ font-family: var(--mono); font-size: .92em; }
+h1,h2,h3{ text-wrap: balance; }
+
+.shell{ max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+.body-grid{ display: grid; grid-template-columns: 1fr; gap: 3rem; padding-bottom: 5rem; }
+@media (min-width: 1000px){ .body-grid{ grid-template-columns: 13rem minmax(0,1fr); gap: 4rem; } }
+main{ min-width: 0; }
+.prose{ max-width: var(--maxw); }
+section{ padding-block: clamp(2.5rem, 6vw, 4rem); border-top: 1px solid var(--line); }
+section:first-of-type{ border-top: 0; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{ border-bottom: 1px solid var(--line); padding-block: clamp(3rem, 9vw, 6rem) clamp(2.5rem, 7vw, 4rem); }
+.eyebrow{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 1.75rem;
+}
+.eyebrow a{ color: inherit; text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.eyebrow a:hover{ color: var(--ink); border-color: var(--ink); }
+h1{
+  font-family: var(--mono); font-size: var(--fs-3xl); font-weight: 600;
+  letter-spacing: -.045em; line-height: .98; margin: 0;
+}
+.hero-lede{ max-width: 48ch; margin: 1.5rem 0 0; font-size: var(--fs-lg); color: var(--ink-2); }
+
+.hero-line{
+  margin-top: clamp(2rem, 5vw, 3rem);
+  font-family: var(--mono); font-size: clamp(1rem, 3.6vw, 1.9rem);
+  font-weight: 600; letter-spacing: .01em; line-height: 1.4;
+  display: flex; flex-wrap: wrap; gap: .1em .5em;
+}
+.hero-line span{ animation: drop .5s cubic-bezier(.2,.8,.3,1) backwards; }
+.h-cmd{ color: var(--cmd); }
+.h-opt{ color: var(--opt); }
+.h-arg{ color: var(--arg); }
+.h-flow{ color: var(--flow); }
+@keyframes drop{ from{ opacity:0; transform: translateY(-.28em); } to{ opacity:1; transform: none; } }
+
+.hero-legend{
+  display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 1.25rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+.hero-legend b{ font-weight: 600; }
+.hero-legend .k-cmd{ color: var(--cmd); }
+.hero-legend .k-opt{ color: var(--opt); }
+.hero-legend .k-arg{ color: var(--arg); }
+.hero-legend .k-flow{ color: var(--flow); }
+
+/* ============================================================
+   ÍNDICE LATERAL
+   ============================================================ */
+.rail{ display: none; }
+@media (min-width: 1000px){
+  .rail{
+    display: block; position: sticky; top: 0; align-self: start;
+    padding-top: clamp(2.5rem, 6vw, 4rem); max-height: 100vh; overflow-y: auto;
+  }
+}
+.rail ol{
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem;
+  font-family: var(--mono); font-size: var(--fs-sm);
+}
+.rail a{ color: var(--ink-3); text-decoration: none; display: flex; gap: .6rem; transition: color .15s; }
+.rail a:hover{ color: var(--ink); }
+.rail a .glyph{ color: var(--line-2); width: 1.1em; flex: none; }
+.rail a.is-active{ color: var(--ink); }
+.rail a.is-active .glyph{ color: var(--cmd); }
+
+/* ============================================================
+   SECCIONES
+   ============================================================ */
+.sec-mark{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 .9rem;
+}
+h2{
+  font-family: var(--mono); font-size: var(--fs-2xl); font-weight: 600;
+  letter-spacing: -.035em; line-height: 1.1; margin: 0 0 1.1rem;
+}
+p{ margin: 0 0 1.1rem; }
+.note{
+  font-size: var(--fs-ui); font-family: var(--sans); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem;
+  margin: 1.5rem 0; max-width: var(--maxw);
+}
+.note b{ color: var(--ink); }
+.note.warn{ border-color: var(--warn); }
+
+.wide{ margin: 1.75rem 0; }
+.panel{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(1.25rem, 3vw, 1.75rem);
+}
+.scroll-x{ overflow-x: auto; }
+
+table{
+  border-collapse: collapse; width: 100%; min-width: 32rem;
+  font-family: var(--sans); font-size: var(--fs-ui);
+}
+th, td{ text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2); font-weight: 600;
+}
+tbody tr:last-child td{ border-bottom: 0; }
+td code{ color: var(--ink); white-space: nowrap; }
+.col-cmd{ width: 13rem; }
+
+/* ============================================================
+   EXPLICADOR DE ÓRDENES
+   ============================================================ */
+.picker{ display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.25rem; }
+.pick{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+  border-radius: var(--r); padding: .35rem .7rem; cursor: pointer; transition: all .12s;
+}
+.pick:hover{ border-color: var(--ink-3); color: var(--ink); }
+.pick[aria-pressed="true"]{ border-color: var(--ink); color: var(--ink); font-weight: 600; background: var(--surface); }
+
+.line{
+  font-family: var(--mono); font-size: clamp(1rem, 3vw, 1.35rem); font-weight: 600;
+  display: flex; flex-wrap: wrap; gap: .1em .55em; line-height: 1.6; margin-bottom: 1.1rem;
+}
+.tok{ border-bottom: 2px solid currentColor; padding-bottom: .1em; }
+.tok[data-k="cmd"]{ color: var(--cmd); }
+.tok[data-k="opt"]{ color: var(--opt); }
+.tok[data-k="arg"]{ color: var(--arg); }
+.tok[data-k="flow"]{ color: var(--flow); }
+.tok[data-k="plain"]{ color: var(--ink-3); border-color: transparent; }
+
+.legend-parts{ display: grid; gap: .4rem .9rem; grid-template-columns: auto minmax(0,1fr); margin: 0 0 1.1rem; font-size: var(--fs-sm); }
+.legend-parts dt{ font-family: var(--mono); font-weight: 600; }
+.legend-parts dt[data-k="cmd"]{ color: var(--cmd); }
+.legend-parts dt[data-k="opt"]{ color: var(--opt); }
+.legend-parts dt[data-k="arg"]{ color: var(--arg); }
+.legend-parts dt[data-k="flow"]{ color: var(--flow); }
+.legend-parts dd{ margin: 0; font-family: var(--sans); color: var(--ink-2); }
+.what{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: 0;
+}
+
+/* ============================================================
+   CHULETA
+   ============================================================ */
+.cheat{ display: grid; gap: .1rem; font-family: var(--mono); font-size: var(--fs-ui); }
+.cheat-row{
+  display: grid; grid-template-columns: minmax(0, 14rem) minmax(0,1fr);
+  gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--line); align-items: baseline;
+}
+.cheat-row:last-child{ border-bottom: 0; }
+.cheat-row span{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); }
+.cheat-row b{ font-weight: 600; }
+
+footer{
+  border-top: 1px solid var(--line); padding-block: 2.5rem 4rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="shell">
+    <p class="eyebrow"><a href="../">← Índice</a> · Guía breve · línea de comandos</p>
+    <h1>Comandos básicos</h1>
+    <p class="hero-lede">Treinta órdenes cubren el 95 % del trabajo diario. Lo que de verdad cuesta no es memorizarlas, sino ver cómo se encadenan.</p>
+
+    <div class="hero-line" aria-label="Ejemplo de orden encadenada">
+      <span class="h-cmd" style="animation-delay:.00s">ps</span><span class="h-opt" style="animation-delay:.05s">aux</span><span class="h-flow" style="animation-delay:.10s">|</span><span class="h-cmd" style="animation-delay:.15s">grep</span><span class="h-arg" style="animation-delay:.20s">nginx</span><span class="h-flow" style="animation-delay:.25s">&gt;</span><span class="h-arg" style="animation-delay:.30s">activos.txt</span>
+    </div>
+
+    <p class="hero-legend">
+      <b class="k-cmd">■ comando</b>
+      <b class="k-opt">■ opciones</b>
+      <b class="k-arg">■ argumentos</b>
+      <b class="k-flow">■ tubería y redirección</b>
+    </p>
+  </div>
+</header>
+
+<div class="shell body-grid">
+
+  <nav class="rail" aria-label="Índice">
+    <ol>
+      <li><a href="#anatomia"><span class="glyph">$</span> Anatomía</a></li>
+      <li><a href="#moverse"><span class="glyph">/</span> Moverse y mirar</a></li>
+      <li><a href="#crear"><span class="glyph">+</span> Crear y borrar</a></li>
+      <li><a href="#buscar"><span class="glyph">?</span> Buscar</a></li>
+      <li><a href="#tuberias"><span class="glyph">|</span> Tuberías</a></li>
+      <li><a href="#procesos"><span class="glyph">%</span> Procesos</a></li>
+      <li><a href="#ayuda"><span class="glyph">m</span> Ayuda</a></li>
+      <li><a href="#chuleta"><span class="glyph">*</span> Chuleta</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ANATOMÍA -->
+    <section id="anatomia">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Anatomía de una orden</h2>
+      <div class="prose">
+        <p>Toda orden tiene la misma forma: <b>comando</b>, luego <b>opciones</b> que cambian su comportamiento, luego <b>argumentos</b> sobre los que actúa. Las opciones cortas van con un guion y se agrupan (<code>-lh</code> = <code>-l -h</code>); las largas llevan dos y no se agrupan (<code>--human-readable</code>).</p>
+        <p>Elige una orden real para ver de qué está hecha.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="picker" id="picker" role="group" aria-label="Órdenes de ejemplo"></div>
+        <div class="line" id="line" aria-live="polite"></div>
+        <dl class="legend-parts" id="parts"></dl>
+        <p class="what" id="what"></p>
+      </div>
+
+      <div class="note">
+        <b>El orden importa poco, el espacio mucho.</b> <code>ls -l /tmp</code> y <code>ls /tmp -l</code> hacen lo mismo, pero <code>ls-l</code> no existe como comando. Y un espacio de más convierte un argumento en dos: <code>rm -rf /home /ana</code> no borra <code>/home/ana</code>, borra <b>todo</b> <code>/home</code>. Contra el clásico <code>rm -rf /</code> el <code>rm</code> de GNU se planta por defecto; contra este no tiene nada que objetar.
+      </div>
+    </section>
+
+    <!-- MOVERSE -->
+    <section id="moverse">
+      <p class="sec-mark">Orientarse</p>
+      <h2>Moverse y mirar</h2>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Comando</th><th>Para qué</th><th>Como se usa a diario</th></tr></thead>
+          <tbody>
+            <tr><td><code>pwd</code></td><td>Dónde estoy.</td><td>Cuando el <i>prompt</i> no muestra la ruta completa.</td></tr>
+            <tr><td><code>ls</code></td><td>Qué hay aquí.</td><td><code>ls -lh</code> (detalle legible), <code>ls -a</code> (incluye ocultos), <code>ls -lt</code> (lo más reciente arriba).</td></tr>
+            <tr><td><code>cd</code></td><td>Cambiar de directorio.</td><td><code>cd</code> solo va a tu casa, <code>cd -</code> vuelve al anterior, <code>cd ..</code> sube uno.</td></tr>
+            <tr><td><code>cat</code></td><td>Volcar un fichero entero.</td><td>Solo para ficheros cortos. Para largos, <code>less</code>.</td></tr>
+            <tr><td><code>less</code></td><td>Leer con paginación.</td><td>Flechas para moverse, <code>/texto</code> para buscar, <code>q</code> para salir.</td></tr>
+            <tr><td><code>head</code> · <code>tail</code></td><td>Principio y final.</td><td><code>tail -f fichero.log</code> deja la ventana abierta viendo llegar líneas nuevas.</td></tr>
+            <tr><td><code>file</code></td><td>Qué es esto en realidad.</td><td>La extensión miente; <code>file</code> mira el contenido.</td></tr>
+            <tr><td><code>wc</code></td><td>Contar.</td><td><code>wc -l</code> cuenta líneas, que es para lo que se usa el 90 % de las veces.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Rutas absolutas y relativas.</b> Una que empieza por <code>/</code> parte de la raíz y significa lo mismo desde cualquier sitio. Una que no, parte de donde estás. <code>.</code> es aquí, <code>..</code> es el directorio padre y <code>~</code> es tu casa.
+      </div>
+    </section>
+
+    <!-- CREAR -->
+    <section id="crear">
+      <p class="sec-mark">Modificar</p>
+      <h2>Crear, copiar y borrar</h2>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Comando</th><th>Para qué</th><th>Como se usa a diario</th></tr></thead>
+          <tbody>
+            <tr><td><code>mkdir</code></td><td>Crear directorios.</td><td><code>mkdir -p a/b/c</code> crea toda la cadena de una vez.</td></tr>
+            <tr><td><code>touch</code></td><td>Crear un fichero vacío.</td><td>También actualiza la fecha de uno que ya existe.</td></tr>
+            <tr><td><code>cp</code></td><td>Copiar.</td><td><code>cp -r</code> para directorios; <code>cp -i</code> pregunta antes de pisar algo.</td></tr>
+            <tr><td><code>mv</code></td><td>Mover <b>y</b> renombrar.</td><td>No hay comando <code>rename</code> básico: renombrar es mover al mismo sitio con otro nombre.</td></tr>
+            <tr><td><code>rm</code></td><td>Borrar.</td><td><code>rm -r</code> para directorios. No hay papelera: lo borrado no vuelve.</td></tr>
+            <tr><td><code>ln -s</code></td><td>Crear un enlace simbólico.</td><td><code>ln -s destino nombre</code>, en ese orden. Un atajo que apunta a otra ruta.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <b><code>rm</code> no avisa.</b> Antes de un borrado con comodines, ejecuta la misma línea con <code>ls</code> para ver qué va a desaparecer: <code>ls *.tmp</code> y, si la lista es la esperada, <code>rm *.tmp</code>. Cuesta dos segundos y ahorra disgustos.
+      </div>
+    </section>
+
+    <!-- BUSCAR -->
+    <section id="buscar">
+      <p class="sec-mark">Encontrar</p>
+      <h2>Buscar</h2>
+      <div class="prose">
+        <p>Dos comandos que se confunden: <code>find</code> busca <b>ficheros por sus características</b> (nombre, fecha, tamaño); <code>grep</code> busca <b>texto dentro</b> de los ficheros.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Comando</th><th>Para qué</th><th>Como se usa a diario</th></tr></thead>
+          <tbody>
+            <tr><td><code>find</code></td><td>Ficheros por características.</td><td><code>find . -name "*.log"</code> · <code>find /var -size +100M</code> · <code>find . -mtime -1</code> (modificados hoy).</td></tr>
+            <tr><td><code>grep</code></td><td>Texto dentro de ficheros.</td><td><code>grep -rn "error" .</code> — recursivo y con número de línea. <code>-i</code> ignora mayúsculas.</td></tr>
+            <tr><td><code>which</code> · <code>type</code></td><td>Qué se ejecuta al escribir X.</td><td><code>type ls</code> revela si es un binario, un alias o algo del propio shell.</td></tr>
+            <tr><td><code>history</code></td><td>Lo que ya escribiste.</td><td>Con <kbd>Ctrl</kbd>+<kbd>R</kbd> buscas en el historial mientras escribes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TUBERÍAS -->
+    <section id="tuberias">
+      <p class="sec-mark">La idea central</p>
+      <h2>Tuberías y redirección</h2>
+      <div class="prose">
+        <p>Aquí está la filosofía entera de Unix: cada comando hace <b>una</b> cosa, lee de la entrada estándar y escribe en la salida estándar. La tubería <code>|</code> conecta la salida de uno con la entrada del siguiente, y así se construyen herramientas que nadie programó.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Símbolo</th><th>Qué hace</th><th>Ejemplo</th></tr></thead>
+          <tbody>
+            <tr><td><code>|</code></td><td>La salida de la izquierda es la entrada de la derecha.</td><td><code>ps aux | grep ssh</code></td></tr>
+            <tr><td><code>&gt;</code></td><td>Guarda la salida en un fichero, <b>machacando</b> lo que hubiera.</td><td><code>ls &gt; lista.txt</code></td></tr>
+            <tr><td><code>&gt;&gt;</code></td><td>Igual, pero <b>añadiendo</b> al final.</td><td><code>echo linea &gt;&gt; registro.txt</code></td></tr>
+            <tr><td><code>2&gt;</code></td><td>Redirige solo los errores.</td><td><code>find / -name x 2&gt; /dev/null</code></td></tr>
+            <tr><td><code>&lt;</code></td><td>Alimenta al comando desde un fichero.</td><td><code>sort &lt; nombres.txt</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <p>Los comandos que se usan casi siempre <i>dentro</i> de una tubería son pocos: <code>sort</code> ordena, <code>uniq -c</code> agrupa y cuenta repetidos (exige entrada ya ordenada), <code>cut -d: -f1</code> extrae columnas, <code>wc -l</code> cuenta y <code>head</code> se queda con los primeros.</p>
+      </div>
+
+      <div class="note">
+        <b>El idioma más común de todos.</b> <code>sort | uniq -c | sort -nr | head</code> responde a «¿qué es lo que más se repite?» sobre cualquier lista: IPs en un registro, errores, palabras. Merece la pena memorizarlo tal cual.
+      </div>
+    </section>
+
+    <!-- PROCESOS -->
+    <section id="procesos">
+      <p class="sec-mark">Lo que está corriendo</p>
+      <h2>Procesos</h2>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Comando</th><th>Para qué</th><th>Como se usa a diario</th></tr></thead>
+          <tbody>
+            <tr><td><code>ps aux</code></td><td>Foto fija de todos los procesos.</td><td>Casi siempre seguido de <code>| grep nombre</code>.</td></tr>
+            <tr><td><code>top</code> · <code>htop</code></td><td>Vista que se actualiza sola.</td><td>Para ver quién se come la CPU o la memoria ahora mismo. <code>q</code> para salir.</td></tr>
+            <tr><td><code>kill</code></td><td>Pedir a un proceso que termine.</td><td><code>kill PID</code> pide amablemente; <code>kill -9 PID</code> es el último recurso, no el primero.</td></tr>
+            <tr><td><code>&amp;</code></td><td>Lanzar en segundo plano.</td><td><code>comando-largo &amp;</code> devuelve el <i>prompt</i> al instante.</td></tr>
+            <tr><td><code>jobs</code> · <code>fg</code></td><td>Ver y recuperar lo del segundo plano.</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> suspende, <code>bg</code> lo sigue en segundo plano, <code>fg</code> lo trae de vuelta.</td></tr>
+            <tr><td><code>df -h</code> · <code>du -sh</code></td><td>Espacio libre · espacio ocupado.</td><td><code>du -sh * | sort -h</code> encuentra al culpable de llenar el disco.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b><kbd>Ctrl</kbd>+<kbd>C</kbd> no es <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</b> El primero interrumpe y termina el proceso; el segundo solo lo suspende y lo deja parado en segundo plano. Si algo «desapareció» tras un <kbd>Ctrl</kbd>+<kbd>Z</kbd>, sigue ahí: <code>jobs</code> lo lista y <code>fg</code> lo recupera.
+      </div>
+    </section>
+
+    <!-- AYUDA -->
+    <section id="ayuda">
+      <p class="sec-mark">Cuando no te acuerdas</p>
+      <h2>Ayuda sin salir de la terminal</h2>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Comando</th><th>Qué da</th></tr></thead>
+          <tbody>
+            <tr><td><code>man comando</code></td><td>El manual completo. Se navega como <code>less</code>: <code>/palabra</code> busca, <code>q</code> sale.</td></tr>
+            <tr><td><code>comando --help</code></td><td>Resumen de opciones en pantalla. Más rápido que el manual para refrescar una opción.</td></tr>
+            <tr><td><code>apropos tema</code></td><td>Busca en las descripciones de todos los manuales. Para cuando no sabes ni cómo se llama.</td></tr>
+            <tr><td><code>type comando</code></td><td>Si es binario, alias, función o palabra del shell. Explica comportamientos raros.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        Los manuales están numerados por secciones: <code>man 1 printf</code> es el comando y <code>man 3 printf</code> la función de C. Si <code>man</code> te muestra algo que no esperabas, probablemente exista en otra sección.
+      </div>
+    </section>
+
+    <!-- CHULETA -->
+    <section id="chuleta">
+      <p class="sec-mark">Para tener a mano</p>
+      <h2>Chuleta</h2>
+
+      <div class="wide panel">
+        <div class="cheat">
+          <div class="cheat-row"><b>ls -lh</b><span>Listado con detalle y tamaños legibles.</span></div>
+          <div class="cheat-row"><b>cd -</b><span>Volver al directorio anterior.</span></div>
+          <div class="cheat-row"><b>tail -f fichero</b><span>Ver un registro mientras crece.</span></div>
+          <div class="cheat-row"><b>grep -rn "texto" .</b><span>Buscar texto en todo el árbol, con línea.</span></div>
+          <div class="cheat-row"><b>find . -name "*.log"</b><span>Buscar ficheros por nombre.</span></div>
+          <div class="cheat-row"><b>cp -r origen destino</b><span>Copiar un directorio entero.</span></div>
+          <div class="cheat-row"><b>mkdir -p a/b/c</b><span>Crear toda la cadena de directorios.</span></div>
+          <div class="cheat-row"><b>du -sh * | sort -h</b><span>Quién ocupa más espacio aquí.</span></div>
+          <div class="cheat-row"><b>ps aux | grep nombre</b><span>Localizar un proceso.</span></div>
+          <div class="cheat-row"><b>sort | uniq -c | sort -nr</b><span>Qué se repite más en una lista.</span></div>
+          <div class="cheat-row"><b>comando 2&gt; /dev/null</b><span>Silenciar los errores.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>Tab</b><span>Autocompletar. Dos veces muestra las opciones posibles.</span></div>
+          <div class="cheat-row"><b>Ctrl+R</b><span>Buscar en el historial mientras escribes.</span></div>
+          <div class="cheat-row"><b>Ctrl+C · Ctrl+Z</b><span>Interrumpir · suspender.</span></div>
+          <div class="cheat-row"><b>Ctrl+L</b><span>Limpiar la pantalla.</span></div>
+          <div class="cheat-row"><b>!!</b><span>Repetir la última orden. <code>sudo !!</code> la repite como root.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="shell">Guía breve de comandos · shell · tuberías · procesos</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* Cada orden se guarda ya troceada: [texto, tipo].
+     tipo: cmd | opt | arg | flow | plain */
+  var LINES = [
+    { id:"ls",
+      toks:[["ls","cmd"],["-lh","opt"],["/var/log","arg"]],
+      parts:[["cmd","ls","lista el contenido de un directorio"],
+             ["opt","-lh","dos opciones cortas agrupadas: l = formato largo, h = tamaños legibles"],
+             ["arg","/var/log","el directorio a listar; sin él, lista donde estés"]],
+      what:"El listado de siempre. Sin -h los tamaños salen en bytes y hay que contar ceros." },
+
+    { id:"cp",
+      toks:[["cp","cmd"],["-r","opt"],["proyecto/","arg"],["copia/","arg"]],
+      parts:[["cmd","cp","copia ficheros"],
+             ["opt","-r","recursivo: sin esto, cp se niega a copiar directorios"],
+             ["arg","proyecto/ copia/","origen primero, destino después — siempre en ese orden"]],
+      what:"Origen y destino nunca se piden por separado: van pegados al final, y el último es el destino." },
+
+    { id:"grep",
+      toks:[["grep","cmd"],["-rn","opt"],["\"TODO\"","arg"],["src/","arg"]],
+      parts:[["cmd","grep","busca texto dentro de ficheros"],
+             ["opt","-rn","r = recursivo por subdirectorios, n = muestra el número de línea"],
+             ["arg","\"TODO\" src/","qué buscar y dónde buscarlo"]],
+      what:"Las comillas evitan que el shell interprete el patrón. Con espacios o asteriscos dentro, son obligatorias." },
+
+    { id:"find",
+      toks:[["find","cmd"],[".","arg"],["-name","opt"],["\"*.log\"","arg"],["-mtime","opt"],["+7","arg"]],
+      parts:[["cmd","find","busca ficheros por sus características"],
+             ["arg",".","dónde empezar: aquí y hacia abajo"],
+             ["opt","-name / -mtime","condiciones que se acumulan: se cumplen todas a la vez"],
+             ["arg","\"*.log\" +7","el patrón y «más de 7 días sin modificarse»"]],
+      what:"find rompe la regla: sus opciones van después de la ruta y llevan un solo guion aunque sean palabras." },
+
+    { id:"ps",
+      toks:[["ps","cmd"],["aux","opt"],["|","flow"],["grep","cmd"],["nginx","arg"]],
+      parts:[["cmd","ps … grep","dos comandos independientes"],
+             ["opt","aux","opciones al estilo antiguo, sin guion: todos los procesos de todos los usuarios"],
+             ["flow","|","la tubería: la salida de ps entra directa en grep"],
+             ["arg","nginx","el filtro"]],
+      what:"El idioma más repetido de la terminal. En la lista aparecerá también el propio grep: es normal." },
+
+    { id:"tail",
+      toks:[["tail","cmd"],["-f","opt"],["/var/log/syslog","arg"]],
+      parts:[["cmd","tail","muestra el final de un fichero"],
+             ["opt","-f","follow: no termina, se queda esperando líneas nuevas"],
+             ["arg","/var/log/syslog","el registro que quieres vigilar"]],
+      what:"Se sale con Ctrl+C. Es la forma normal de ver qué hace un servicio mientras lo pruebas." },
+
+    { id:"pipe",
+      toks:[["sort","cmd"],["accesos.log","arg"],["|","flow"],["uniq","cmd"],["-c","opt"],["|","flow"],["sort","cmd"],["-nr","opt"],["|","flow"],["head","cmd"],["-5","opt"]],
+      parts:[["cmd","sort · uniq · head","tres comandos simples encadenados"],
+             ["opt","-c / -nr / -5","cuenta repetidos · orden numérico inverso · quédate con 5"],
+             ["flow","|","cada tubería pasa el resultado al siguiente"]],
+      what:"«Los 5 valores que más se repiten». uniq solo agrupa líneas contiguas, por eso hay que ordenar antes." },
+
+    { id:"redir",
+      toks:[["find","cmd"],["/","arg"],["-name","opt"],["passwd","arg"],["2>","flow"],["/dev/null","arg"]],
+      parts:[["cmd","find","la búsqueda"],
+             ["flow","2>","redirige solo el canal de errores, no el de resultados"],
+             ["arg","/dev/null","el agujero negro: lo que se escribe ahí desaparece"]],
+      what:"Buscar desde / genera cientos de «Permiso denegado» que tapan lo útil. Esto los silencia sin ocultar los hallazgos." },
+
+    { id:"tar",
+      toks:[["tar","cmd"],["-czf","opt"],["copia.tar.gz","arg"],["documentos/","arg"]],
+      parts:[["cmd","tar","empaqueta y desempaqueta"],
+             ["opt","-czf","c = crear, z = comprimir con gzip, f = el nombre del fichero va a continuación"],
+             ["arg","copia.tar.gz documentos/","primero el paquete que se crea, después lo que entra en él"]],
+      what:"La f siempre va la última de las opciones, porque el nombre del fichero tiene que ir justo detrás." },
+
+    { id:"chmod",
+      toks:[["chmod","cmd"],["+x","arg"],["despliegue.sh","arg"]],
+      parts:[["cmd","chmod","cambia permisos"],
+             ["arg","+x","aquí no es una opción aunque lo parezca: es el cambio a aplicar"],
+             ["arg","despliegue.sh","el fichero afectado"]],
+      what:"El paso que falta cuando un script recién creado responde «Permiso denegado»." }
+  ];
+
+  var KIND = { cmd:"comando", opt:"opciones", arg:"argumentos", flow:"tubería / redirección", plain:"" };
+
+  var picker = document.getElementById("picker");
+  var lineEl = document.getElementById("line");
+  var partsEl = document.getElementById("parts");
+  var whatEl = document.getElementById("what");
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  LINES.forEach(function(item, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "pick";
+    b.textContent = item.toks.map(function(t){ return t[0]; }).join(" ");
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", function(){ show(i); });
+    picker.appendChild(b);
+  });
+
+  function show(i){
+    var item = LINES[i];
+    Array.prototype.forEach.call(picker.children, function(b, n){
+      b.setAttribute("aria-pressed", n === i ? "true" : "false");
+    });
+    lineEl.innerHTML = '<span class="tok" data-k="plain">$</span>' +
+      item.toks.map(function(t){
+        return '<span class="tok" data-k="' + t[1] + '">' + esc(t[0]) + "</span>";
+      }).join("");
+    partsEl.innerHTML = item.parts.map(function(p){
+      return '<dt data-k="' + p[0] + '">' + esc(p[1]) + "</dt><dd>" + esc(p[2]) + "</dd>";
+    }).join("");
+    whatEl.textContent = item.what;
+  }
+  show(0);
+
+  /* índice lateral */
+  var links = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".rail a"), function(a){
+    links[a.getAttribute("href").slice(1)] = a;
+  });
+  if ("IntersectionObserver" in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var a = links[e.target.id];
+        if (a) a.classList.toggle("is-active", e.isIntersecting);
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("main section"), function(s){ obs.observe(s); });
+  }
+})();
+</script>
+
+</body>
+</html>

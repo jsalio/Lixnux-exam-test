@@ -17,6 +17,7 @@ conexión.
 | `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
+| `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
 | `docs/specs/registro-intentos-supabase.spec.md` | Especificación SDD (en estado *Draft*, **no implementada**) |
 
 Cada aplicación vive en su propia carpeta con un `index.html`, de modo que su URL
@@ -124,7 +125,24 @@ directorios que no viven en ningún disco.
 
 ---
 
-## 4. Especificación pendiente — `docs/specs/`
+## 4. Guía de comandos — `linux_basic_commands/index.html`
+
+Guía deliberadamente breve: siete secciones cortas en lugar de un manual.
+El foco no es la lista de comandos sino cómo se combinan.
+
+- **Anatomía de una orden** (interactivo): 10 órdenes reales troceadas en
+  comando / opciones / argumentos / tubería, con qué aporta cada pieza y por qué
+  esa línea se escribe así. Incluye los casos que rompen la regla, como `find`.
+- **Moverse y mirar**, **crear y borrar**, **buscar**: tablas de comando, para qué
+  sirve y cómo se usa en la práctica, no la lista completa de sus opciones.
+- **Tuberías y redirección**: `|`, `>`, `>>`, `2>`, `<` y el idioma
+  `sort | uniq -c | sort -nr | head`.
+- **Procesos** y **ayuda** (`man`, `--help`, `apropos`, `type`).
+- **Chuleta** con los atajos de teclado del shell.
+
+---
+
+## 5. Especificación pendiente — `docs/specs/`
 
 `registro-intentos-supabase.spec.md` es un contrato SDD para persistir en Supabase
 cada intento finalizado (nombre, IP, número de intento, nota y modo).
@@ -162,6 +180,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 | Examen | <https://jsalio.github.io/Lixnux-exam-test/lpi_practice_exam/> |
 | Permisos | <https://jsalio.github.io/Lixnux-exam-test/sample_linux_permissions/> |
 | Directorios | <https://jsalio.github.io/Lixnux-exam-test/linux_special_directories/> |
+| Comandos | <https://jsalio.github.io/Lixnux-exam-test/linux_basic_commands/> |
 
 Al ser un *project site*, el sitio cuelga de `/Lixnux-exam-test/` y no de la raíz
 del dominio. Por eso **todos los enlaces internos son relativos**: una ruta que
