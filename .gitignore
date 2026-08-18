@@ -6,3 +6,6 @@
 # temporales
 *.log
 .DS_Store
+
+# núcleo extraído para las pruebas
+tests/.core.generated.mjs

@@ -76,6 +76,16 @@ table.topics td.num{text-align:right; font-variant-numeric:tabular-nums; white-s
 .ident input:focus{outline:2px solid var(--accent); outline-offset:1px}
 .ident input.bad{border-color:var(--bad)}
 .ident .aviso{font-size:.8rem; color:var(--muted); margin:12px 0 0}
+.estado{font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.02em}
+.estado.estudiar{color:var(--bad)}
+.estado.reforzar{color:var(--warn)}
+.estado.repasar{color:var(--ok)}
+.estado.sin_datos{color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0}
+.tend{color:var(--muted); font-size:.8rem}
+.avisos{margin:12px 0 0; padding:0; list-style:none; font-size:.88rem; color:var(--muted)}
+.avisos li{margin-top:6px}
+.avisos li.alerta{color:var(--warn)}
+.nota-grande{font-size:2rem; font-weight:800; line-height:1.1}
 .sync{font-size:.88rem; color:var(--muted); margin:0 0 18px; display:flex; gap:9px;
   align-items:center; flex-wrap:wrap; min-height:1.4em}
 .sync.ok{color:var(--ok)}
@@ -221,6 +231,10 @@ footer.foot{max-width:900px; margin:0 auto; padding:24px 16px 40px; color:var(--
     </div>
   </div>
 
+  <div class="controls" style="margin-top:0">
+    <button class="btn" id="btnStats">Ver mi progreso por tema</button>
+  </div>
+
   <div class="facts">
     <div class="fact"><b id="fTotal">–</b><span>preguntas en el banco</span></div>
     <div class="fact"><b id="fSingle">–</b><span>respuesta única</span></div>
@@ -312,8 +326,60 @@ footer.foot{max-width:900px; margin:0 auto; padding:24px 16px 40px; color:var(--
 
   <div class="controls">
     <button class="btn primary" id="btnAgain">Nuevo intento (mismo modo)</button>
+    <button class="btn" id="btnStatsFromResult">Mi progreso por tema</button>
     <button class="btn" id="btnHome">Volver al inicio</button>
     <button class="btn" id="btnPrint">Imprimir / PDF</button>
+  </div>
+</section>
+
+<!-- ================= MI PROGRESO ================= -->
+<section id="screen-stats" class="wrap hidden">
+  <h1>Mi progreso por tema</h1>
+  <p class="lead">
+    Suma de todos tus intentos, ordenada por dónde rinde más estudiar: no por dónde vas peor,
+    sino por lo que más te cuesta en el examen real.
+  </p>
+
+  <div class="card" id="statsSummary"></div>
+
+  <h2>Temas, del que más urge al que ya puedes repasar por encima</h2>
+  <div class="card">
+    <table class="topics">
+      <thead>
+        <tr>
+          <th>Tema</th>
+          <th class="num">Dominio</th>
+          <th class="num">1ª vez</th>
+          <th class="num">Preguntas</th>
+          <th>Qué hacer</th>
+        </tr>
+      </thead>
+      <tbody id="statsRows"></tbody>
+    </table>
+    <p class="hint">
+      El dominio pondera los intentos recientes por encima de los antiguos, así que no coincide
+      con dividir aciertos entre preguntas: por eso al lado va siempre cuántas preguntas lo respaldan.
+    </p>
+  </div>
+
+  <div id="statsLeeches"></div>
+
+  <h2>Tus datos</h2>
+  <div class="card">
+    <p class="hint" style="margin-top:0">
+      Todo esto vive solo en este navegador. Expórtalo para llevártelo a otro equipo.
+    </p>
+    <div class="controls" style="margin-top:12px">
+      <button class="btn" id="btnExportStats">Exportar progreso</button>
+      <label class="btn" for="fileImportStats" style="display:inline-block">Importar progreso</label>
+      <input type="file" id="fileImportStats" accept="application/json,.json" style="display:none">
+      <button class="btn" id="btnClearStats">Borrar mis datos</button>
+    </div>
+    <p class="hint" id="statsAviso" aria-live="polite"></p>
+  </div>
+
+  <div class="controls">
+    <button class="btn primary" id="btnStatsBack">Volver</button>
   </div>
 </section>
 
@@ -1586,16 +1652,6 @@ Q.push(
 </script>
 <script>
 /* ================= LOGICA DE LA APLICACION ================= */
-const TOPICS = {
-  101:['La comunidad Linux y una carrera en Open Source','The Linux Community and a Career in Open Source'],
-  102:['Encontrar tu camino en un sistema Linux','Finding Your Way on a Linux System'],
-  103:['El poder de la línea de comandos','The Power of the Command Line'],
-  104:['El sistema operativo Linux','The Linux Operating System'],
-  105:['Seguridad y permisos de archivos','Security and File Permissions']
-};
-const SIM_PLAN   = {101:7, 102:8, 103:10, 104:8, 105:7};
-const SIM_MINUTES= 60;
-const PASS_PCT   = 65;
 const STORE_KEY  = 'lpi-010-160-attempt-v1';
 const LANG_KEY   = 'lpi-010-160-lang';
 const KEYS       = 'ABCDEFGH';
@@ -1603,14 +1659,448 @@ const KEYS       = 'ABCDEFGH';
 /* ---- registro de intentos en Supabase (capa opcional) ---- */
 const SUPABASE_URL      = 'https://gzmlvgdumscpztwqnvsl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6bWx2Z2R1bXNjcHp0d3FudnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNjAzNTUsImV4cCI6MjEwMjYzNjM1NX0.mYkhYMbtooTK0pXCw9xNzoSzjW2c6kbtMu7cMnPRl04';
-const APP_VERSION       = '1.0.0+bank145';
 const NAME_KEY          = 'lpi-010-160-nombre';
 const QUEUE_KEY         = 'lpi-010-160-cola';
-const MODE_MAP          = { sim:'simulacro_60min', full:'completo' };
+const HISTORY_KEY       = 'lpi-010-160-historial';
 const MAX_QUEUE         = 20;
-const NOMBRE_MIN        = 2;
-const NOMBRE_MAX        = 80;
-const IDIOMAS           = ['both','es','en'];
+
+/* ===== NUCLEO PURO — INICIO =====
+   Datos del examen y todo el cálculo. Sin document, sin almacenamiento,
+   sin reloj y sin red: lo de aquí se extrae con tools/extract-core.mjs y se
+   prueba con `node --test`. La guardia del extractor falla si alguien mete
+   una dependencia del navegador dentro de esta región.
+   Contrato: docs/specs/estadisticas-preparacion-por-tema.arch.md            */
+
+const TOPICS = {
+  101:['La comunidad Linux y una carrera en Open Source','The Linux Community and a Career in Open Source'],
+  102:['Encontrar tu camino en un sistema Linux','Finding Your Way on a Linux System'],
+  103:['El poder de la línea de comandos','The Power of the Command Line'],
+  104:['El sistema operativo Linux','The Linux Operating System'],
+  105:['Seguridad y permisos de archivos','Security and File Permissions']
+};
+
+const SIM_PLAN   = {101:7, 102:8, 103:10, 104:8, 105:7};
+const SIM_MINUTES= 60;
+const PASS_PCT   = 65;
+const APP_VERSION = '1.0.0+bank145';
+const MODE_MAP    = { sim:'simulacro_60min', full:'completo' };
+const NOMBRE_MIN  = 2;
+const NOMBRE_MAX  = 80;
+const IDIOMAS     = ['both','es','en'];
+
+/* ---- estadísticas de preparación ---- */
+const HISTORY_V          = 1;
+const MAX_HISTORIAL      = 50;    // intentos conservados, FIFO
+const K_PRIOR            = 5;     // fuerza del encogimiento
+const P0                 = 0.5;   // dominio a falta de datos
+const FACTOR_OLVIDO      = 0.85;  // peso por intento de antigüedad; vida media ≈ 4,3
+const UMBRAL_DOMINADO    = 0.80;  // a partir de aquí, basta repasar por encima
+const UMBRAL_TENDENCIA   = 0.05;  // 5 puntos para considerar que sube o baja
+const UMBRAL_MEMORIZACION= 0.15;  // distancia dominio − primera vez que delata el banco memorizado
+const VENTANA_TENDENCIA  = 3;     // intentos por ventana
+const MAX_REBELDES       = 10;
+const MARCAS             = ['o','x','-'];   // acierto, fallo, en blanco
+const UUID_RE            = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function norm(s){
+  return String(s).toLowerCase().trim().replace(/\s+/g,' ').replace(/;+$/,'');
+}
+/**
+ * Busca una pregunta del banco por su identificador.
+ * Acepta el id como número o como cadena, porque las claves de un objeto JSON
+ * siempre llegan como cadena y la comparación estricta las descartaría.
+ *
+ * @param {number|string} id  Identificador de la pregunta.
+ * @returns {object|undefined} La pregunta, o undefined si ya no está en el banco.
+ */
+function byId(id){ return qIndex.get(Number(id)); }
+function opts(item){                       // opciones en el orden mostrado
+  const q = byId(item.id);
+  return item.oidx.map(i => ({ text:q.o[i], correct: q.a.indexOf(i) >= 0 }));
+}
+function isAnswered(item){
+  const q = byId(item.id);
+  if(q.type === 'multi') return Array.isArray(item.ans) && item.ans.length > 0;
+  if(q.type === 'fill')  return typeof item.ans === 'string' && item.ans.trim() !== '';
+  return item.ans !== null && item.ans !== undefined;
+}
+function isCorrect(item){
+  const q = byId(item.id);
+  if(!isAnswered(item)) return false;
+  if(q.type === 'fill') return q.accept.some(a => norm(a) === norm(item.ans));
+  const good = item.oidx.map((orig,pos) => q.a.indexOf(orig) >= 0 ? pos : -1).filter(p => p >= 0);
+  if(q.type === 'single') return item.ans === good[0];
+  const a = item.ans.slice().sort((x,y)=>x-y).join(','), b = good.slice().sort((x,y)=>x-y).join(',');
+  return a === b;
+}
+function scaled(pct){
+  return pct >= PASS_PCT
+    ? Math.round(500 + (pct - PASS_PCT) / (100 - PASS_PCT) * 300)
+    : Math.round(200 + pct / PASS_PCT * 300);
+}
+function summarizeAttempt(a){
+  const total = a.items.length;
+  const ok    = a.items.filter(isCorrect).length;
+  const blank = a.items.filter(it => !isAnswered(it)).length;
+  const ko    = total - ok - blank;
+  const pct   = total ? ok/total*100 : 0;
+  const temas = {};
+  a.items.forEach(it => {
+    const t = byId(it.id).topic;
+    temas[t] = temas[t] || { n:0, ok:0 };
+    temas[t].n++;
+    if(isCorrect(it)) temas[t].ok++;
+  });
+  return { total, ok, ko, blank, pct, pass: pct >= PASS_PCT, temas };
+}
+function normalizeUserKey(nombre){
+  return String(nombre || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 '\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function nombreValido(nombre){
+  const t = String(nombre || '').trim();
+  return t.length >= NOMBRE_MIN && t.length <= NOMBRE_MAX && normalizeUserKey(t) !== '';
+}
+function buildAttemptPayload(attempt, nombre, idioma){
+  if(!attempt || !attempt.finished)          throw new Error('el intento no está finalizado');
+  if(!attempt.items || !attempt.items.length) throw new Error('el intento no tiene preguntas');
+  const modo = MODE_MAP[attempt.mode];
+  if(!modo) throw new Error('modo desconocido: ' + attempt.mode);
+
+  const s = summarizeAttempt(attempt);
+  const idiomaValido = IDIOMAS.indexOf(idioma) >= 0 ? idioma : 'both';
+
+  return {
+    client_attempt_id: attempt.cid,
+    usuario_nombre:    String(nombre).trim(),
+    modo:              modo,
+    total_preguntas:   s.total,
+    limite_minutos:    attempt.limitMs ? Math.round(attempt.limitMs/60000) : null,
+    correctas:         s.ok,
+    incorrectas:       s.ko,
+    sin_responder:     s.blank,
+    porcentaje:        Math.round(s.pct*100)/100,
+    puntuacion_escala: scaled(s.pct),
+    duracion_segundos: Math.floor(attempt.elapsedMs/1000),   // floor: nunca por encima del límite
+    desglose_temas:    s.temas,
+    idioma:            idiomaValido,
+    app_version:       APP_VERSION
+  };
+}
+
+/**
+ * Índice de preguntas por identificador. Se construye una vez: byId() se llama
+ * miles de veces al agregar el historial y una búsqueda lineal costaba 14,5 ms
+ * frente a 2,8 ms con el índice (medido sobre 50 intentos del banco completo).
+ */
+const qIndex = new Map(Q.map(q => [q.id, q]));
+
+/**
+ * Dominio de un tema: proporción de acierto ponderada por recencia y encogida
+ * hacia P0 para que las muestras pequeñas no parezcan certezas.
+ *
+ * @param {Array<{peso:number, ok:number, n:number}>} muestras  Una por intento con preguntas del tema.
+ * @returns {number} Valor en [0,1]. Devuelve P0 si no hay ninguna muestra.
+ */
+function topicMastery(muestras){
+  let aciertos = 0, preguntas = 0;
+  (muestras || []).forEach(m => { aciertos += m.peso * m.ok; preguntas += m.peso * m.n; });
+  return (aciertos + K_PRIOR * P0) / (preguntas + K_PRIOR);
+}
+
+/** Redondea a los decimales indicados sin arrastrar error binario visible. */
+function redondear(x, decimales){
+  const f = Math.pow(10, decimales);
+  return Math.round(x * f) / f;
+}
+
+/**
+ * Tendencia de un tema: media de acierto de los últimos intentos que lo
+ * contienen frente a los inmediatamente anteriores. Se calcula aparte del
+ * dominio porque el dominio ya lleva la recencia dentro y no puede revelar
+ * la dirección del cambio.
+ *
+ * @param {object} historial  Historial completo, en orden cronológico ascendente.
+ * @param {number} tema       Número de tema (101..105).
+ * @returns {'sube'|'baja'|'estable'|'sin_datos'}
+ */
+function topicTrend(historial, tema){
+  const intentos = (historial && Array.isArray(historial.intentos)) ? historial.intentos : [];
+  const series = [];
+  intentos.forEach(intento => {
+    const res = (intento && intento.res) || {};
+    let n = 0, ok = 0;
+    Object.keys(res).forEach(clave => {
+      const q = byId(clave);
+      if(!q || q.topic !== Number(tema)) return;
+      n++;
+      if(res[clave] === 'o') ok++;
+    });
+    if(n) series.push(ok / n);
+  });
+  if(series.length < VENTANA_TENDENCIA + 1) return 'sin_datos';
+  const media = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const delta = media(series.slice(-VENTANA_TENDENCIA))
+              - media(series.slice(-2 * VENTANA_TENDENCIA, -VENTANA_TENDENCIA));
+  if(delta >  UMBRAL_TENDENCIA) return 'sube';
+  if(delta < -UMBRAL_TENDENCIA) return 'baja';
+  return 'estable';
+}
+
+/**
+ * Preguntas que se resisten: vistas varias veces y nunca acertadas.
+ *
+ * @param {Array<object>} porPregunta  Acumulado por pregunta del historial.
+ * @returns {Array<{id:number, topic:number, vistas:number, aciertos:number}>} Como mucho MAX_REBELDES.
+ */
+function leechQuestions(porPregunta){
+  return porPregunta
+    .filter(r => r.vistas >= 2 && r.aciertos === 0)
+    .sort((a, b) => b.vistas - a.vistas || a.topic - b.topic || a.id - b.id)
+    .slice(0, MAX_REBELDES);
+}
+
+/**
+ * Calcula el estado de preparación a partir del historial completo.
+ * Función pura: no lee almacenamiento, no toca el DOM y no consulta el reloj,
+ * de modo que el mismo historial produce siempre la misma proyección.
+ *
+ * @param {object} historial  Historial ya parseado, en orden cronológico ascendente.
+ * @returns {object} Proyección con porTema, orden, porTipo, rebeldes y resumen.
+ *                   Con historial vacío devuelve la proyección neutra; nunca lanza.
+ */
+function computeStats(historial){
+  const intentos = (historial && Array.isArray(historial.intentos)) ? historial.intentos : [];
+  const umbral = PASS_PCT / 100;
+  const pesoTotal = Object.keys(SIM_PLAN).reduce((a, t) => a + SIM_PLAN[t], 0);
+
+  const porTema = {};
+  Object.keys(SIM_PLAN).forEach(t => {
+    porTema[t] = { dominio:P0, nCrudo:0, okCrudo:0, fallos:0, blancos:0,
+                   peso: SIM_PLAN[t] / pesoTotal, brecha:0, impacto:0,
+                   primeraVez:0, nPrimeraVez:0, tendencia:'sin_datos', estado:'sin_datos' };
+  });
+
+  const acumulado = {};
+  Object.keys(SIM_PLAN).forEach(t => { acumulado[t] = { a:0, n:0 }; });
+  const porTipo = { single:{ n:0, ok:0 }, multi:{ n:0, ok:0 }, fill:{ n:0, ok:0 } };
+  const preguntas = new Map();
+
+  intentos.forEach((intento, idx) => {
+    // El decaimiento va por posición en el historial, no por fecha: así el
+    // cálculo no depende del reloj y es reproducible.
+    const peso = Math.pow(FACTOR_OLVIDO, intentos.length - 1 - idx);
+    const res = (intento && intento.res) || {};
+    Object.keys(res).forEach(clave => {
+      const q = byId(clave);
+      if(!q || !porTema[q.topic]) return;      // pregunta retirada del banco: se ignora
+      const marca = res[clave];
+      const acierto = marca === 'o' ? 1 : 0;
+      const tema = porTema[q.topic];
+
+      tema.nCrudo++;
+      tema.okCrudo += acierto;
+      if(marca === '-') tema.blancos++;
+      else if(!acierto) tema.fallos++;
+
+      acumulado[q.topic].a += peso * acierto;
+      acumulado[q.topic].n += peso;
+
+      if(porTipo[q.type]){ porTipo[q.type].n++; porTipo[q.type].ok += acierto; }
+
+      let reg = preguntas.get(q.id);
+      if(!reg){
+        reg = { id:q.id, topic:q.topic, vistas:0, aciertos:0, primeraOk:acierto };
+        preguntas.set(q.id, reg);
+      }
+      reg.vistas++;
+      reg.aciertos += acierto;
+    });
+  });
+
+  const listaPreguntas = Array.from(preguntas.values());
+
+  Object.keys(porTema).forEach(t => {
+    const tema = porTema[t];
+    const acc = acumulado[t];
+    tema.dominio = redondear(topicMastery([{ peso:1, ok:acc.a, n:acc.n }]), 4);
+    tema.brecha  = redondear(Math.max(0, umbral - tema.dominio), 4);
+    tema.impacto = redondear(tema.brecha * tema.peso, 6);
+    tema.estado  = tema.nCrudo === 0 ? 'sin_datos'
+                 : (tema.dominio < umbral ? 'estudiar'
+                 : (tema.dominio < UMBRAL_DOMINADO ? 'reforzar' : 'repasar'));
+    const suyas = listaPreguntas.filter(r => r.topic === Number(t));
+    tema.nPrimeraVez = suyas.length;
+    tema.primeraVez  = suyas.length
+      ? redondear(suyas.reduce((a, r) => a + r.primeraOk, 0) / suyas.length, 4)
+      : 0;
+    tema.tendencia = topicTrend(historial, Number(t));
+  });
+
+  // Invariante 4 del sistema: el orden es siempre por impacto de estudio.
+  const orden = Object.keys(porTema)
+    .filter(t => porTema[t].nCrudo > 0)
+    .sort((a, b) => porTema[b].impacto - porTema[a].impacto
+                 || porTema[a].dominio - porTema[b].dominio
+                 || Number(a) - Number(b));
+
+  const notaEstimada = redondear(
+    100 * Object.keys(porTema).reduce((a, t) => a + porTema[t].peso * porTema[t].dominio, 0), 2);
+
+  const vistas = listaPreguntas.reduce((a, r) => a + r.vistas, 0);
+  const mediaApariciones = listaPreguntas.length ? vistas / listaPreguntas.length : 0;
+  const dominioGlobal = redondear(topicMastery(Object.keys(acumulado)
+    .map(t => ({ peso:1, ok:acumulado[t].a, n:acumulado[t].n }))), 4);
+  const primeraVezGlobal = listaPreguntas.length
+    ? listaPreguntas.reduce((a, r) => a + r.primeraOk, 0) / listaPreguntas.length
+    : 0;
+
+  return {
+    porTema: porTema,
+    orden: orden,
+    porTipo: {
+      single: porTipo.single.n ? redondear(porTipo.single.ok / porTipo.single.n, 4) : null,
+      multi:  porTipo.multi.n  ? redondear(porTipo.multi.ok  / porTipo.multi.n, 4)  : null,
+      fill:   porTipo.fill.n   ? redondear(porTipo.fill.ok   / porTipo.fill.n, 4)   : null
+    },
+    rebeldes: leechQuestions(listaPreguntas),
+    resumen: {
+      intentos: intentos.length,
+      preguntasVistas: listaPreguntas.length,
+      notaEstimada: notaEstimada,
+      escala: scaled(notaEstimada),
+      veredicto: notaEstimada >= PASS_PCT ? 'aprobado' : 'no_aprobado',
+      memorizando: mediaApariciones > 2 && (dominioGlobal - primeraVezGlobal) > UMBRAL_MEMORIZACION
+    }
+  };
+}
+
+/**
+ * Construye la entrada de historial de un intento finalizado.
+ * El instante entra por parámetro para que la función siga siendo pura.
+ *
+ * @param {object} attempt  Intento finalizado (S), con cid, mode, elapsedMs e items.
+ * @param {number} ts       Marca de tiempo del final del intento.
+ * @returns {object} Entrada lista para añadir al historial.
+ * @throws {Error} Si el intento no está finalizado o no tiene preguntas.
+ */
+function buildHistoryEntry(attempt, ts){
+  if(!attempt || !attempt.finished)           throw new Error('el intento no está finalizado');
+  if(!attempt.items || !attempt.items.length) throw new Error('el intento no tiene preguntas');
+  const s = summarizeAttempt(attempt);
+  const res = {};
+  attempt.items.forEach(it => {
+    res[it.id] = isCorrect(it) ? 'o' : (isAnswered(it) ? 'x' : '-');
+  });
+  return {
+    cid: attempt.cid,
+    ts: ts,
+    modo: attempt.mode,
+    total: s.total,
+    ok: s.ok,
+    ko: s.ko,
+    na: s.blank,
+    pct: redondear(s.pct, 2),
+    duracion_s: Math.floor(attempt.elapsedMs / 1000),
+    res: res
+  };
+}
+
+/** Comprueba que una entrada de historial importada tiene la forma esperada. */
+function esEntradaDeHistorial(e){
+  if(!e || typeof e !== 'object') return false;
+  if(typeof e.cid !== 'string' || !UUID_RE.test(e.cid)) return false;
+  if(typeof e.ts !== 'number' || !isFinite(e.ts)) return false;
+  if(!MODE_MAP[e.modo]) return false;
+  const enteros = ['total','ok','ko','na','duracion_s'];
+  if(!enteros.every(k => Number.isInteger(e[k]) && e[k] >= 0)) return false;
+  if(e.ok + e.ko + e.na !== e.total) return false;
+  if(!e.res || typeof e.res !== 'object' || Array.isArray(e.res)) return false;
+  return Object.keys(e.res).every(k => MARCAS.indexOf(e.res[k]) >= 0);
+}
+
+/**
+ * Valida un historial exportado. Una entrada corrupta se descarta sola: no
+ * invalida el archivo entero.
+ *
+ * @param {string} texto  Contenido del archivo elegido por el usuario.
+ * @returns {{ok:true, intentos:Array<object>, invalidos:number}|{ok:false, error:string}}
+ */
+function validateHistory(texto){
+  let datos;
+  try{ datos = JSON.parse(texto); }
+  catch(e){ return { ok:false, error:'json_invalido' }; }
+  if(!datos || typeof datos !== 'object' || Array.isArray(datos)) return { ok:false, error:'estructura_invalida' };
+  if(datos.v !== HISTORY_V) return { ok:false, error:'version_desconocida' };
+  if(!Array.isArray(datos.intentos)) return { ok:false, error:'estructura_invalida' };
+  const intentos = datos.intentos.filter(esEntradaDeHistorial);
+  return { ok:true, intentos: intentos, invalidos: datos.intentos.length - intentos.length };
+}
+
+/**
+ * Fusiona intentos importados con los existentes sin duplicar, ordena por fecha
+ * y aplica el tope. Importar dos veces el mismo archivo no cambia nada.
+ *
+ * @param {Array<object>} actuales  Intentos ya guardados.
+ * @param {Array<object>} nuevos    Intentos que llegan del archivo.
+ * @returns {{intentos:Array<object>, nuevos:number, duplicados:number}}
+ */
+function mergeHistory(actuales, nuevos){
+  const base = Array.isArray(actuales) ? actuales.slice() : [];
+  const vistos = new Set(base.map(i => i.cid));
+  let anadidos = 0, duplicados = 0;
+  (Array.isArray(nuevos) ? nuevos : []).forEach(i => {
+    if(!i || vistos.has(i.cid)){ duplicados++; return; }
+    vistos.add(i.cid);
+    base.push(i);
+    anadidos++;
+  });
+  base.sort((a, b) => a.ts - b.ts);
+  return { intentos: base.slice(-MAX_HISTORIAL), nuevos: anadidos, duplicados: duplicados };
+}
+
+/* ===== NUCLEO PURO — FIN ===== */
+
+/* ================= ALMACENAMIENTO =================
+   Único punto de acceso a localStorage. Devuelve si la operación funcionó en
+   vez de tragarse el fallo: un navegador sin cuota, en modo privado o con el
+   almacenamiento bloqueado tiene que poder verse desde arriba.
+   Contrato: docs/specs/estadisticas-preparacion-por-tema.arch.md            */
+
+const store = {
+  /**
+   * @param {string} key
+   * @returns {string|null} null si no existe o si el almacenamiento no está disponible.
+   */
+  read(key){
+    try{ return localStorage.getItem(key); }
+    catch(e){ return null; }
+  },
+  /**
+   * @param {string} key
+   * @param {string} value
+   * @returns {boolean} false si la escritura no llegó a hacerse.
+   */
+  write(key, value){
+    try{ localStorage.setItem(key, value); return true; }
+    catch(e){
+      console.warn('no se pudo guardar "' + key + '":', (e && e.name) || e);
+      return false;
+    }
+  },
+  /**
+   * @param {string} key
+   * @returns {boolean} false si el borrado no llegó a hacerse.
+   */
+  remove(key){
+    try{ localStorage.removeItem(key); return true; }
+    catch(e){ return false; }
+  }
+};
 
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
@@ -1632,10 +2122,6 @@ function shuffle(a){
   for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=r[i]; r[i]=r[j]; r[j]=t; }
   return r;
 }
-function norm(s){
-  return String(s).toLowerCase().trim().replace(/\s+/g,' ').replace(/;+$/,'');
-}
-function byId(id){ return Q.find(q => q.id === id); }
 function pad(n){ return String(n).padStart(2,'0'); }
 function hms(ms){
   if(ms < 0) ms = 0;
@@ -1647,7 +2133,7 @@ function hms(ms){
 function setLang(l){
   document.body.className = 'lang-' + l;
   $$('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === l)));
-  try{ localStorage.setItem(LANG_KEY, l); }catch(e){}
+  store.write(LANG_KEY, l);
 }
 $$('.seg button').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
 
@@ -1697,30 +2183,11 @@ function newAttempt(mode){
 
 function save(){
   if(!S) return;
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(e){}
+  if(!store.write(STORE_KEY, JSON.stringify(S))) almacenamientoDegradado = true;
 }
-function clearSave(){ try{ localStorage.removeItem(STORE_KEY); }catch(e){} }
+function clearSave(){ store.remove(STORE_KEY); }
 
 /* ---------- helpers de pregunta ---------- */
-function opts(item){                       // opciones en el orden mostrado
-  const q = byId(item.id);
-  return item.oidx.map(i => ({ text:q.o[i], correct: q.a.indexOf(i) >= 0 }));
-}
-function isAnswered(item){
-  const q = byId(item.id);
-  if(q.type === 'multi') return Array.isArray(item.ans) && item.ans.length > 0;
-  if(q.type === 'fill')  return typeof item.ans === 'string' && item.ans.trim() !== '';
-  return item.ans !== null && item.ans !== undefined;
-}
-function isCorrect(item){
-  const q = byId(item.id);
-  if(!isAnswered(item)) return false;
-  if(q.type === 'fill') return q.accept.some(a => norm(a) === norm(item.ans));
-  const good = item.oidx.map((orig,pos) => q.a.indexOf(orig) >= 0 ? pos : -1).filter(p => p >= 0);
-  if(q.type === 'single') return item.ans === good[0];
-  const a = item.ans.slice().sort((x,y)=>x-y).join(','), b = good.slice().sort((x,y)=>x-y).join(',');
-  return a === b;
-}
 
 /* ================= REGISTRO DEL INTENTO =================
    Capa opcional: si Supabase no responde, el examen funciona igual.
@@ -1747,28 +2214,22 @@ function uuid(){
  * @param {string} nombre  Nombre escrito por el usuario.
  * @returns {string} Clave de agrupación estable; cadena vacía si el nombre no es válido.
  */
-function normalizeUserKey(nombre){
-  return String(nombre || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9 '\-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 /**
  * Valida el nombre. Única fuente de verdad: la usan el formulario y el envío.
  * @param {string} nombre
  * @returns {boolean}
  */
-function nombreValido(nombre){
-  const t = String(nombre || '').trim();
-  return t.length >= NOMBRE_MIN && t.length <= NOMBRE_MAX && normalizeUserKey(t) !== '';
+
+/** @returns {string} Idioma de visualización activo; 'both' si no hay preferencia guardada. */
+function idiomaActual(){
+  const l = store.read(LANG_KEY);
+  return IDIOMAS.indexOf(l) >= 0 ? l : 'both';
 }
 
 /** @returns {string} Nombre guardado, o cadena vacía. */
 function nombreGuardado(){
-  try{ return localStorage.getItem(NAME_KEY) || ''; }catch(e){ return ''; }
+  return store.read(NAME_KEY) || '';
 }
 
 /**
@@ -1778,21 +2239,6 @@ function nombreGuardado(){
  * @param {object} a  Intento (S) con sus items.
  * @returns {{total:number, ok:number, ko:number, blank:number, pct:number, pass:boolean, temas:object}}
  */
-function summarizeAttempt(a){
-  const total = a.items.length;
-  const ok    = a.items.filter(isCorrect).length;
-  const blank = a.items.filter(it => !isAnswered(it)).length;
-  const ko    = total - ok - blank;
-  const pct   = total ? ok/total*100 : 0;
-  const temas = {};
-  a.items.forEach(it => {
-    const t = byId(it.id).topic;
-    temas[t] = temas[t] || { n:0, ok:0 };
-    temas[t].n++;
-    if(isCorrect(it)) temas[t].ok++;
-  });
-  return { total, ok, ko, blank, pct, pass: pct >= PASS_PCT, temas };
-}
 
 /**
  * Construye el registro que se enviará a Supabase a partir de un intento finalizado.
@@ -1804,46 +2250,21 @@ function summarizeAttempt(a){
  * @returns {object} Payload listo para POST /functions/v1/record-attempt.
  * @throws {Error} Si el intento no está finalizado, no tiene preguntas o el modo es desconocido.
  */
-function buildAttemptPayload(attempt, nombre){
-  if(!attempt || !attempt.finished)          throw new Error('el intento no está finalizado');
-  if(!attempt.items || !attempt.items.length) throw new Error('el intento no tiene preguntas');
-  const modo = MODE_MAP[attempt.mode];
-  if(!modo) throw new Error('modo desconocido: ' + attempt.mode);
-
-  const s = summarizeAttempt(attempt);
-  let idioma = 'both';
-  try{ const l = localStorage.getItem(LANG_KEY); if(IDIOMAS.indexOf(l) >= 0) idioma = l; }catch(e){}
-
-  return {
-    client_attempt_id: attempt.cid,
-    usuario_nombre:    String(nombre).trim(),
-    modo:              modo,
-    total_preguntas:   s.total,
-    limite_minutos:    attempt.limitMs ? Math.round(attempt.limitMs/60000) : null,
-    correctas:         s.ok,
-    incorrectas:       s.ko,
-    sin_responder:     s.blank,
-    porcentaje:        Math.round(s.pct*100)/100,
-    puntuacion_escala: scaled(s.pct),
-    duracion_segundos: Math.floor(attempt.elapsedMs/1000),   // floor: nunca por encima del límite
-    desglose_temas:    s.temas,
-    idioma:            idioma,
-    app_version:       APP_VERSION
-  };
-}
 
 /* ---- cola de pendientes en localStorage ---- */
 function queueRead(){
-  try{ const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); return Array.isArray(q) ? q : []; }
+  try{ const q = JSON.parse(store.read(QUEUE_KEY) || '[]'); return Array.isArray(q) ? q : []; }
   catch(e){ return []; }
 }
+/** @returns {boolean} false si la cola no pudo persistirse. */
 function queueWrite(q){
-  try{ localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-MAX_QUEUE))); }catch(e){}
+  return store.write(QUEUE_KEY, JSON.stringify(q.slice(-MAX_QUEUE)));
 }
+/** @returns {boolean} false si el intento NO quedó guardado para reintentar. */
 function queuePush(payload){
   const q = queueRead().filter(x => x.client_attempt_id !== payload.client_attempt_id);
   q.push(payload);
-  queueWrite(q);
+  return queueWrite(q);
 }
 function queueDrop(cid){
   queueWrite(queueRead().filter(x => x.client_attempt_id !== cid));
@@ -1858,9 +2279,11 @@ function queueDrop(cid){
  * @returns {Promise<{ok:boolean, intento_num?:number, duplicado?:boolean, encolado?:boolean, error?:string}>}
  */
 async function recordAttempt(payload){
-  queuePush(payload);
+  // Write-ahead: primero la cola, luego la red. Si la cola falló hay que
+  // decirlo, porque entonces no habrá reintento y el intento se pierde.
+  const encolado = queuePush(payload);
   if(!SUPABASE_URL || SUPABASE_ANON_KEY.indexOf('__') === 0){
-    return { ok:false, encolado:true, error:'sin_configurar' };
+    return { ok:false, encolado:encolado, error:'sin_configurar' };
   }
   try{
     const res = await fetch(SUPABASE_URL + '/functions/v1/record-attempt', {
@@ -1885,9 +2308,9 @@ async function recordAttempt(payload){
       console.error('registro rechazado', res.status, data);
       return { ok:false, error: (data && data.error) || 'rechazado' };
     }
-    return { ok:false, encolado:true, error: (data && data.error) || ('http_' + res.status) };
+    return { ok:false, encolado:encolado, error: (data && data.error) || ('http_' + res.status) };
   }catch(e){
-    return { ok:false, encolado:true, error:'red' };
+    return { ok:false, encolado:encolado, error:'red' };
   }
 }
 
@@ -1926,14 +2349,19 @@ function renderSync(){
   el.innerHTML = h + (sync.estado === 'fallido' && sync.reintentable
     ? ' <button class="btn" id="btnRetrySync" style="padding:4px 10px">Reintentar</button>' : '');
   const b = $('#btnRetrySync');
-  if(b) b.addEventListener('click', sendCurrentAttempt);
+  if(b) b.addEventListener('click', () => sendAttempt(S));
 }
 
-/** Envía el intento en curso y refleja el estado en la UI. Nunca rompe el resultado. */
-async function sendCurrentAttempt(){
+/**
+ * Envía un intento finalizado y refleja el estado en la UI.
+ * Nunca lanza: cualquier fallo termina en el estado visible del envío.
+ *
+ * @param {object} attempt  Intento finalizado a registrar.
+ */
+async function sendAttempt(attempt){
   let payload;
   try{
-    payload = buildAttemptPayload(S, nombreGuardado());
+    payload = buildAttemptPayload(attempt, nombreGuardado(), idiomaActual());
   }catch(e){
     sync = { estado:'fallido', error:e.message, reintentable:false };
     renderSync();
@@ -1948,9 +2376,147 @@ async function sendCurrentAttempt(){
   renderSync();
 }
 
+
+/* ================= HISTORIAL LOCAL DE INTENTOS =================
+   Única fuente de verdad de las estadísticas. El detalle por pregunta vive
+   dentro de cada intento y nunca sale del navegador; la proyección se
+   recalcula al vuelo con computeStats(), no se guarda.
+   Contrato: docs/specs/estadisticas-preparacion-por-tema.spec.md          */
+
+let almacenamientoDegradado = false;
+
+/**
+ * Lee el historial guardado.
+ *
+ * @returns {{v:number, intentos:Array<object>}} Historial válido; vacío si no
+ *          hay nada guardado o si lo guardado no supera la validación.
+ */
+function loadHistory(){
+  const crudo = store.read(HISTORY_KEY);
+  if(!crudo) return { v:HISTORY_V, intentos:[] };
+  const r = validateHistory(crudo);
+  if(!r.ok){
+    console.warn('historial ilegible (' + r.error + '): se parte de cero');
+    return { v:HISTORY_V, intentos:[] };
+  }
+  return { v:HISTORY_V, intentos:r.intentos };
+}
+
+/**
+ * Persiste el historial.
+ *
+ * @param {{v:number, intentos:Array<object>}} historial
+ * @returns {boolean} false si no se pudo guardar.
+ */
+function saveHistory(historial){
+  return store.write(HISTORY_KEY, JSON.stringify(historial));
+}
+
+/**
+ * Registra un intento finalizado en el historial local.
+ * Reentrante: si el cid ya está registrado, no hace nada.
+ *
+ * @param {object} attempt  Intento finalizado (S), con cid, mode, elapsedMs e items.
+ * @returns {boolean} true si el intento quedó registrado o ya lo estaba.
+ */
+function recordAttemptStats(attempt){
+  if(!attempt || !attempt.finished || !attempt.items || !attempt.items.length) return false;
+
+  const historial = loadHistory();
+  if(historial.intentos.some(i => i.cid === attempt.cid)) return true;
+
+  let entrada;
+  try{
+    entrada = buildHistoryEntry(attempt, Date.now());
+  }catch(e){
+    console.warn('no se pudo construir la entrada de historial:', e.message);
+    return false;
+  }
+
+  const fusion = mergeHistory(historial.intentos, [entrada]);
+  if(saveHistory({ v:HISTORY_V, intentos:fusion.intentos })) return true;
+
+  // Sin espacio: se sacrifica la mitad más antigua antes que perder el intento nuevo.
+  almacenamientoDegradado = true;
+  const podado = fusion.intentos.slice(Math.ceil(fusion.intentos.length / 2));
+  return saveHistory({ v:HISTORY_V, intentos:podado });
+}
+
+/**
+ * Fusiona un historial exportado con el actual.
+ *
+ * @param {string} texto  Contenido del archivo elegido por el usuario.
+ * @returns {{ok:boolean, importados:number, ignorados:number, error?:string}}
+ *          Si ok es false, el historial existente queda intacto.
+ */
+function importProgress(texto){
+  const r = validateHistory(texto);
+  if(!r.ok) return { ok:false, importados:0, ignorados:0, error:r.error };
+
+  const actual = loadHistory();
+  const fusion = mergeHistory(actual.intentos, r.intentos);
+  if(!saveHistory({ v:HISTORY_V, intentos:fusion.intentos })){
+    return { ok:false, importados:0, ignorados:0, error:'sin_espacio' };
+  }
+  return { ok:true, importados:fusion.nuevos, ignorados:fusion.duplicados + r.invalidos };
+}
+
+/**
+ * Descarga el historial como archivo, para trasladarlo a otro navegador.
+ *
+ * @returns {{ok:boolean, intentos?:number, error?:string}} No descarga nada si no hay historial.
+ */
+function exportProgress(){
+  const historial = loadHistory();
+  if(!historial.intentos.length) return { ok:false, error:'sin_datos' };
+  if(typeof Blob === 'undefined' || !window.URL || !window.URL.createObjectURL){
+    return { ok:false, error:'no_soportado' };
+  }
+  const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const url = window.URL.createObjectURL(new Blob([JSON.stringify(historial)], { type:'application/json' }));
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = 'lpi-progreso-' + fecha + '.json';
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+  window.URL.revokeObjectURL(url);
+  return { ok:true, intentos:historial.intentos.length };
+}
+
+/**
+ * Borra las estadísticas locales. No toca el intento en curso, el idioma,
+ * el nombre guardado ni la cola de envío pendiente.
+ *
+ * @returns {boolean} true si el borrado se llevó a cabo.
+ */
+function clearProgress(){
+  return store.remove(HISTORY_KEY);
+}
+
+/**
+ * Cierra un intento: pinta el resultado, lo registra en el historial local y
+ * lo envía. Cada etapa va aislada, de modo que el fallo de una no impide las
+ * siguientes: el examen es lo que importa, la telemetría no.
+ *
+ * @param {object} attempt  Intento recién finalizado.
+ * @returns {void}
+ */
+function onAttemptFinished(attempt){
+  try{ renderResult(); }
+  catch(e){ console.error('fallo al pintar el resultado:', e); }
+
+  try{ recordAttemptStats(attempt); }
+  catch(e){ console.error('fallo al registrar el histórico:', e); }
+
+  try{ sendAttempt(attempt); }
+  catch(e){ console.error('fallo al enviar el intento:', e); }
+}
+
 /* ---------- pantallas ---------- */
 function show(id){
-  ['screen-start','screen-exam','screen-result'].forEach(s => $('#'+s).classList.toggle('hidden', s !== id));
+  // Derivada del DOM: añadir una pantalla no obliga a acordarse de tocar esto.
+  $$('section[id^="screen-"]').forEach(sec => sec.classList.toggle('hidden', sec.id !== id));
   window.scrollTo(0,0);
 }
 function showStart(){
@@ -1968,12 +2534,15 @@ function showStart(){
   }
 }
 function loadStored(){
+  const raw = store.read(STORE_KEY);
+  if(!raw) return null;
   try{
-    const raw = localStorage.getItem(STORE_KEY);
-    if(!raw) return null;
     const s = JSON.parse(raw);
     if(!s || !s.items || !s.items.length || s.finished) return null;
     if(!s.items.every(it => byId(it.id))) return null;      // banco cambiado
+    // Los intentos guardados antes de que existiera la telemetría no traen cid.
+    // Sin sellarlo aquí, el registro remoto los rechazaría con un 400.
+    if(!s.cid) s.cid = uuid();
     return s;
   }catch(e){ return null; }
 }
@@ -1983,6 +2552,122 @@ function showExam(){
   renderQuestion();
   renderGrid();
   startTimer();
+}
+
+
+/* ================= PANTALLA DE PROGRESO =================
+   Las funciones *Html son puras: devuelven cadena, no tocan el DOM. Solo
+   renderStats() escribe. Así la mitad de la pantalla se prueba sin navegador.
+   Plan: docs/specs/estadisticas-preparacion-por-tema.tdd-plan-ui.md        */
+
+const ACCIONES = {
+  estudiar: 'Estudiar',
+  reforzar: 'Reforzar',
+  repasar:  'Repasar por encima',
+  sin_datos:'— sin datos'
+};
+const FLECHAS = { sube:'▲ mejorando', baja:'▼ empeorando', estable:'→ estable', sin_datos:'' };
+const MIN_INTENTOS_FIABLE = 3;
+
+/** Porcentaje entero listo para pintar. */
+function pctTexto(x){ return Math.round(x * 100) + ' %'; }
+
+/**
+ * Cabecera del progreso: nota estimada, equivalencia oficial y avisos.
+ * Pura: devuelve HTML, no escribe en ningún sitio.
+ *
+ * @param {object} proyeccion  Salida de computeStats().
+ * @returns {string} HTML de la cabecera.
+ */
+function statsSummaryHtml(proyeccion){
+  const r = proyeccion.resumen;
+  if(!r.intentos){
+    return '<p style="margin:0"><b>Todavía no has terminado ningún intento.</b></p>'
+         + '<p class="hint">Cuando completes el primero, aquí verás por qué temas empezar a estudiar '
+         + 'y cuáles basta con repasar por encima.</p>';
+  }
+
+  const avisos = [];
+  if(r.intentos < MIN_INTENTOS_FIABLE){
+    avisos.push({ alerta:false, texto:'Pocos intentos todavía (' + r.intentos + '): tómate la estimación con pinzas.' });
+  }
+  if(r.memorizando){
+    avisos.push({ alerta:true, texto:'Aciertas mucho más al repetir que la primera vez que ves cada pregunta: '
+      + 'estás memorizando el banco más que el temario.' });
+  }
+
+  return '<div class="nota-grande">' + r.notaEstimada.toFixed(1) + ' %</div>'
+    + '<p style="margin:6px 0 0"><b>Nota estimada</b> en un examen con el reparto oficial de temas · '
+    + 'equivalencia 200-800: <b>' + r.escala + '</b> · '
+    + (r.veredicto === 'aprobado' ? 'por encima' : 'por debajo') + ' del ' + PASS_PCT + ' % necesario.</p>'
+    + '<p class="hint" style="margin:6px 0 0">Sobre ' + r.intentos + ' intentos y '
+    + r.preguntasVistas + ' preguntas distintas del banco.</p>'
+    + (avisos.length
+        ? '<ul class="avisos">' + avisos.map(a =>
+            '<li' + (a.alerta ? ' class="alerta"' : '') + '>' + esc(a.texto) + '</li>').join('') + '</ul>'
+        : '');
+}
+
+/**
+ * Filas de la tabla de temas, en el orden que trae la proyección.
+ * El render nunca reordena: el criterio de impacto vive en computeStats().
+ *
+ * @param {object} proyeccion  Salida de computeStats().
+ * @returns {string} HTML de las filas.
+ */
+function statsTableHtml(proyeccion){
+  const fila = t => {
+    const d = proyeccion.porTema[t];
+    const nombre = TOPICS[t] ? TOPICS[t][0] : t;
+    const sinDatos = d.estado === 'sin_datos';
+    return '<tr>'
+      + '<td>' + t + ' · ' + esc(nombre)
+      + (FLECHAS[d.tendencia] ? ' <span class="tend">' + FLECHAS[d.tendencia] + '</span>' : '')
+      + '</td>'
+      + '<td class="num">' + (sinDatos ? '—' : pctTexto(d.dominio)) + '</td>'
+      + '<td class="num">' + (sinDatos ? '—' : pctTexto(d.primeraVez)) + '</td>'
+      + '<td class="num">' + (sinDatos ? '—' : d.nCrudo) + '</td>'
+      + '<td><span class="estado ' + d.estado + '">' + ACCIONES[d.estado] + '</span></td>'
+      + '</tr>';
+  };
+  const conDatos = proyeccion.orden;
+  const resto = Object.keys(proyeccion.porTema)
+    .filter(t => conDatos.indexOf(t) < 0)
+    .sort();
+  return conDatos.concat(resto).map(fila).join('');
+}
+
+/**
+ * Lista de preguntas que se resisten.
+ *
+ * @param {Array<object>} rebeldes  Preguntas falladas repetidamente.
+ * @returns {string} HTML de la sección, o cadena vacía si no hay ninguna.
+ */
+function leechListHtml(rebeldes){
+  if(!rebeldes || !rebeldes.length) return '';
+  const items = rebeldes.map(r => {
+    const q = byId(r.id);
+    return '<li><b>Tema ' + r.topic + '</b> · ' + r.vistas + ' apariciones, ningún acierto'
+         + (q ? '<br><span class="hint">' + esc(bi(q.q).replace(/<[^>]+>/g, ' ').trim().slice(0, 120)) + '</span>' : '')
+         + '</li>';
+  }).join('');
+  return '<h2>Preguntas que se te resisten</h2>'
+       + '<div class="card"><ul class="avisos" style="margin:0">' + items + '</ul></div>';
+}
+
+/** Recalcula la proyección desde el historial y repinta la pantalla. */
+function renderStats(){
+  const proyeccion = computeStats(loadHistory());
+  $('#statsSummary').innerHTML = statsSummaryHtml(proyeccion);
+  $('#statsRows').innerHTML    = statsTableHtml(proyeccion);
+  $('#statsLeeches').innerHTML = leechListHtml(proyeccion.rebeldes);
+}
+
+/** Abre la pantalla de progreso con los datos al día. */
+function showStats(){
+  stopTimer();
+  show('screen-stats');
+  renderStats();
 }
 
 /* ---------- render de pregunta ---------- */
@@ -2104,15 +2789,9 @@ function finish(auto){
   S.elapsedMs = S.limitMs ? Math.min(Date.now() - S.started, S.limitMs) : Date.now() - S.started;
   clearSave();
   if(auto) alert('Se agotó el tiempo. El intento se envió automáticamente.');
-  renderResult();
-  sendCurrentAttempt();      // el resultado ya está pintado: un fallo aquí no lo afecta
+  onAttemptFinished(S);
 }
 
-function scaled(pct){
-  return pct >= PASS_PCT
-    ? Math.round(500 + (pct - PASS_PCT) / (100 - PASS_PCT) * 300)
-    : Math.round(200 + pct / PASS_PCT * 300);
-}
 
 function renderResult(){
   show('screen-result');
@@ -2207,7 +2886,7 @@ function setNombreState(){
     : (bruto.trim() === ''
         ? 'Escribe tu nombre para habilitar los modos.'
         : 'Entre ' + NOMBRE_MIN + ' y ' + NOMBRE_MAX + ' caracteres, con alguna letra o número.');
-  if(ok){ try{ localStorage.setItem(NAME_KEY, bruto.trim()); }catch(e){} }
+  if(ok){ store.write(NAME_KEY, bruto.trim()); }
 }
 
 /* ---------- eventos ---------- */
@@ -2218,6 +2897,41 @@ $$('[data-mode]').forEach(b => b.addEventListener('click', () => {
 }));
 $('#btnResume').addEventListener('click', () => { S = loadStored(); if(S) showExam(); else showStart(); });
 $('#btnDiscard').addEventListener('click', () => { clearSave(); showStart(); });
+$('#btnStats').addEventListener('click', showStats);
+$('#btnStatsFromResult').addEventListener('click', showStats);
+$('#btnStatsBack').addEventListener('click', () => { show(S && S.finished ? 'screen-result' : 'screen-start'); });
+
+$('#btnExportStats').addEventListener('click', () => {
+  const r = exportProgress();
+  $('#statsAviso').textContent = r.ok
+    ? 'Descargados ' + r.intentos + ' intentos.'
+    : (r.error === 'sin_datos' ? 'Todavía no hay nada que exportar.' : 'Este navegador no permite la descarga.');
+});
+
+$('#fileImportStats').addEventListener('change', ev => {
+  const archivo = ev.target.files && ev.target.files[0];
+  if(!archivo) return;
+  const lector = new FileReader();
+  $('#statsAviso').textContent = 'Leyendo el archivo…';
+  lector.onload = () => {
+    const r = importProgress(String(lector.result));
+    $('#statsAviso').textContent = r.ok
+      ? ('Importados ' + r.importados + ' intentos' + (r.ignorados ? ' · ' + r.ignorados + ' ya estaban o venían corruptos' : '') + '.')
+      : 'No se pudo importar el archivo (' + r.error + '). Tu progreso no se ha tocado.';
+    if(r.ok) renderStats();
+  };
+  lector.onerror = () => { $('#statsAviso').textContent = 'No se pudo leer el archivo.'; };
+  lector.readAsText(archivo);
+  ev.target.value = '';
+});
+
+$('#btnClearStats').addEventListener('click', () => {
+  if(!confirm('Se borrarán todas tus estadísticas locales de este navegador. El intento en curso, el idioma y tu nombre no se tocan. ¿Continuar?')) return;
+  clearProgress();
+  renderStats();
+  $('#statsAviso').textContent = 'Estadísticas borradas.';
+});
+
 $('#btnPrev').addEventListener('click', () => go(-1));
 $('#btnNext').addEventListener('click', () => go(1));
 $('#btnMark').addEventListener('click', () => {
@@ -2255,7 +2969,8 @@ window.addEventListener('beforeunload', e => {
 
 /* ---------- arranque ---------- */
 (function init(){
-  try{ const l = localStorage.getItem(LANG_KEY); if(l) setLang(l); }catch(e){}
+  const idiomaGuardado = store.read(LANG_KEY);
+  if(idiomaGuardado) setLang(idiomaGuardado);
 
   $('#nombre').value = nombreGuardado();
 
