@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Los ficheros del sistema</title>
+<meta name="description" content="Qué guarda cada fichero de configuración de Linux: /etc/passwd, /etc/shadow, /etc/group, /etc/fstab, /etc/hosts y el resto, campo a campo y de forma interactiva.">
+<style>
+/* ============================================================
+   TOKENS — mismos que las otras guías
+   ============================================================ */
+:root{
+  color-scheme: light;
+
+  --bg:        #eef1f4;
+  --surface:   #ffffff;
+  --surface-2: #e6eaef;
+  --line:      #ccd4dc;
+  --line-2:    #9aa6b3;
+
+  --ink:   #131920;
+  --ink-2: #3f4a57;
+  --ink-3: #6d7884;
+
+  /* naturaleza de cada campo */
+  --ident: #a8481a;   /* nombres e identificadores */
+  --num:   #464fa2;   /* números */
+  --sec:   #9c2f3d;   /* secretos */
+  --path:  #10695a;   /* rutas */
+  --meta:  #7a3ea1;   /* opciones y texto libre */
+
+  --warn: #8a5300;
+  --ok:   #10695a;
+
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Cantarell, sans-serif;
+
+  --fs-xs: .75rem;
+  --fs-sm: .8125rem;
+  --fs-ui: .9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.1875rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2.125rem;
+  --fs-3xl: clamp(2.6rem, 7vw, 4.5rem);
+
+  --r: 3px;
+  --maxw: 68ch;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:        #0d1218;
+    --surface:   #161d26;
+    --surface-2: #1e2733;
+    --line:      #2c3644;
+    --line-2:    #4a5768;
+
+    --ink:   #dde5ed;
+    --ink-2: #a7b3c0;
+    --ink-3: #79868f;
+
+    --ident: #e18c58;
+    --num:   #949ceb;
+    --sec:   #ec8a97;
+    --path:  #4cc2a8;
+    --meta:  #c69bf0;
+
+    --warn: #dda63f;
+    --ok:   #4cc2a8;
+  }
+}
+
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #0d1218;
+  --surface:   #161d26;
+  --surface-2: #1e2733;
+  --line:      #2c3644;
+  --line-2:    #4a5768;
+
+  --ink:   #dde5ed;
+  --ink-2: #a7b3c0;
+  --ink-3: #79868f;
+
+  --ident: #e18c58;
+  --num:   #949ceb;
+  --sec:   #ec8a97;
+  --path:  #4cc2a8;
+  --meta:  #c69bf0;
+
+  --warn: #dda63f;
+  --ok:   #4cc2a8;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{ box-sizing: border-box; }
+
+body{
+  margin:0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--fs-base);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection{ background: var(--ink); color: var(--bg); }
+a{ color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+code, kbd, samp{ font-family: var(--mono); font-size: .92em; }
+h1,h2,h3{ text-wrap: balance; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.shell{ max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+
+.body-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  padding-bottom: 5rem;
+}
+@media (min-width: 1000px){
+  .body-grid{ grid-template-columns: 13rem minmax(0,1fr); gap: 4rem; }
+}
+main{ min-width: 0; }
+.prose{ max-width: var(--maxw); }
+
+section{
+  padding-block: clamp(3rem, 7vw, 5rem);
+  border-top: 1px solid var(--line);
+}
+section:first-of-type{ border-top: 0; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{
+  border-bottom: 1px solid var(--line);
+  padding-block: clamp(3.5rem, 10vw, 7rem) clamp(3rem, 8vw, 5rem);
+}
+.eyebrow{
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.75rem;
+}
+.eyebrow a{ color: inherit; text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.eyebrow a:hover{ color: var(--ink); border-color: var(--ink); }
+
+h1{
+  font-family: var(--mono);
+  font-size: var(--fs-3xl);
+  font-weight: 600;
+  letter-spacing: -.045em;
+  line-height: .95;
+  margin: 0;
+}
+.hero-lede{ max-width: 46ch; margin: 1.75rem 0 0; font-size: var(--fs-lg); color: var(--ink-2); }
+
+.hero-string{
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  font-family: var(--mono);
+  font-size: clamp(.95rem, 3.4vw, 1.7rem);
+  letter-spacing: .02em;
+  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .1em .55em;
+  font-weight: 600;
+}
+.hero-string span{ animation: drop .5s cubic-bezier(.2,.8,.3,1) backwards; }
+.hs-ident{ color: var(--ident); }
+.hs-sec{ color: var(--sec); }
+.hs-num{ color: var(--num); }
+.hs-path{ color: var(--path); }
+.hs-meta{ color: var(--meta); }
+
+@keyframes drop{
+  from{ opacity:0; transform: translateY(-.28em); }
+  to{ opacity:1; transform: none; }
+}
+
+.hero-legend{
+  display: flex; flex-wrap: wrap; gap: .5rem 1.5rem;
+  margin-top: 1.5rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+.hero-legend b{ font-weight: 600; }
+.hero-legend .k-id{ color: var(--ident); }
+.hero-legend .k-net{ color: var(--num); }
+.hero-legend .k-boot{ color: var(--path); }
+.hero-legend .k-env{ color: var(--meta); }
+
+/* ============================================================
+   ÍNDICE LATERAL
+   ============================================================ */
+.rail{ display: none; }
+@media (min-width: 1000px){
+  .rail{
+    display: block; position: sticky; top: 0; align-self: start;
+    padding-top: clamp(3rem, 7vw, 5rem);
+    max-height: 100vh; overflow-y: auto;
+  }
+}
+.rail ol{
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: .55rem;
+  font-family: var(--mono); font-size: var(--fs-sm);
+}
+.rail a{ color: var(--ink-3); text-decoration: none; display: flex; gap: .6rem; transition: color .15s; }
+.rail a:hover{ color: var(--ink); }
+.rail a .glyph{ color: var(--line-2); width: 1.1em; flex: none; }
+.rail a.is-active{ color: var(--ink); }
+.rail a.is-active .glyph{ color: var(--ident); }
+
+/* ============================================================
+   TIPOGRAFÍA DE SECCIÓN
+   ============================================================ */
+.sec-mark{
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 .9rem;
+}
+h2{
+  font-family: var(--mono); font-size: var(--fs-2xl); font-weight: 600;
+  letter-spacing: -.035em; line-height: 1.1; margin: 0 0 1.25rem;
+}
+h3{
+  font-family: var(--mono); font-size: var(--fs-lg); font-weight: 600;
+  letter-spacing: -.02em; margin: 2.5rem 0 .75rem;
+}
+p{ margin: 0 0 1.1rem; }
+.prose ul, .prose ol{ padding-left: 1.2rem; margin: 0 0 1.2rem; }
+.prose li{ margin-bottom: .5rem; }
+
+.note{
+  font-size: var(--fs-ui); font-family: var(--sans); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem;
+  margin: 1.5rem 0; max-width: var(--maxw);
+}
+.note b{ color: var(--ink); }
+
+/* ============================================================
+   BLOQUES ANCHOS
+   ============================================================ */
+.wide{ margin: 2rem 0; }
+.panel{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(1.25rem, 3vw, 2rem);
+}
+.scroll-x{ overflow-x: auto; }
+
+/* ============================================================
+   TABLAS
+   ============================================================ */
+table{
+  border-collapse: collapse; width: 100%; min-width: 34rem;
+  font-family: var(--sans); font-size: var(--fs-ui);
+}
+th, td{ text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th{
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2); font-weight: 600;
+}
+tbody tr:last-child td{ border-bottom: 0; }
+td code{ color: var(--ink); }
+.tnum{ font-variant-numeric: tabular-nums; }
+.col-path{ width: 12rem; }
+.col-n{ width: 4rem; }
+
+/* ============================================================
+   DISECTOR DE LÍNEAS
+   ============================================================ */
+.picker{ display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.25rem; }
+.pick{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+  border-radius: var(--r); padding: .35rem .7rem; cursor: pointer; transition: all .12s;
+}
+.pick:hover{ border-color: var(--ink-3); color: var(--ink); }
+.pick[aria-pressed="true"]{ border-color: var(--ink); color: var(--ink); font-weight: 600; background: var(--surface); }
+
+.line-head{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 .6rem;
+}
+.line{
+  font-family: var(--mono); font-size: clamp(.85rem, 2.6vw, 1.15rem); font-weight: 600;
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: .15em 0; line-height: 1.9; margin-bottom: 1.2rem;
+}
+.tok{
+  border-bottom: 2px solid currentColor; padding: 0 .12em .1em;
+  cursor: pointer; background: transparent; border-left: 0; border-right: 0; border-top: 0;
+  font: inherit; border-radius: 0;
+}
+.tok:hover{ background: var(--surface-2); }
+.tok[data-k="ident"]{ color: var(--ident); }
+.tok[data-k="num"]{ color: var(--num); }
+.tok[data-k="sec"]{ color: var(--sec); }
+.tok[data-k="path"]{ color: var(--path); }
+.tok[data-k="meta"]{ color: var(--meta); }
+.tok.is-empty{ min-width: 1.1em; }
+.tok.is-empty::after{ content: "·"; opacity: .5; }
+.tok.is-on{ background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.sep{ color: var(--ink-3); font-weight: 400; padding: 0 .08em; }
+
+.fields{ display: grid; gap: 0; margin: 0 0 1.2rem; }
+.field{
+  display: grid; grid-template-columns: 2.2rem minmax(0,9rem) minmax(0,1fr);
+  gap: .9rem; padding: .5rem 0; border-bottom: 1px solid var(--line);
+  align-items: baseline; font-size: var(--fs-ui);
+}
+.field:last-child{ border-bottom: 0; }
+.field .n{ font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); }
+.field .nm{ font-family: var(--mono); font-weight: 600; }
+.field .nm[data-k="ident"]{ color: var(--ident); }
+.field .nm[data-k="num"]{ color: var(--num); }
+.field .nm[data-k="sec"]{ color: var(--sec); }
+.field .nm[data-k="path"]{ color: var(--path); }
+.field .nm[data-k="meta"]{ color: var(--meta); }
+.field .ds{ font-family: var(--sans); color: var(--ink-2); }
+.field.is-on{ background: var(--surface-2); }
+@media (max-width: 640px){
+  .field{ grid-template-columns: 2.2rem minmax(0,1fr); gap: .4rem .7rem; }
+  .field .ds{ grid-column: 2; }
+}
+
+.what{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: 0;
+}
+.what b{ color: var(--ink); }
+
+.legend-kinds{
+  display: flex; flex-wrap: wrap; gap: .4rem 1.4rem;
+  margin: 0 0 1.1rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.legend-kinds b{ font-weight: 600; }
+.legend-kinds .k-ident{ color: var(--ident); }
+.legend-kinds .k-num{ color: var(--num); }
+.legend-kinds .k-sec{ color: var(--sec); }
+.legend-kinds .k-path{ color: var(--path); }
+.legend-kinds .k-meta{ color: var(--meta); }
+
+/* ============================================================
+   EXPLORADOR
+   ============================================================ */
+.filters{ display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+.filter{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .4rem .8rem; cursor: pointer; transition: all .12s;
+}
+.filter:hover{ border-color: var(--ink-3); color: var(--ink); }
+.filter[aria-pressed="true"]{ border-color: var(--ink); color: var(--ink); font-weight: 600; background: var(--surface-2); }
+
+.explorer{ display: grid; gap: 1.5rem; }
+@media (min-width: 820px){
+  .explorer{ grid-template-columns: minmax(0, 16rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
+}
+
+.tree{
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 1px;
+  font-family: var(--mono); font-size: var(--fs-ui);
+  max-height: 32rem; overflow-y: auto;
+}
+.tree button{
+  width: 100%; text-align: left; font: inherit; cursor: pointer;
+  background: transparent; color: var(--ink-2);
+  border: 1px solid transparent; border-radius: var(--r);
+  padding: .35rem .6rem;
+  display: flex; align-items: baseline; gap: .5rem;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.tree button:hover{ background: var(--surface-2); color: var(--ink); }
+.tree button[aria-pressed="true"]{ background: var(--surface-2); border-color: var(--line-2); color: var(--ink); font-weight: 600; }
+.tree .dot{ width: .5em; height: .5em; border-radius: 50%; flex: none; align-self: center; }
+.tree .dot[data-kind="id"]{ background: var(--ident); }
+.tree .dot[data-kind="net"]{ background: var(--num); }
+.tree .dot[data-kind="boot"]{ background: var(--path); }
+.tree .dot[data-kind="env"]{ background: var(--meta); }
+.tree .dot[data-kind="log"]{ background: var(--sec); }
+.tree .nm{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree li.is-hidden{ display: none; }
+
+.detail{
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent, var(--line-2));
+  border-radius: var(--r); padding: 1.25rem 1.4rem;
+}
+.detail[data-kind="id"]{ --accent: var(--ident); }
+.detail[data-kind="net"]{ --accent: var(--num); }
+.detail[data-kind="boot"]{ --accent: var(--path); }
+.detail[data-kind="env"]{ --accent: var(--meta); }
+.detail[data-kind="log"]{ --accent: var(--sec); }
+
+.detail h3{ font-size: var(--fs-xl); margin: 0 0 .1rem; color: var(--accent); overflow-wrap: anywhere; }
+.detail .sub{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 1rem;
+}
+.detail .desc{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); margin: 0 0 1rem; }
+.detail dl{
+  margin: 0 0 1rem; display: grid; gap: .35rem .9rem;
+  grid-template-columns: auto minmax(0,1fr);
+  font-size: var(--fs-sm);
+}
+.detail dt{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.detail dd{ margin: 0; font-family: var(--sans); color: var(--ink-2); }
+.detail dd code{ color: var(--ink); }
+.detail .cmds{ display: flex; flex-direction: column; gap: .35rem; }
+
+.cmd{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: .5rem .7rem;
+  overflow-x: auto; white-space: nowrap;
+}
+.cmd .prompt{ color: var(--ink-3); }
+
+/* ============================================================
+   VISOR DE CONSULTAS
+   ============================================================ */
+.viewer{ display: grid; gap: 1.5rem; }
+@media (min-width: 820px){
+  .viewer{ grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
+}
+.files{ display: flex; flex-direction: column; gap: .35rem; }
+.file{
+  font-family: var(--mono); font-size: var(--fs-sm); text-align: left;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .45rem .7rem; cursor: pointer; transition: all .12s;
+}
+.file:hover{ border-color: var(--ink-3); color: var(--ink); }
+.file[aria-pressed="true"]{ border-color: var(--ident); color: var(--ident); font-weight: 600; background: color-mix(in srgb, var(--ident) 10%, transparent); }
+
+.term{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); overflow: hidden;
+}
+.term-bar{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding: .5rem .8rem; border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.term pre{
+  margin: 0; padding: .9rem; overflow-x: auto;
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.5; color: var(--ink);
+}
+.term pre .prompt{ color: var(--ink-3); }
+.term-note{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  padding: .8rem .9rem; border-top: 1px solid var(--line); margin: 0;
+}
+
+/* ============================================================
+   QUIZ
+   ============================================================ */
+.quiz{ display: flex; flex-direction: column; gap: 1.5rem; }
+.q{ border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; }
+.q:last-child{ border-bottom: 0; padding-bottom: 0; }
+.q-text{ font-size: var(--fs-lg); margin: 0 0 .8rem; }
+.q-opts{ display: flex; flex-wrap: wrap; gap: .5rem; }
+.opt{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .45rem .8rem; cursor: pointer; transition: all .12s;
+}
+.opt:hover:not(:disabled){ border-color: var(--ink-3); color: var(--ink); }
+.opt:disabled{ cursor: default; }
+.opt.good{ border-color: var(--ok); color: var(--ok); font-weight: 600; background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.opt.bad{ border-color: var(--warn); color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); text-decoration: line-through; }
+.q-exp{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: .9rem 0 0;
+}
+.q-exp[hidden]{ display: none; }
+
+/* ============================================================
+   CHULETA
+   ============================================================ */
+.cheat{ display: grid; gap: .1rem; font-family: var(--mono); font-size: var(--fs-ui); }
+.cheat-row{
+  display: grid; grid-template-columns: minmax(0, 14rem) minmax(0,1fr);
+  gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--line); align-items: baseline;
+}
+.cheat-row:last-child{ border-bottom: 0; }
+.cheat-row span{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); }
+.cheat-row b{ font-weight: 600; overflow-wrap: anywhere; }
+
+footer{
+  border-top: 1px solid var(--line);
+  padding-block: 2.5rem 4rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="shell">
+    <p class="eyebrow"><a href="../">← Índice</a> · Guía visual · ficheros de configuración</p>
+    <h1>Los ficheros del sistema</h1>
+    <p class="hero-lede">Quién eres, a qué grupos perteneces, qué se monta al arrancar y cómo se resuelve un nombre: todo eso son líneas de texto separadas por dos puntos. Y se leen con <code>cat</code>.</p>
+
+    <div class="hero-string" aria-label="Ficheros de configuración del sistema">
+      <span class="hs-ident" style="animation-delay:.00s">/etc/passwd</span><span class="hs-sec" style="animation-delay:.05s">/etc/shadow</span><span class="hs-ident" style="animation-delay:.10s">/etc/group</span><span class="hs-path" style="animation-delay:.15s">/etc/fstab</span><span class="hs-num" style="animation-delay:.20s">/etc/hosts</span><span class="hs-meta" style="animation-delay:.25s">/etc/profile</span><span class="hs-path" style="animation-delay:.30s">/etc/crontab</span>
+    </div>
+
+    <p class="hero-legend">
+      <b class="k-id">■ cuentas y permisos</b>
+      <b class="k-net">■ red</b>
+      <b class="k-boot">■ arranque y sistema</b>
+      <b class="k-env">■ entorno y sesión</b>
+    </p>
+  </div>
+</header>
+
+<div class="shell body-grid">
+
+  <nav class="rail" aria-label="Índice">
+    <ol>
+      <li><a href="#texto"><span class="glyph">:</span> Todo es texto</a></li>
+      <li><a href="#disector"><span class="glyph">▸</span> Disector</a></li>
+      <li><a href="#dos"><span class="glyph">#</span> passwd y shadow</a></li>
+      <li><a href="#explorador"><span class="glyph">*</span> Explorador</a></li>
+      <li><a href="#grupos"><span class="glyph">g</span> Grupos</a></li>
+      <li><a href="#consultas"><span class="glyph">$</span> Consultarlos</a></li>
+      <li><a href="#editar"><span class="glyph">!</span> No los edites</a></li>
+      <li><a href="#quiz"><span class="glyph">?</span> Compruébalo</a></li>
+      <li><a href="#chuleta"><span class="glyph">≡</span> Chuleta</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- TEXTO -->
+    <section id="texto">
+      <p class="sec-mark">Punto de partida</p>
+      <h2>Todo es texto plano</h2>
+      <div class="prose">
+        <p>En Linux no hay registro del sistema, ni base de datos de configuración, ni panel que guarde las cosas en un formato que solo él entienda. La configuración vive en <code>/etc</code> —el directorio que la <a href="../linux_special_directories/">guía de directorios</a> sitúa en el árbol—, en ficheros de texto, y casi todos siguen la misma forma: <b>una línea por registro</b>, <b>campos separados por dos puntos</b>, y <code>#</code> para comentar.</p>
+        <p>Eso tiene tres consecuencias prácticas que el examen da por sabidas:</p>
+        <ul>
+          <li>Cualquier fichero de <code>/etc</code> se inspecciona con <code>cat</code>, <code>grep</code>, <code>cut</code> o <code>less</code>. No hace falta una herramienta especial.</li>
+          <li>Una copia de <code>/etc</code> es una copia de la configuración entera de la máquina.</li>
+          <li>Un carácter de más rompe el fichero, y algunos —<code>/etc/fstab</code>, <code>/etc/sudoers</code>— rompen la máquina con él.</li>
+        </ul>
+        <p>El campo vacío no es lo mismo que el campo ausente. En estos ficheros «vacío» suele significar «sin límite» o «valor por omisión», y por eso una línea puede acabar en <code>:::</code> sin que eso sea un error.</p>
+      </div>
+
+      <div class="note">
+        <b>Los dos puntos son el separador, no el espacio.</b> Por eso el nombre completo de un usuario puede llevar espacios (<code>Jorge Rodriguez</code>) y seguir siendo un solo campo. En <code>/etc/fstab</code>, <code>/etc/hosts</code> y <code>/etc/crontab</code> el criterio cambia y sí se separa por espacios o tabuladores: son ficheros de otra familia.
+      </div>
+    </section>
+
+    <!-- DISECTOR -->
+    <section id="disector">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Disector de líneas</h2>
+      <div class="prose">
+        <p>Elige un fichero para ver una línea real troceada campo a campo. <b>Pulsa cualquier campo</b> de la línea para resaltar qué es y qué significa.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="picker" id="picker" role="group" aria-label="Ficheros de ejemplo"></div>
+
+        <p class="legend-kinds">
+          <b class="k-ident">■ nombre</b>
+          <b class="k-num">■ número</b>
+          <b class="k-sec">■ secreto</b>
+          <b class="k-path">■ ruta</b>
+          <b class="k-meta">■ opciones</b>
+        </p>
+
+        <p class="line-head" id="line-head"></p>
+        <div class="line" id="line" aria-live="polite"></div>
+        <div class="fields" id="fields"></div>
+        <p class="what" id="what"></p>
+      </div>
+
+      <div class="note">
+        <b>El hash de ejemplo es inventado.</b> Todo lo demás son líneas reales de una Debian 12. Un hash de verdad no se publica ni se copia: con él y tiempo suficiente se recupera la contraseña sin necesidad de tocar la máquina, y ese es exactamente el motivo de que <code>/etc/shadow</code> no lo pueda leer cualquiera.
+      </div>
+    </section>
+
+    <!-- PASSWD Y SHADOW -->
+    <section id="dos">
+      <p class="sec-mark">La pregunta de siempre</p>
+      <h2>Por qué son dos ficheros y no uno</h2>
+      <div class="prose">
+        <p>Al principio solo existía <code>/etc/passwd</code>, y el hash de la contraseña estaba en su segundo campo. El problema es que ese fichero <b>tiene que ser legible por todo el mundo</b>: cada vez que <code>ls -l</code> muestra un propietario, alguien está traduciendo el UID <code>1000</code> al nombre <code>jorge</code>, y esa traducción sale de ahí. Un fichero legible por todos con los hashes dentro es un fichero de contraseñas repartido a todos los usuarios.</p>
+        <p>La solución fue partirlo. Los datos públicos se quedaron en <code>/etc/passwd</code> con permisos <code>644</code>; los hashes se mudaron a <code>/etc/shadow</code> con permisos <code>640</code> y grupo <code>shadow</code> —si esos números no te dicen nada, están explicados en la <a href="../sample_linux_permissions/">guía de permisos</a>—. En el hueco que dejaron quedó una <code>x</code>, que hoy significa «esto está en shadow».</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead>
+            <tr><th class="col-path">Fichero</th><th>Permisos</th><th>Qué guarda</th><th>Quién lo lee</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>/etc/passwd</code></td>
+              <td><code>-rw-r--r--</code><br>644 <code>root:root</code></td>
+              <td>Nombre, UID, GID, nombre completo, home y shell. Nada secreto.</td>
+              <td>Todo el mundo, y hace falta que sea así.</td>
+            </tr>
+            <tr>
+              <td><code>/etc/shadow</code></td>
+              <td><code>-rw-r-----</code><br>640 <code>root:shadow</code></td>
+              <td>El hash de la contraseña y sus fechas de caducidad.</td>
+              <td>Solo root y el grupo <code>shadow</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <h3>Qué puede haber en el campo de la contraseña</h3>
+        <p>Ese segundo campo de <code>shadow</code> no siempre es un hash, y lo que hay dentro cambia por completo el estado de la cuenta:</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-n">Valor</th><th>Significa</th></tr></thead>
+          <tbody>
+            <tr><td><code>$6$…</code></td><td>Un hash real. El número tras el primer <code>$</code> dice con qué algoritmo: <code>1</code> = MD5, <code>5</code> = SHA-256, <code>6</code> = SHA-512, <code>y</code> = yescrypt. El segundo bloque es la <i>sal</i>, distinta para cada usuario, y por eso dos personas con la misma contraseña tienen hashes distintos.</td></tr>
+            <tr><td><code>!</code> o <code>!!</code></td><td>Cuenta <b>bloqueada</b>. Es lo que pone <code>passwd -l</code>: añade un <code>!</code> delante del hash, de modo que ninguna contraseña coincide, pero el hash original sigue ahí para poder desbloquear.</td></tr>
+            <tr><td><code>*</code></td><td>Cuenta sin contraseña posible, nunca la tuvo. Es lo normal en las cuentas de servicio: existen para ser dueñas de ficheros y procesos, no para entrar.</td></tr>
+            <tr><td>vacío</td><td>Se entra <b>sin contraseña</b>. Casi siempre es un error grave, no una decisión.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <h3>Los rangos de UID</h3>
+        <p>El UID no es un número cualquiera: su valor lo clasifica. Los límites están escritos en <code>/etc/login.defs</code>, y son lo que consulta <code>useradd</code> para decidir qué número te toca.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-n tnum">UID</th><th>Quién</th><th>Detalle</th></tr></thead>
+          <tbody>
+            <tr><td class="tnum"><code>0</code></td><td><b>root</b></td><td>No es root por llamarse «root»: es root por tener el UID 0. Cambia el nombre y sigue mandando; pon UID 0 a otra cuenta y tendrás un segundo administrador.</td></tr>
+            <tr><td class="tnum"><code>1–999</code></td><td>Cuentas del sistema</td><td><code>daemon</code>, <code>www-data</code>, <code>sshd</code>… Existen para que los servicios no corran como root. Su shell es <code>/usr/sbin/nologin</code>.</td></tr>
+            <tr><td class="tnum"><code>1000+</code></td><td>Personas</td><td>El primer usuario que crea el instalador es el 1000. El límite lo fija <code>UID_MIN</code> en <code>/etc/login.defs</code>.</td></tr>
+            <tr><td class="tnum"><code>65534</code></td><td><b>nobody</b></td><td>El usuario sin privilegios de toda la vida. Su home es <code>/nonexistent</code>, que no existe a propósito.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>El shell es un permiso disfrazado.</b> Poner <code>/usr/sbin/nologin</code> en el séptimo campo de <code>/etc/passwd</code> no es elegir un intérprete: es cerrar la cuenta. Ese programa imprime «This account is currently not available» y termina. <code>/bin/false</code> hace lo mismo sin decir nada. Solo los shells listados en <code>/etc/shells</code> se consideran válidos para iniciar sesión.
+      </div>
+    </section>
+
+    <!-- EXPLORADOR -->
+    <section id="explorador">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Explorador de ficheros</h2>
+      <div class="prose">
+        <p>Los ficheros que hay que reconocer de vista en el examen. Pulsa cualquiera para ver qué guarda, con qué permisos y qué orden lo consulta. El color indica de qué se ocupa.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="filters" role="group" aria-label="Filtrar por tema">
+          <button class="filter" type="button" data-filter="all" aria-pressed="true">Todos</button>
+          <button class="filter" type="button" data-filter="id" aria-pressed="false">Cuentas</button>
+          <button class="filter" type="button" data-filter="net" aria-pressed="false">Red</button>
+          <button class="filter" type="button" data-filter="boot" aria-pressed="false">Sistema</button>
+          <button class="filter" type="button" data-filter="env" aria-pressed="false">Entorno</button>
+          <button class="filter" type="button" data-filter="log" aria-pressed="false">Registros</button>
+        </div>
+
+        <div class="explorer">
+          <ul class="tree" id="tree" role="list"></ul>
+          <div class="detail" id="detail" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b>Un fichero de <code>/etc</code> puede no ser un fichero.</b> <code>/etc/os-release</code> es un enlace a <code>/usr/lib/os-release</code>, y <code>/etc/localtime</code> es un enlace al huso horario elegido dentro de <code>/usr/share/zoneinfo</code>. La idea es la misma en los dos casos: lo que el paquete instala vive en <code>/usr</code>, y <code>/etc</code> solo apunta a la elección de esta máquina.
+      </div>
+    </section>
+
+    <!-- GRUPOS -->
+    <section id="grupos">
+      <p class="sec-mark">La parte que se lía</p>
+      <h2>Grupos: primario y secundarios</h2>
+      <div class="prose">
+        <p>Cada usuario tiene <b>un</b> grupo primario y <b>cualquier número</b> de grupos secundarios, y cada tipo se apunta en un sitio distinto. Ahí está el enredo:</p>
+        <ul>
+          <li>El <b>primario</b> es el cuarto campo de su línea en <code>/etc/passwd</code>. Es un GID, no un nombre. Es el grupo que hereda cada fichero que la persona crea.</li>
+          <li>Los <b>secundarios</b> son el cuarto campo de la línea del grupo en <code>/etc/group</code>, la lista de nombres separados por comas.</li>
+        </ul>
+        <p>Consecuencia que confunde a todo el mundo: si tu grupo primario es <code>jorge</code>, <b>tu nombre no aparece</b> en la línea <code>jorge:x:1000:</code> de <code>/etc/group</code>. La lista está vacía y aun así perteneces al grupo. Por eso <code>getent group jorge</code> parece decir que nadie está dentro, mientras <code>id</code> te lo cuenta sin dudar.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-path">Fichero</th><th>Permisos</th><th>Qué guarda</th></tr></thead>
+          <tbody>
+            <tr><td><code>/etc/group</code></td><td><code>-rw-r--r--</code><br>644</td><td>Nombre del grupo, GID y la lista de miembros secundarios.</td></tr>
+            <tr><td><code>/etc/gshadow</code></td><td><code>-rw-r-----</code><br>640 <code>root:shadow</code></td><td>La contraseña del grupo (casi siempre <code>!</code>, es decir ninguna) y quién puede administrarlo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <h3>Grupos que conviene reconocer</h3>
+        <p>Meter a alguien en uno de estos grupos es concederle un permiso concreto sobre la máquina. Es el mecanismo habitual para dar acceso a algo sin dar <code>root</code>.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-n">GID</th><th>Grupo</th><th>Qué concede</th></tr></thead>
+          <tbody>
+            <tr><td class="tnum">0</td><td><code>root</code></td><td>El grupo del administrador.</td></tr>
+            <tr><td class="tnum">4</td><td><code>adm</code></td><td>Leer los registros de <code>/var/log</code> sin ser root.</td></tr>
+            <tr><td class="tnum">6</td><td><code>disk</code></td><td>Acceso en crudo a los discos. Salta cualquier permiso de fichero: es equivalente a dar la máquina entera.</td></tr>
+            <tr><td class="tnum">27</td><td><code>sudo</code></td><td>Ejecutar órdenes como root vía <code>sudo</code>. En Red Hat el equivalente es <code>wheel</code>.</td></tr>
+            <tr><td class="tnum">42</td><td><code>shadow</code></td><td>Leer <code>/etc/shadow</code>. Lo usan programas como <code>passwd</code>, no personas.</td></tr>
+            <tr><td class="tnum">44</td><td><code>video</code></td><td>Acceso a la aceleración gráfica y a las cámaras.</td></tr>
+            <tr><td class="tnum">--</td><td><code>docker</code></td><td>Hablar con el demonio de Docker, que corre como root. Otra forma indirecta de ser administrador.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Un cambio de grupo no se nota hasta volver a entrar.</b> Los grupos se leen al iniciar la sesión y se quedan pegados al proceso. Si añades a alguien al grupo <code>docker</code>, su terminal abierta seguirá sin él: hace falta cerrar sesión, o usar <code>newgrp docker</code> para abrir un shell con el grupo ya aplicado.
+      </div>
+    </section>
+
+    <!-- CONSULTAS -->
+    <section id="consultas">
+      <p class="sec-mark">Pruébalo</p>
+      <h2>Cómo se consultan</h2>
+      <div class="prose">
+        <p>Casi nunca hace falta abrir estos ficheros: hay una orden para cada pregunta. Elige una para ver su salida real y qué se está mirando en cada caso.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="viewer">
+          <div class="files" id="files" role="group" aria-label="Consultas"></div>
+          <div class="term">
+            <div class="term-bar" id="term-bar">salida</div>
+            <pre id="term-out" aria-live="polite"></pre>
+            <p class="term-note" id="term-note"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b><code>getent</code> no es lo mismo que <code>cat</code>.</b> <code>cat /etc/passwd</code> lee un fichero; <code>getent passwd</code> pregunta al sistema, que sigue el orden escrito en <code>/etc/nsswitch.conf</code>. Si la máquina saca sus usuarios de un directorio LDAP, <code>getent</code> los encuentra y <code>cat</code> no. En una máquina de escritorio dan lo mismo, y esa es la trampa: solo se nota la diferencia cuando ya importa.
+      </div>
+    </section>
+
+    <!-- EDITAR -->
+    <section id="editar">
+      <p class="sec-mark">Cuidado aquí</p>
+      <h2>No los edites con nano</h2>
+      <div class="prose">
+        <p>Se pueden editar a mano, y en un rato tranquilo no pasará nada. Pero cada uno de estos ficheros tiene una orden propia que hace dos cosas que <code>nano</code> no hace: <b>bloquear el fichero</b> mientras lo tocas, para que <code>passwd</code> no escriba encima a la vez, y <b>validar la sintaxis</b> antes de guardar.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-path">En vez de editar</th><th>Usa</th><th>Por qué</th></tr></thead>
+          <tbody>
+            <tr><td><code>/etc/passwd</code></td><td><code>vipw</code></td><td>Bloquea el fichero y comprueba el resultado al salir. Para lo habitual, ni eso: <code>useradd</code>, <code>usermod</code>, <code>userdel</code>.</td></tr>
+            <tr><td><code>/etc/shadow</code></td><td><code>passwd</code> · <code>chage</code></td><td><code>passwd</code> cambia el hash; <code>chage</code> las fechas. Escribir un hash a mano es imposible sin generarlo antes.</td></tr>
+            <tr><td><code>/etc/group</code></td><td><code>vigr</code> · <code>gpasswd</code></td><td><code>gpasswd -a usuario grupo</code> añade un miembro sin abrir un editor. También <code>usermod -aG</code>.</td></tr>
+            <tr><td><code>/etc/sudoers</code></td><td><code>visudo</code></td><td>Comprueba la sintaxis antes de guardar. Una errata aquí deja a todo el mundo sin <code>sudo</code>, y arreglarla requiere <code>sudo</code>.</td></tr>
+            <tr><td><code>/etc/fstab</code></td><td>editar + <code>mount -a</code></td><td>No hay orden dedicada, así que la costumbre es probarlo con <code>mount -a</code> <b>antes</b> de reiniciar. Un fstab roto puede dejar la máquina sin arrancar.</td></tr>
+            <tr><td>el crontab</td><td><code>crontab -e</code></td><td>Valida el formato e instala el fichero en su sitio. Editar <code>/var/spool/cron</code> a mano no es la forma.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="prose">
+        <h3>Las órdenes de usuarios y grupos</h3>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-path">Orden</th><th>Qué hace</th><th>Qué fichero toca</th></tr></thead>
+          <tbody>
+            <tr><td><code>useradd -m ana</code></td><td>Crea la cuenta y su home, copiando dentro <code>/etc/skel</code>.</td><td><code>passwd</code>, <code>shadow</code>, <code>group</code>, <code>gshadow</code></td></tr>
+            <tr><td><code>passwd ana</code></td><td>Le pone contraseña. Sin este paso la cuenta existe pero no entra.</td><td><code>shadow</code></td></tr>
+            <tr><td><code>usermod -aG sudo ana</code></td><td>La añade al grupo <code>sudo</code>. La <code>-a</code> es obligatoria: sin ella <b>sustituye</b> todos sus grupos secundarios.</td><td><code>group</code></td></tr>
+            <tr><td><code>userdel -r ana</code></td><td>Borra la cuenta y, con <code>-r</code>, también su home y su correo.</td><td><code>passwd</code>, <code>shadow</code>, <code>group</code></td></tr>
+            <tr><td><code>groupadd equipo</code></td><td>Crea un grupo con el siguiente GID libre.</td><td><code>group</code>, <code>gshadow</code></td></tr>
+            <tr><td><code>chage -M 90 ana</code></td><td>Fuerza a cambiar la contraseña cada 90 días.</td><td><code>shadow</code></td></tr>
+            <tr><td><code>passwd -l ana</code></td><td>Bloquea la cuenta poniendo <code>!</code> delante del hash.</td><td><code>shadow</code></td></tr>
+            <tr><td><code>pwck</code> · <code>grpck</code></td><td>Revisan que passwd, shadow, group y gshadow sean coherentes entre sí.</td><td>los cuatro, solo lectura</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>El error clásico del examen.</b> <code>usermod -G sudo ana</code> no añade a Ana al grupo <code>sudo</code>: la deja <b>solo</b> en ese grupo y le quita todos los demás. La opción que añade es <code>-aG</code>. Es el mismo tipo de descuido que <code>&gt;</code> frente a <code>&gt;&gt;</code>, y con consecuencias parecidas.
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz">
+      <p class="sec-mark">Compruébalo</p>
+      <h2>¿En qué fichero está?</h2>
+      <div class="prose">
+        <p>Doce preguntas del tipo que cae en los temas 104 y 105. Elige y te explico por qué.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="quiz" id="quiz"></div>
+      </div>
+    </section>
+
+    <!-- CHULETA -->
+    <section id="chuleta">
+      <p class="sec-mark">Para tener a mano</p>
+      <h2>Chuleta</h2>
+
+      <div class="wide panel">
+        <div class="cheat">
+          <div class="cheat-row"><b>/etc/passwd</b><span>Cuentas, 644. Siete campos: nombre : x : UID : GID : nombre completo : home : shell.</span></div>
+          <div class="cheat-row"><b>/etc/shadow</b><span>Hashes y caducidad, 640 <code>root:shadow</code>. Nueve campos.</span></div>
+          <div class="cheat-row"><b>/etc/group</b><span>Grupos, 644. Cuatro campos: nombre : x : GID : miembros secundarios.</span></div>
+          <div class="cheat-row"><b>/etc/gshadow</b><span>Contraseña y administradores de cada grupo, 640.</span></div>
+          <div class="cheat-row"><b>/etc/sudoers</b><span>Quién puede usar <code>sudo</code>, 440. Solo con <code>visudo</code>.</span></div>
+          <div class="cheat-row"><b>/etc/skel</b><span>La plantilla que se copia al home de cada cuenta nueva.</span></div>
+          <div class="cheat-row"><b>/etc/login.defs</b><span><code>UID_MIN</code>, <code>PASS_MAX_DAYS</code>, <code>UMASK</code>: los valores por omisión al crear cuentas.</span></div>
+          <div class="cheat-row"><b>/etc/shells</b><span>Los shells válidos para iniciar sesión.</span></div>
+          <div class="cheat-row"><b>/etc/fstab</b><span>Qué se monta al arrancar. Seis campos. Pruébalo con <code>mount -a</code>.</span></div>
+          <div class="cheat-row"><b>/etc/hosts</b><span>Nombres resueltos localmente, antes de preguntar al DNS.</span></div>
+          <div class="cheat-row"><b>/etc/resolv.conf</b><span>Qué servidores DNS se usan. Suele generarlo un servicio: no lo edites.</span></div>
+          <div class="cheat-row"><b>/etc/hostname</b><span>El nombre de esta máquina, una sola línea.</span></div>
+          <div class="cheat-row"><b>/etc/nsswitch.conf</b><span>El orden en que se buscan usuarios, grupos y nombres: fichero, DNS, LDAP.</span></div>
+          <div class="cheat-row"><b>/etc/crontab</b><span>Tareas programadas del sistema. Cinco campos de tiempo, usuario, orden.</span></div>
+          <div class="cheat-row"><b>/etc/os-release</b><span>Qué distribución y versión es. Enlace a <code>/usr/lib/os-release</code>.</span></div>
+          <div class="cheat-row"><b>/etc/profile · ~/.bashrc</b><span>Entorno de todos al iniciar sesión · configuración de tu shell interactivo.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>id</b><span>Tu UID, tu GID primario y todos tus grupos.</span></div>
+          <div class="cheat-row"><b>getent passwd ana</b><span>La línea de un usuario, venga de un fichero o de la red.</span></div>
+          <div class="cheat-row"><b>getent group sudo</b><span>Los miembros secundarios de un grupo.</span></div>
+          <div class="cheat-row"><b>chage -l ana</b><span>Las fechas de su contraseña, en formato legible.</span></div>
+          <div class="cheat-row"><b>cut -d: -f1 /etc/passwd</b><span>Solo los nombres de usuario.</span></div>
+          <div class="cheat-row"><b>sudo -l</b><span>Qué te permite hacer <code>sudo</code> en esta máquina.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="shell">Guía visual de los ficheros del sistema · /etc/passwd · /etc/shadow · /etc/group · /etc/fstab</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ==========================================================
+     DATOS — DISECTOR
+     Cada línea va troceada en campos: [texto, tipo].
+     tipo: ident | num | sec | path | meta
+     sep: el separador real del fichero.
+     ========================================================== */
+  var LINES = [
+    { id:"/etc/passwd", sep:":",
+      head:"una cuenta de persona",
+      toks:[["jorge","ident"],["x","sec"],["1000","num"],["1000","num"],
+            ["Jorge Rodriguez,,,","meta"],["/home/jorge","path"],["/usr/bin/zsh","path"]],
+      fields:[
+        ["ident","nombre","El nombre de usuario. Es lo único que ves; el sistema por dentro trabaja con el UID."],
+        ["sec","contraseña","Una x: el hash está en /etc/shadow. Antiguamente el hash iba aquí, y por eso el campo sigue existiendo."],
+        ["num","UID","El número real de la cuenta. 0 es root, 1 a 999 son cuentas de servicio, 1000 en adelante son personas."],
+        ["num","GID","Su grupo primario, el que heredan los ficheros que cree. Es un número, no un nombre."],
+        ["meta","GECOS","Campo libre para nombre completo, despacho y teléfonos, separados por comas. Las comas vacías son campos sin rellenar. Lo cambia chfn."],
+        ["path","home","Su directorio personal. Si no existe, la sesión abre en / y el shell avisa."],
+        ["path","shell","El programa que arranca al iniciar sesión. Aquí se cierra una cuenta poniendo /usr/sbin/nologin."]
+      ],
+      what:"Legible por todos, y tiene que serlo: cada ls -l necesita traducir el UID 1000 a «jorge». Esa obligación es la razón de que los secretos vivan en otro fichero." },
+
+    { id:"/etc/shadow", sep:":",
+      head:"la misma cuenta, con sus secretos",
+      toks:[["jorge","ident"],["$6$Xk2aQ8vP$eJ9…d1Fw","sec"],["20323","num"],["0","num"],
+            ["99999","num"],["7","num"],["","meta"],["","meta"],["","meta"]],
+      fields:[
+        ["ident","nombre","La única columna compartida con /etc/passwd. Es lo que enlaza las dos líneas."],
+        ["sec","hash","El $6$ dice SHA-512; el bloque siguiente es la sal, distinta para cada usuario. Un ! delante = cuenta bloqueada. Un * = nunca tuvo contraseña. Vacío = se entra sin ella."],
+        ["num","último cambio","Días transcurridos desde el 1 de enero de 1970. 20323 son los días hasta agosto de 2025. Un 0 aquí obliga a cambiarla en el siguiente inicio de sesión."],
+        ["num","mínimo","Días que hay que esperar antes de poder volver a cambiarla. Evita que alguien la cambie cinco veces seguidas para volver a la de siempre."],
+        ["num","máximo","Días que dura antes de caducar. 99999 es «nunca», que es el valor por omisión en Debian."],
+        ["num","aviso","Días de aviso antes de que caduque. Es lo que produce el «Your password will expire in 6 days» al entrar."],
+        ["meta","inactividad","Días de gracia tras caducar durante los que aún se puede entrar para cambiarla. Vacío: sin gracia."],
+        ["meta","caducidad","Fecha en que la cuenta entera se desactiva, también en días desde 1970. Vacío: la cuenta no caduca."],
+        ["meta","reservado","Sin uso. Existe para poder añadir algo en el futuro sin cambiar el formato."]
+      ],
+      what:"Los tres últimos campos están vacíos, y la línea acaba en :::. En estos ficheros vacío no es un error: significa «sin límite». Todo esto se lee en claro con chage -l usuario." },
+
+    { id:"/etc/group", sep:":",
+      head:"un grupo con miembros",
+      toks:[["sudo","ident"],["x","sec"],["27","num"],["jorge,ana","ident"]],
+      fields:[
+        ["ident","nombre","El nombre del grupo. En Red Hat el grupo equivalente a sudo se llama wheel."],
+        ["sec","contraseña","Una x: si hubiera contraseña de grupo, estaría en /etc/gshadow. Casi nunca hay."],
+        ["num","GID","El número del grupo. Los de sistema son bajos y fijos: 0 root, 4 adm, 27 sudo, 42 shadow."],
+        ["ident","miembros","Los miembros secundarios, separados por comas y sin espacios. Se añade uno con gpasswd -a o usermod -aG."]
+      ],
+      what:"Aquí solo salen los miembros secundarios. Si el grupo primario de alguien es su propio grupo, su nombre no aparece en esa línea y aun así pertenece: el vínculo está en el cuarto campo de /etc/passwd." },
+
+    { id:"/etc/gshadow", sep:":",
+      head:"el gemelo de shadow, para grupos",
+      toks:[["sudo","ident"],["!","sec"],["root","ident"],["jorge,ana","ident"]],
+      fields:[
+        ["ident","nombre","El grupo, otra vez, como clave de enlace con /etc/group."],
+        ["sec","contraseña","Un ! significa que no hay ninguna, que es lo normal. Sin contraseña de grupo, newgrp solo funciona si ya eres miembro."],
+        ["ident","administradores","Quién puede añadir y quitar miembros sin ser root. Suele estar vacío."],
+        ["ident","miembros","La misma lista que en /etc/group, duplicada aquí. gpasswd mantiene las dos a la vez."]
+      ],
+      what:"Permisos 640 root:shadow, igual que /etc/shadow, y por el mismo motivo. Es el fichero menos usado de los cuatro: existe por simetría, no porque las contraseñas de grupo se usen mucho." },
+
+    { id:"/etc/fstab", sep:" ",
+      head:"una partición que se monta al arrancar",
+      toks:[["UUID=8ee6adc3-1aee-4b92","ident"],["/","path"],["ext4","meta"],
+            ["errors=remount-ro","meta"],["0","num"],["1","num"]],
+      fields:[
+        ["ident","qué se monta","El dispositivo, identificado por UUID. Se usa el UUID y no /dev/sda1 porque el nombre del dispositivo cambia si enchufas otro disco; el UUID va escrito dentro del sistema de archivos. Lo consulta blkid o lsblk -f."],
+        ["path","dónde","El punto de montaje: el directorio del árbol donde aparecerá su contenido. Para la swap se pone none, porque no se ve en ningún sitio."],
+        ["meta","tipo","El sistema de archivos: ext4, vfat, xfs, swap, tmpfs. Con auto se deja que el kernel lo averigüe."],
+        ["meta","opciones","Separadas por comas y sin espacios: defaults, ro, noauto, user, umask=0077. Aquí errors=remount-ro remonta la raíz en solo lectura si aparece un error, en vez de seguir escribiendo sobre un disco dañado."],
+        ["num","dump","Si la vieja utilidad dump debe respaldarla. Hoy es siempre 0."],
+        ["num","fsck","El orden de comprobación al arrancar. 1 para la raíz, 2 para las demás, 0 para no comprobar."]
+      ],
+      what:"Se lee una vez al arrancar. Los espacios y tabuladores son el separador, no los dos puntos: este fichero es de otra familia. Después de editarlo, mount -a lo prueba sin reiniciar, y conviene hacerlo: un fstab roto puede dejar la máquina sin arrancar." },
+
+    { id:"/etc/hosts", sep:" ",
+      head:"un nombre resuelto sin salir de la máquina",
+      toks:[["127.0.1.1","num"],["equipo.oficina.local","ident"],["equipo","ident"]],
+      fields:[
+        ["num","dirección","La IP a la que apunta. Puede ser IPv4 o IPv6. 127.0.0.1 es siempre localhost."],
+        ["ident","nombre completo","El nombre con dominio (FQDN). Va primero por convención, porque es el que devuelven las consultas inversas."],
+        ["ident","alias","Los nombres cortos, tantos como quieras separados por espacios. Escribir uno de ellos equivale a escribir la IP."]
+      ],
+      what:"Se consulta antes que el DNS, y ese orden lo decide la línea hosts: de /etc/nsswitch.conf. Por eso aquí se gana cualquier discusión con el servidor de nombres: es el sitio donde se apunta un servidor de pruebas o se bloquea un dominio." },
+
+    { id:"/etc/crontab", sep:" ",
+      head:"una tarea del sistema",
+      toks:[["25","num"],["6","num"],["*","num"],["*","num"],["*","num"],
+            ["root","ident"],["run-parts /etc/cron.daily","path"]],
+      fields:[
+        ["num","minuto","0 a 59."],
+        ["num","hora","0 a 23, en horario de 24 horas. Aquí, las 6:25 de la mañana."],
+        ["num","día del mes","1 a 31. El asterisco significa «todos»."],
+        ["num","mes","1 a 12."],
+        ["num","día de la semana","0 a 7, donde 0 y 7 son domingo. Si este campo y el del día del mes están puestos a la vez, se cumple con cualquiera de los dos, no con los dos."],
+        ["ident","usuario","Con qué identidad se ejecuta. Este campo solo existe en /etc/crontab y en /etc/cron.d; en el crontab personal no está."],
+        ["path","orden","Lo que se ejecuta. Sin PATH completo puede no encontrarse el programa: cron arranca con un entorno mínimo, no con el tuyo."]
+      ],
+      what:"Cinco campos de tiempo, luego el usuario, luego la orden. El crontab personal se edita con crontab -e y no lleva el campo de usuario, porque ya se sabe de quién es. Los atajos @daily y @reboot sustituyen a los cinco primeros campos." },
+
+    { id:"/etc/sudoers", sep:" ",
+      head:"un permiso de sudo",
+      toks:[["%sudo","ident"],["ALL=","meta"],["(ALL:ALL)","meta"],["ALL","meta"]],
+      fields:[
+        ["ident","a quién","Un usuario por su nombre, o un grupo con % delante. Lo habitual es dar el permiso al grupo, no a la persona: así basta con usermod -aG sudo para conceder acceso."],
+        ["meta","desde dónde","Desde qué máquinas vale la regla. ALL = cualquiera. Solo importa si el mismo fichero se reparte entre varios servidores."],
+        ["meta","como quién","Entre paréntesis, el usuario y el grupo que puede suplantar. (ALL:ALL) es «cualquiera», incluido root."],
+        ["meta","qué órdenes","Los programas permitidos, con ruta absoluta. ALL es todo; aquí se restringe a una lista, y se añade NOPASSWD: para no pedir contraseña."]
+      ],
+      what:"Permisos 440 y editable solo con visudo, que valida antes de guardar. Restringir la lista de órdenes suena más seguro de lo que suele ser: si una de ellas puede lanzar un shell —vi, less, find— el permiso limitado equivale a root." }
+  ];
+
+  /* ==========================================================
+     DATOS — EXPLORADOR
+     kind: id | net | boot | env | log
+     ========================================================== */
+  var FILES = [
+    { p:"/etc/passwd", k:"id", t:"cuentas del sistema",
+      d:"Una línea por cuenta con sus datos públicos: nombre, UID, GID primario, nombre completo, home y shell. Ni un secreto dentro, y por eso puede ser legible por todos.",
+      perm:"-rw-r--r-- root root · 644", extra:"7 campos separados por «:»",
+      cmds:["getent passwd jorge", "cut -d: -f1,3,7 /etc/passwd", "awk -F: '$3>=1000' /etc/passwd"] },
+
+    { p:"/etc/shadow", k:"id", t:"contraseñas y caducidad",
+      d:"El hash de cada contraseña y las fechas que la gobiernan. Es el fichero más sensible de la máquina: con estos hashes se puede atacar una contraseña sin volver a tocar el sistema.",
+      perm:"-rw-r----- root shadow · 640", extra:"9 campos separados por «:»",
+      cmds:["sudo chage -l jorge", "sudo passwd -S jorge", "ls -l /etc/shadow"] },
+
+    { p:"/etc/group", k:"id", t:"grupos y sus miembros",
+      d:"Nombre del grupo, GID y la lista de miembros secundarios. El grupo primario de cada usuario no se apunta aquí, sino en el cuarto campo de /etc/passwd.",
+      perm:"-rw-r--r-- root root · 644", extra:"4 campos separados por «:»",
+      cmds:["getent group sudo", "groups jorge", "sudo gpasswd -a ana sudo"] },
+
+    { p:"/etc/gshadow", k:"id", t:"secretos de los grupos",
+      d:"La contraseña del grupo —casi siempre inexistente— y quién puede administrarlo sin ser root. Existe por simetría con /etc/shadow más que por necesidad real.",
+      perm:"-rw-r----- root shadow · 640", extra:"4 campos separados por «:»",
+      cmds:["sudo grep '^sudo:' /etc/gshadow", "sudo grpck"] },
+
+    { p:"/etc/sudoers", k:"id", t:"quién puede ser root",
+      d:"Las reglas de sudo: qué usuario o grupo puede ejecutar qué, como quién y desde dónde. Se edita solo con visudo, que valida la sintaxis antes de guardar.",
+      perm:"-r--r----- root root · 440", extra:"ni root tiene permiso de escritura, a propósito",
+      cmds:["sudo -l", "sudo visudo", "sudo visudo -c"] },
+
+    { p:"/etc/sudoers.d/", k:"id", t:"reglas en piezas",
+      d:"Un directorio de ficheros que se leen como si estuvieran dentro de sudoers. Es la forma limpia de que un paquete añada su regla sin tocar el fichero principal.",
+      perm:"drwxr-xr-x root root · 755", extra:"se edita con visudo -f /etc/sudoers.d/nombre",
+      cmds:["sudo ls /etc/sudoers.d/", "sudo visudo -f /etc/sudoers.d/despliegue"] },
+
+    { p:"/etc/login.defs", k:"id", t:"valores por omisión",
+      d:"Los ajustes que consulta useradd al crear una cuenta: desde qué UID empezar, cuántos días dura una contraseña, qué umask se aplica y con qué algoritmo se cifra.",
+      perm:"-rw-r--r-- root root · 644", extra:"UID_MIN 1000 · PASS_MAX_DAYS · UMASK 022 · ENCRYPT_METHOD SHA512",
+      cmds:["grep -E '^(UID_MIN|UMASK|PASS_MAX_DAYS)' /etc/login.defs"] },
+
+    { p:"/etc/skel", k:"id", t:"plantilla del home",
+      d:"Lo que se copia dentro del directorio personal de cada cuenta nueva: .bashrc, .profile y lo que el administrador quiera añadir. Cambiar algo aquí no afecta a las cuentas ya creadas.",
+      perm:"drwxr-xr-x root root · 755", extra:"solo lo usa useradd -m",
+      cmds:["ls -a /etc/skel", "sudo useradd -m -s /bin/bash ana"] },
+
+    { p:"/etc/shells", k:"id", t:"shells válidos",
+      d:"La lista de intérpretes admitidos para iniciar sesión. chsh no acepta uno que no esté aquí, y algunos servicios como FTP rechazan a los usuarios cuyo shell falte en la lista.",
+      perm:"-rw-r--r-- root root · 644", extra:"un shell por línea, con ruta absoluta",
+      cmds:["cat /etc/shells", "chsh -s /bin/bash", "echo $SHELL"] },
+
+    { p:"/etc/nsswitch.conf", k:"id", t:"dónde buscar cada cosa",
+      d:"El orden en que se consultan las fuentes de información: primero los ficheros locales, después DNS, LDAP o lo que haya. Es lo que explica que getent encuentre usuarios que no están en /etc/passwd.",
+      perm:"-rw-r--r-- root root · 644", extra:"una línea por base de datos: passwd, group, hosts…",
+      cmds:["grep -E '^(passwd|hosts)' /etc/nsswitch.conf", "getent hosts localhost"] },
+
+    { p:"/etc/hostname", k:"net", t:"nombre de la máquina",
+      d:"Una sola línea con el nombre de este equipo. Se lee al arrancar; para cambiarlo en caliente y de forma permanente se usa hostnamectl.",
+      perm:"-rw-r--r-- root root · 644", extra:"una línea, sin dominio",
+      cmds:["cat /etc/hostname", "hostname", "sudo hostnamectl set-hostname portatil"] },
+
+    { p:"/etc/hosts", k:"net", t:"nombres locales",
+      d:"Tabla de IP y nombre resuelta sin preguntar a nadie. Se consulta antes que el DNS, así que es donde se apunta un servidor de pruebas o se anula un dominio.",
+      perm:"-rw-r--r-- root root · 644", extra:"IP, nombre completo y alias, separados por espacios",
+      cmds:["cat /etc/hosts", "getent hosts localhost", "ping -c1 localhost"] },
+
+    { p:"/etc/resolv.conf", k:"net", t:"servidores DNS",
+      d:"A qué servidores se pregunta por los nombres que no están en /etc/hosts, y qué dominio se añade a los nombres cortos. En casi todos los sistemas modernos lo genera un servicio y se sobreescribe solo.",
+      perm:"-rw-r--r-- root root · 644", extra:"nameserver · search · options",
+      cmds:["cat /etc/resolv.conf", "resolvectl status", "dig ejemplo.com"] },
+
+    { p:"/etc/fstab", k:"boot", t:"qué se monta al arrancar",
+      d:"La tabla de sistemas de archivos: qué dispositivo, en qué directorio, de qué tipo y con qué opciones. Seis campos separados por espacios.",
+      perm:"-rw-r--r-- root root · 644", extra:"pruébalo con mount -a antes de reiniciar",
+      cmds:["cat /etc/fstab", "sudo mount -a", "lsblk -f", "findmnt"] },
+
+    { p:"/etc/crontab", k:"boot", t:"tareas programadas",
+      d:"Las tareas periódicas del sistema, con un campo extra de usuario que el crontab personal no tiene. Los directorios cron.hourly, cron.daily y compañía se lanzan desde aquí.",
+      perm:"-rw-r--r-- root root · 644", extra:"5 campos de tiempo + usuario + orden",
+      cmds:["cat /etc/crontab", "ls /etc/cron.daily", "crontab -l", "crontab -e"] },
+
+    { p:"/etc/os-release", k:"boot", t:"qué distribución es",
+      d:"Pares CLAVE=valor con el nombre y la versión del sistema. Es la forma estándar de saber en qué distribución estás, y funciona igual en Debian, Fedora o Arch.",
+      perm:"lrwxrwxrwx → /usr/lib/os-release", extra:"NAME · VERSION_ID · ID · PRETTY_NAME",
+      cmds:["cat /etc/os-release", "grep PRETTY_NAME /etc/os-release", "hostnamectl"] },
+
+    { p:"/etc/timezone", k:"boot", t:"huso horario",
+      d:"El nombre del huso, en texto. El fichero que de verdad contiene las reglas es /etc/localtime, que es un enlace al que corresponda dentro de /usr/share/zoneinfo.",
+      perm:"-rw-r--r-- root root · 644", extra:"/etc/localtime es un enlace simbólico",
+      cmds:["cat /etc/timezone", "ls -l /etc/localtime", "timedatectl", "date"] },
+
+    { p:"/etc/profile", k:"env", t:"entorno de todos",
+      d:"Se ejecuta al iniciar sesión, para cualquier usuario y antes que los ficheros personales. Es donde se ponen las variables que deben valer para todo el mundo. Lo habitual es no tocarlo y añadir un fichero en /etc/profile.d/.",
+      perm:"-rw-r--r-- root root · 644", extra:"solo en shells de inicio de sesión",
+      cmds:["cat /etc/profile", "ls /etc/profile.d/", "source /etc/profile"] },
+
+    { p:"/etc/bash.bashrc", k:"env", t:"bash interactivo, para todos",
+      d:"Se ejecuta en cada shell interactivo de bash, no solo al iniciar sesión. Aquí viven el prompt por omisión y los alias comunes. Su pareja personal es ~/.bashrc.",
+      perm:"-rw-r--r-- root root · 644", extra:"en cada shell interactivo",
+      cmds:["cat /etc/bash.bashrc", "echo $PS1"] },
+
+    { p:"~/.bashrc · ~/.profile", k:"env", t:"tu configuración",
+      d:"Los mismos dos papeles, pero solo tuyos y bajo tu control: .profile al iniciar sesión, .bashrc en cada shell interactivo. Aquí van tus alias, tus funciones y tu PATH.",
+      perm:"-rw-r--r-- tú tú · 644", extra:"copiados de /etc/skel al crear la cuenta",
+      cmds:["nano ~/.bashrc", "source ~/.bashrc", "alias"] },
+
+    { p:"/etc/issue · /etc/motd", k:"env", t:"mensajes de bienvenida",
+      d:"issue se muestra antes de pedir el usuario en una consola de texto; motd, después de entrar. Se usan para avisos legales o para recordar de qué máquina se trata.",
+      perm:"-rw-r--r-- root root · 644", extra:"issue admite escapes: \\n nombre, \\l terminal",
+      cmds:["cat /etc/issue", "cat /etc/motd", "ls /etc/update-motd.d/"] },
+
+    { p:"/var/log/auth.log", k:"log", t:"quién entró y quién falló",
+      d:"Cada inicio de sesión, cada sudo y cada intento fallido. Es el primer sitio donde mirar si alguien no puede entrar, o si sospechas que alguien sí pudo.",
+      perm:"-rw-r----- root adm · 640", extra:"en Red Hat se llama /var/log/secure",
+      cmds:["sudo tail -20 /var/log/auth.log", "sudo grep sudo /var/log/auth.log", "journalctl -u ssh"] },
+
+    { p:"/var/log/syslog", k:"log", t:"el registro general",
+      d:"Todo lo que los servicios cuentan y no tiene un fichero propio. El grupo adm existe precisamente para poder leer estos registros sin ser root.",
+      perm:"-rw-r----- root adm · 640", extra:"en Red Hat es /var/log/messages",
+      cmds:["sudo tail -f /var/log/syslog", "journalctl -xe", "dmesg | tail"] }
+  ];
+
+  /* ==========================================================
+     DATOS — CONSULTAS (salidas reales)
+     ========================================================== */
+  var QUERIES = [
+    { c:"id", label:"id",
+      out:"uid=1000(jorge) gid=1000(jorge) groups=1000(jorge),24(cdrom),\n29(audio),44(video),46(plugdev),100(users),994(docker)",
+      note:"La respuesta completa a «quién soy» para el kernel: tu UID, tu GID primario y todos los grupos secundarios, con número y nombre. Es la orden que junta lo que /etc/passwd y /etc/group guardan por separado." },
+
+    { c:"getent passwd jorge", label:"getent passwd jorge",
+      out:"jorge:x:1000:1000:Jorge Rodriguez,,,:/home/jorge:/usr/bin/zsh",
+      note:"La línea entera de un usuario. A diferencia de grep, getent pregunta al sistema siguiendo el orden de /etc/nsswitch.conf, así que también encuentra usuarios que vengan de LDAP o de la red." },
+
+    { c:"getent group sudo", label:"getent group sudo",
+      out:"sudo:x:27:jorge,ana",
+      note:"Los miembros secundarios de un grupo. Si sale vacío, no significa que nadie pertenezca: puede ser el grupo primario de alguien, y eso se apunta en /etc/passwd." },
+
+    { c:"chage -l jorge", label:"chage -l jorge",
+      out:"Last password change\t: Aug 23, 2024\nPassword expires\t: never\nPassword inactive\t: never\nAccount expires\t\t: never\nMinimum number of days between password change\t: 0\nMaximum number of days between password change\t: 99999\nNumber of days of warning before password expires\t: 7",
+      note:"Los siete campos de fecha de /etc/shadow, traducidos a algo legible. Es la forma de leer ese fichero sin abrirlo, y cada usuario puede consultar sus propios datos sin sudo." },
+
+    { c:"passwd -S jorge", label:"passwd -S jorge",
+      out:"jorge P 2024-08-23 0 99999 7 -1",
+      note:"La misma información en una línea. La segunda columna es el estado: P = contraseña válida, L = cuenta bloqueada, NP = sin contraseña. Es la comprobación rápida de por qué alguien no puede entrar." },
+
+    { c:"wc -l /etc/shadow", label:"wc -l /etc/shadow",
+      out:"wc: /etc/shadow: Permission denied",
+      note:"La demostración de que los permisos 640 no son decorativos. Como usuario normal no puedes ni contar las líneas del fichero. La misma orden sobre /etc/passwd funciona sin problema." },
+
+    { c:"awk -F: '$3>=1000 && $3<65534 {print $1, $3, $7}' /etc/passwd", label:"awk -F: … /etc/passwd",
+      out:"jorge 1000 /usr/bin/zsh",
+      note:"Las cuentas de personas, filtradas por su UID. El -F: le dice a awk que el separador son los dos puntos, y $1, $3 y $7 son el nombre, el UID y el shell. De 46 líneas del fichero, solo una es una persona." },
+
+    { c:"cut -d: -f1 /etc/passwd | head -6", label:"cut -d: -f1 /etc/passwd",
+      out:"root\ndaemon\nbin\nsys\nsync\ngames",
+      note:"Solo los nombres. Con cut, -d elige el delimitador y -f los campos. Es la forma más corta de sacar una columna de cualquiera de estos ficheros." },
+
+    { c:"grep -c nologin /etc/passwd", label:"grep -c nologin /etc/passwd",
+      out:"39",
+      note:"Treinta y nueve de las cuarenta y seis cuentas de esta máquina no pueden iniciar sesión: son cuentas de servicio. Que /etc/passwd tenga muchas líneas no significa que haya muchas personas." },
+
+    { c:"ls -l /etc/passwd /etc/shadow", label:"ls -l /etc/passwd /etc/shadow",
+      out:"-rw-r--r-- 1 root root   2612 ago  3 19:37 /etc/passwd\n-rw-r----- 1 root shadow 1331 ago  3 19:37 /etc/shadow",
+      note:"Los dos ficheros, lado a lado. Misma fecha —los cambia la misma orden— y permisos distintos: 644 para el público, 640 y grupo shadow para el secreto. Toda la sección anterior cabe en estas dos líneas." },
+
+    { c:"sudo -l", label:"sudo -l",
+      out:"User jorge may run the following commands on esta-maquina:\n    (ALL : ALL) ALL",
+      note:"Qué te deja hacer sudo aquí, según /etc/sudoers y /etc/sudoers.d. (ALL : ALL) ALL es acceso total. Es la forma de comprobar un permiso sin ir a leer el fichero, que además no puedes leer." },
+
+    { c:"getent hosts localhost", label:"getent hosts localhost",
+      out:"127.0.0.1       localhost",
+      note:"Resolver un nombre siguiendo el orden real del sistema: /etc/hosts primero, DNS después, como manda la línea hosts: de /etc/nsswitch.conf." }
+  ];
+
+  /* ==========================================================
+     DATOS — QUIZ
+     ========================================================== */
+  var QUESTIONS = [
+    { q:"El hash de la contraseña de un usuario está en",
+      opts:["/etc/shadow", "/etc/passwd", "/etc/sudoers", "/etc/login.defs"], ok:0,
+      exp:"Estuvo en /etc/passwd hasta que se separó: ese fichero tiene que ser legible por todos para traducir UIDs a nombres, y un fichero de hashes legible por todos es un regalo. Hoy los hashes viven en /etc/shadow, con permisos 640 y grupo shadow." },
+
+    { q:"La x del segundo campo de una línea de /etc/passwd significa",
+      opts:["que el hash está en /etc/shadow", "que la cuenta está bloqueada", "que no tiene contraseña", "que la contraseña ha caducado"], ok:0,
+      exp:"Es el hueco que dejó el hash al mudarse. Una cuenta bloqueada se marca con ! en /etc/shadow, y una que nunca tuvo contraseña, con *." },
+
+    { q:"El séptimo y último campo de /etc/passwd contiene",
+      opts:["el shell de inicio de sesión", "el directorio personal", "el GID primario", "el nombre completo"], ok:0,
+      exp:"nombre : x : UID : GID : nombre completo : home : shell. Ese último campo también sirve para cerrar la cuenta: /usr/sbin/nologin o /bin/false rechazan el acceso." },
+
+    { q:"Los permisos habituales de /etc/shadow son",
+      opts:["640 root:shadow", "644 root:root", "600 root:root", "666 root:shadow"], ok:0,
+      exp:"Ni el grupo escribe, y nadie fuera de él lee. El grupo shadow existe para que programas como passwd puedan consultarlo sin ser root." },
+
+    { q:"/etc/passwd es legible por todos porque",
+      opts:["hace falta traducir UIDs a nombres", "es un descuido histórico", "no contiene información útil", "solo root lo puede abrir de verdad"], ok:0,
+      exp:"Cada ls -l que muestra «jorge» en vez de «1000» está leyendo ese fichero. Esa necesidad es la razón de que los secretos se movieran a /etc/shadow y no al contrario." },
+
+    { q:"Qué se monta al arrancar y con qué opciones se declara en",
+      opts:["/etc/fstab", "/etc/mtab", "/proc/mounts", "/etc/mount.conf"], ok:0,
+      exp:"/etc/fstab es la intención; /proc/mounts es el resultado, generado por el kernel con lo que está montado ahora mismo. Después de editar fstab, mount -a lo prueba sin reiniciar." },
+
+    { q:"El UID de root es",
+      opts:["0", "1", "1000", "65534"], ok:0,
+      exp:"Y eso es lo que le da el poder, no su nombre. Cualquier cuenta con UID 0 es administradora, se llame como se llame. 65534 es nobody y 1000 el primer usuario normal." },
+
+    { q:"Para editar /etc/sudoers se usa",
+      opts:["visudo", "nano /etc/sudoers", "sudoedit", "vipw"], ok:0,
+      exp:"visudo bloquea el fichero y valida la sintaxis antes de guardar. Sin esa validación, una errata deja a todo el mundo sin sudo, y arreglarla requiere sudo. vipw es el equivalente para /etc/passwd." },
+
+    { q:"El contenido que se copia al home de un usuario recién creado sale de",
+      opts:["/etc/skel", "/etc/default", "/etc/profile.d", "/home/template"], ok:0,
+      exp:"useradd -m copia /etc/skel dentro del nuevo home: .bashrc, .profile y lo que el administrador haya añadido. Cambiarlo no afecta a las cuentas ya existentes." },
+
+    { q:"Antes de preguntar al DNS, un nombre se busca en",
+      opts:["/etc/hosts", "/etc/resolv.conf", "/etc/nsswitch.conf", "/etc/networks"], ok:0,
+      exp:"Y ese orden no es fijo: lo decide la línea hosts: de /etc/nsswitch.conf, que en la práctica pone files antes que dns. resolv.conf solo dice a qué servidor DNS preguntar cuando llega el turno." },
+
+    { q:"Una cuenta de servicio que no debe iniciar sesión suele tener como shell",
+      opts:["/usr/sbin/nologin", "/bin/bash", "vacío", "/etc/shells"], ok:0,
+      exp:"nologin imprime un aviso y termina; /bin/false termina sin decir nada. Las dos convierten el campo del shell en un mecanismo de acceso. En esta máquina, 39 de 46 cuentas lo tienen." },
+
+    { q:"Que jorge pertenece al grupo secundario sudo está apuntado en",
+      opts:["/etc/group", "/etc/passwd", "/etc/gshadow", "/etc/sudoers"], ok:0,
+      exp:"En el cuarto campo de la línea sudo: la lista de miembros. El grupo primario es lo que va en el cuarto campo de /etc/passwd, y es la razón de que tu nombre no aparezca en la línea de tu propio grupo." }
+  ];
+
+  /* ==========================================================
+     UTILIDADES
+     ========================================================== */
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  /* baraja sin tocar el original; devuelve pares [texto, esCorrecta] */
+  function shuffled(opts, ok){
+    var a = opts.map(function(t,i){ return [t, i === ok]; });
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  /* ==========================================================
+     DISECTOR
+     ========================================================== */
+  var picker  = document.getElementById("picker");
+  var lineEl  = document.getElementById("line");
+  var headEl  = document.getElementById("line-head");
+  var fieldsEl= document.getElementById("fields");
+  var whatEl  = document.getElementById("what");
+  var curLine = 0;
+
+  LINES.forEach(function(item, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "pick";
+    b.textContent = item.id;
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", function(){ showLine(i); });
+    picker.appendChild(b);
+  });
+
+  function showLine(i){
+    curLine = i;
+    var item = LINES[i];
+    Array.prototype.forEach.call(picker.children, function(b, n){
+      b.setAttribute("aria-pressed", n === i ? "true" : "false");
+    });
+
+    headEl.textContent = item.id + " — " + item.head;
+
+    /* la línea: un botón por campo, con el separador real entre ellos */
+    lineEl.innerHTML = "";
+    item.toks.forEach(function(t, n){
+      if (n > 0){
+        var s = document.createElement("span");
+        s.className = "sep";
+        s.textContent = item.sep === ":" ? ":" : " ";
+        lineEl.appendChild(s);
+      }
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tok" + (t[0] === "" ? " is-empty" : "");
+      b.dataset.k = t[1];
+      b.dataset.n = String(n);
+      b.textContent = t[0];
+      b.setAttribute("aria-label", "campo " + (n + 1) + ": " + item.fields[n][1]);
+      b.addEventListener("click", function(){ highlight(n); });
+      lineEl.appendChild(b);
+    });
+
+    /* la leyenda: un campo por fila, numerado como en la línea */
+    fieldsEl.innerHTML = item.fields.map(function(f, n){
+      return '<div class="field" data-n="' + n + '">' +
+               '<span class="n">' + (n + 1) + "</span>" +
+               '<span class="nm" data-k="' + f[0] + '">' + esc(f[1]) + "</span>" +
+               '<span class="ds">' + esc(f[2]) + "</span>" +
+             "</div>";
+    }).join("");
+
+    Array.prototype.forEach.call(fieldsEl.children, function(row){
+      row.addEventListener("click", function(){ highlight(Number(row.dataset.n)); });
+    });
+
+    whatEl.textContent = item.what;
+  }
+
+  /* resalta a la vez el campo de la línea y su fila de la leyenda */
+  function highlight(n){
+    Array.prototype.forEach.call(lineEl.querySelectorAll(".tok"), function(t){
+      t.classList.toggle("is-on", Number(t.dataset.n) === n);
+    });
+    Array.prototype.forEach.call(fieldsEl.children, function(row){
+      row.classList.toggle("is-on", Number(row.dataset.n) === n);
+    });
+  }
+
+  showLine(0);
+
+  /* ==========================================================
+     EXPLORADOR
+     ========================================================== */
+  var tree = document.getElementById("tree");
+  var detail = document.getElementById("detail");
+  var current = 0;
+
+  var KIND = { id:"cuentas", net:"red", boot:"sistema", env:"entorno", log:"registros" };
+
+  FILES.forEach(function(f, i){
+    var li = document.createElement("li");
+    li.dataset.kind = f.k;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.innerHTML = '<span class="dot" data-kind="' + f.k + '"></span>' +
+                  '<span class="nm">' + esc(f.p) + "</span>";
+    b.addEventListener("click", function(){ selectFile(i); });
+    li.appendChild(b);
+    tree.appendChild(li);
+  });
+
+  function selectFile(i){
+    current = i;
+    var f = FILES[i];
+    Array.prototype.forEach.call(tree.querySelectorAll("button"), function(b, n){
+      b.setAttribute("aria-pressed", n === i ? "true" : "false");
+    });
+    detail.dataset.kind = f.k;
+    detail.innerHTML =
+      "<h3>" + esc(f.p) + "</h3>" +
+      '<p class="sub">' + esc(f.t) + "</p>" +
+      '<p class="desc">' + esc(f.d) + "</p>" +
+      "<dl>" +
+        "<dt>Tema</dt><dd>" + KIND[f.k] + "</dd>" +
+        "<dt>Permisos</dt><dd><code>" + esc(f.perm) + "</code></dd>" +
+        "<dt>Formato</dt><dd>" + esc(f.extra) + "</dd>" +
+      "</dl>" +
+      '<div class="cmds">' +
+        f.cmds.map(function(c){
+          return '<div class="cmd"><span class="prompt">$</span> ' + esc(c) + "</div>";
+        }).join("") +
+      "</div>";
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".filter"), function(btn){
+    btn.addEventListener("click", function(){
+      var f = btn.dataset.filter;
+      Array.prototype.forEach.call(document.querySelectorAll(".filter"), function(o){
+        o.setAttribute("aria-pressed", o === btn ? "true" : "false");
+      });
+      var firstVisible = -1;
+      Array.prototype.forEach.call(tree.children, function(li, i){
+        var show = (f === "all" || li.dataset.kind === f);
+        li.classList.toggle("is-hidden", !show);
+        if (show && firstVisible < 0) firstVisible = i;
+      });
+      /* si el seleccionado queda oculto, saltamos al primero visible */
+      if (tree.children[current].classList.contains("is-hidden") && firstVisible >= 0){
+        selectFile(firstVisible);
+      }
+    });
+  });
+
+  selectFile(0);
+
+  /* ==========================================================
+     VISOR DE CONSULTAS
+     ========================================================== */
+  var files = document.getElementById("files");
+  var termBar = document.getElementById("term-bar");
+  var termOut = document.getElementById("term-out");
+  var termNote = document.getElementById("term-note");
+
+  QUERIES.forEach(function(q, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "file";
+    b.textContent = q.label;
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", function(){ showQuery(i); });
+    files.appendChild(b);
+  });
+
+  function showQuery(i){
+    var q = QUERIES[i];
+    Array.prototype.forEach.call(files.children, function(b, n){
+      b.setAttribute("aria-pressed", n === i ? "true" : "false");
+    });
+    termBar.textContent = q.c;
+    termOut.innerHTML = '<span class="prompt">$ ' + esc(q.c) + "</span>\n" + esc(q.out);
+    termNote.textContent = q.note;
+  }
+  showQuery(0);
+
+  /* ==========================================================
+     QUIZ
+     ========================================================== */
+  var quiz = document.getElementById("quiz");
+
+  QUESTIONS.forEach(function(item){
+    var wrap = document.createElement("div");
+    wrap.className = "q";
+
+    var p = document.createElement("p");
+    p.className = "q-text";
+    p.textContent = item.q;
+    wrap.appendChild(p);
+
+    var opts = document.createElement("div");
+    opts.className = "q-opts";
+    var exp = document.createElement("p");
+    exp.className = "q-exp";
+    exp.hidden = true;
+    exp.textContent = item.exp;
+
+    shuffled(item.opts, item.ok).forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt";
+      b.textContent = pair[0];
+      b.dataset.ok = pair[1] ? "1" : "0";
+      b.addEventListener("click", function(){
+        /* al responder se bloquea la pregunta y se marca la correcta */
+        Array.prototype.forEach.call(opts.children, function(o){ o.disabled = true; });
+        if (pair[1]) b.classList.add("good");
+        else{
+          b.classList.add("bad");
+          Array.prototype.forEach.call(opts.children, function(o){
+            if (o.dataset.ok === "1") o.classList.add("good");
+          });
+        }
+        exp.hidden = false;
+      });
+      opts.appendChild(b);
+    });
+
+    wrap.appendChild(opts);
+    wrap.appendChild(exp);
+    quiz.appendChild(wrap);
+  });
+
+  /* ==========================================================
+     ÍNDICE LATERAL
+     ========================================================== */
+  var links = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".rail a"), function(a){
+    links[a.getAttribute("href").slice(1)] = a;
+  });
+  if ("IntersectionObserver" in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var a = links[e.target.id];
+        if (a) a.classList.toggle("is-active", e.isIntersecting);
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("main section"), function(s){ obs.observe(s); });
+  }
+})();
+</script>
+
+</body>
+</html>
