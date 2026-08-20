@@ -11,7 +11,7 @@
   --bg:#eef1f4; --surface:#ffffff; --surface-2:#e6eaef;
   --line:#ccd4dc; --line-2:#9aa6b3;
   --ink:#131920; --ink-2:#3f4a57; --ink-3:#6d7884;
-  --exam:#a8481a; --perm:#10695a; --tree:#464fa2; --cmd:#7a3ea1; --script:#3f6d24;
+  --exam:#a8481a; --perm:#10695a; --tree:#464fa2; --cmd:#7a3ea1; --script:#3f6d24; --files:#9c2f3d;
   --mono: ui-monospace,"JetBrains Mono","SFMono-Regular","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
   --serif: Charter,"Bitstream Charter","Iowan Old Style","Source Serif Pro",Georgia,serif;
   --sans: system-ui,-apple-system,"Segoe UI",Cantarell,sans-serif;
@@ -23,7 +23,7 @@
     --bg:#0d1218; --surface:#161d26; --surface-2:#1e2733;
     --line:#2c3644; --line-2:#4a5768;
     --ink:#dde5ed; --ink-2:#a7b3c0; --ink-3:#79868f;
-    --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a;
+    --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --files:#ec8a97;
   }
 }
 :root[data-theme="dark"]{
@@ -31,7 +31,7 @@
   --bg:#0d1218; --surface:#161d26; --surface-2:#1e2733;
   --line:#2c3644; --line-2:#4a5768;
   --ink:#dde5ed; --ink-2:#a7b3c0; --ink-3:#79868f;
-  --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a;
+  --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --files:#ec8a97;
 }
 
 *{ box-sizing:border-box; }
@@ -85,6 +85,7 @@ main{ padding-block: clamp(2.5rem,7vw,4.5rem) 1rem; }
 .card[data-kind="tree"]{ --accent:var(--tree); }
 .card[data-kind="cmd"]{ --accent:var(--cmd); }
 .card[data-kind="script"]{ --accent:var(--script); }
+.card[data-kind="files"]{ --accent:var(--files); }
 
 .tag{
   font-family:var(--mono); font-size:.75rem; letter-spacing:.14em;
@@ -140,7 +141,7 @@ footer{
   <div class="shell">
     <p class="eyebrow">Certificación · LPI 010-160</p>
     <h1>Linux Essentials<span class="sub">Material de estudio</span></h1>
-    <p class="lede">Un banco de preguntas para medirte y cuatro guías visuales para entender las partes que más se atragantan.</p>
+    <p class="lede">Un banco de preguntas para medirte y cinco guías visuales para entender las partes que más se atragantan.</p>
   </div>
 </header>
 
@@ -184,6 +185,19 @@ footer{
         <li>8 preguntas para comprobarlo</li>
       </ul>
       <p class="go">Explorar <span class="arrow">→</span></p>
+    </li>
+
+    <li class="card" data-kind="files">
+      <p class="tag">Guía</p>
+      <h2><a href="linux_system_files/">Los ficheros del sistema</a></h2>
+      <p class="desc">Qué hay dentro de <code>/etc/passwd</code>, <code>/etc/shadow</code>, <code>/etc/group</code> o <code>/etc/fstab</code>, campo a campo, y por qué los secretos viven en un fichero aparte.</p>
+      <ul class="facts">
+        <li>Disector de líneas: 8 ficheros, campo a campo</li>
+        <li>Explorador de 23 ficheros de configuración</li>
+        <li>Visor de consultas con salida real</li>
+        <li>12 preguntas y chuleta</li>
+      </ul>
+      <p class="go">Repasar <span class="arrow">→</span></p>
     </li>
 
     <li class="card" data-kind="cmd">
