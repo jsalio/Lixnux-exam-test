@@ -14,7 +14,7 @@ conexión.
 | Ruta | Qué es |
 |---|---|
 | `index.html` | Portada: navega a las seis páginas |
-| `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
+| `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 242 preguntas |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
 | `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
@@ -34,24 +34,24 @@ es el directorio. La portada enlaza a todas y todas enlazan de vuelta a la porta
 | Modo | Preguntas | Tiempo | Orden |
 |---|---|---|---|
 | **Simulacro de examen** | 40 aleatorias | 60 min, envío automático al agotarse | Aleatorio |
-| **Banco completo (estudio)** | 145 (todas) | Sin límite | Por tema (101 → 105) |
+| **Banco completo (estudio)** | 242 (todas) | Sin límite | Por tema (101 → 105) |
 
 El simulacro respeta el reparto por tema del examen oficial:
 
 | Tema | Título | Banco | Simulacro |
 |---|---|---|---|
-| 101 | La comunidad Linux y una carrera en Open Source | 18 | 7 |
-| 102 | Encontrar tu camino en un sistema Linux | 29 | 8 |
-| 103 | El poder de la línea de comandos | 38 | 10 |
-| 104 | El sistema operativo Linux | 30 | 8 |
-| 105 | Seguridad y permisos de archivos | 30 | 7 |
-| | **Total** | **145** | **40** |
+| 101 | La comunidad Linux y una carrera en Open Source | 39 | 7 |
+| 102 | Encontrar tu camino en un sistema Linux | 45 | 8 |
+| 103 | El poder de la línea de comandos | 58 | 10 |
+| 104 | El sistema operativo Linux | 51 | 8 |
+| 105 | Seguridad y permisos de archivos | 49 | 7 |
+| | **Total** | **242** | **40** |
 
 ### Tipos de pregunta
 
-- **Respuesta única** (133): una sola opción correcta.
-- **Selección múltiple** (6): se exige el conjunto exacto; todo o nada, sin puntuación parcial.
-- **Escribir el comando** (7): se ignoran mayúsculas/minúsculas y espacios extra; se aceptan variantes equivalentes.
+- **Respuesta única** (216): una sola opción correcta.
+- **Selección múltiple** (14): se exige el conjunto exacto; todo o nada, sin puntuación parcial.
+- **Escribir el comando** (12): se ignoran mayúsculas/minúsculas y espacios extra; se aceptan variantes equivalentes.
 
 ### Calificación
 
