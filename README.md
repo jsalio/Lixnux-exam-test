@@ -13,12 +13,13 @@ conexión.
 
 | Ruta | Qué es |
 |---|---|
-| `index.html` | Portada: navega a las cinco páginas |
+| `index.html` | Portada: navega a las seis páginas |
 | `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
 | `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
 | `linux_shell_scripting/index.html` | Guía del objetivo 3.3: de comandos sueltos a script de Bash |
+| `linux_networking/index.html` | Guía del objetivo 4.4: comandos de red, de `ip a` a `scp` |
 | `docs/specs/registro-intentos-supabase.spec.md` | Especificación SDD (en estado *Draft*, **no implementada**) |
 
 Cada aplicación vive en su propia carpeta con un `index.html`, de modo que su URL
@@ -178,7 +179,39 @@ Trece secciones, cinco de ellas interactivas:
 - **Doce preguntas** de autoevaluación con opciones barajadas y explicación.
 - **Chuleta** final.
 
-## 6. Especificación pendiente — `docs/specs/`
+## 6. Guía de red — `linux_networking/index.html`
+
+El objetivo **4.4 «Your Computer on the Network»**, montado alrededor de la idea de
+que una máquina conectada solo necesita cuatro datos: dirección, puerta de enlace,
+DNS y nombre. Todo lo demás son formas de leerlos.
+
+Nueve secciones, una de ellas interactiva:
+
+- **Cuatro datos**: qué comando muestra cada uno y en qué fichero vive.
+- **Explorador de comandos** (interactivo): los 19 comandos de la tabla del objetivo
+  —`ip addr`, `ip a`, `ip link`, `ip route`, `ip neigh`, `ifconfig`, `hostname`,
+  `hostname -I`, `ss`, `ping`, `traceroute`, `tracepath`, `dig`, `host`, `nslookup`,
+  `curl`, `wget`, `ssh`, `scp`— con **su salida real**, en qué fijarse de ella y las
+  variantes que se usan a diario. Filtro por familia: direcciones, rutas, DNS,
+  diagnóstico y remoto.
+- **Leer `ip a` campo a campo**: `inet`, el prefijo `/24`, `brd`, `scope`, las banderas
+  `UP` y `LOWER_UP`, `link/ether`, `valid_lft` y por qué `lo` no cuenta.
+- **`ifconfig` frente a `ip`**: net-tools contra iproute2, tabla de equivalencias
+  completa (`route -n` → `ip r`, `arp -a` → `ip n`, `netstat -tuln` → `ss -tuln`),
+  la misma interfaz contada por los dos, y qué significa «ifconfig: no se encontró
+  la orden».
+- **La tabla de rutas**: `default via`, `dev`, `proto`, `src`, `metric` y `ip route get`.
+- **Nombres y DNS**: `/etc/hosts`, `/etc/resolv.conf`, `/etc/nsswitch.conf` y los tres
+  comandos que preguntan lo mismo (`host`, `dig`, `nslookup`).
+- **Escalera de diagnóstico**: cinco pasos de dentro hacia fuera y qué significa que
+  falle cada uno, más una tabla de síntoma → sospechoso.
+- **Diez preguntas** de autoevaluación con opciones barajadas y explicación.
+- **Chuleta** final.
+
+Los comandos que modifican la red (`ip link set`, `ip addr add`, `ip route add`)
+aparecen señalados aparte: requieren root y se pierden al reiniciar.
+
+## 7. Especificación pendiente — `docs/specs/`
 
 `registro-intentos-supabase.spec.md` es un contrato SDD para persistir en Supabase
 cada intento finalizado (nombre, IP, número de intento, nota y modo).
@@ -218,6 +251,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 | Directorios | <https://jsalio.github.io/Lixnux-exam-test/linux_special_directories/> |
 | Comandos | <https://jsalio.github.io/Lixnux-exam-test/linux_basic_commands/> |
 | Scripting | <https://jsalio.github.io/Lixnux-exam-test/linux_shell_scripting/> |
+| Red | <https://jsalio.github.io/Lixnux-exam-test/linux_networking/> |
 
 Al ser un *project site*, el sitio cuelga de `/Lixnux-exam-test/` y no de la raíz
 del dominio. Por eso **todos los enlaces internos son relativos**: una ruta que

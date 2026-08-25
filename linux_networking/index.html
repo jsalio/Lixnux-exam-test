@@ -1,0 +1,1249 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tu equipo en la red</title>
+<meta name="description" content="Objetivo 4.4 de LPI Linux Essentials: ip, ifconfig, ss, ping, dig y compañía. Qué son, qué imprimen y cómo se lee esa salida.">
+<style>
+/* ============================================================
+   TOKENS — compartidos con las otras guías
+   ============================================================ */
+:root{
+  color-scheme: light;
+
+  --bg:        #eef1f4;
+  --surface:   #ffffff;
+  --surface-2: #e6eaef;
+  --line:      #ccd4dc;
+  --line-2:    #9aa6b3;
+
+  --ink:   #131920;
+  --ink-2: #3f4a57;
+  --ink-3: #6d7884;
+
+  /* piezas de una dirección */
+  --addr: #a8481a;
+  --mask: #10695a;
+  --brd:  #464fa2;
+  --if:   #7a3ea1;
+
+  --warn: #8a5300;
+  --ok:   #10695a;
+
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Cantarell, sans-serif;
+
+  --fs-xs: .75rem;
+  --fs-sm: .8125rem;
+  --fs-ui: .9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.1875rem;
+  --fs-2xl: 2.125rem;
+  --fs-3xl: clamp(2.4rem, 6.5vw, 4rem);
+
+  --r: 3px;
+  --maxw: 68ch;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:        #0d1218;
+    --surface:   #161d26;
+    --surface-2: #1e2733;
+    --line:      #2c3644;
+    --line-2:    #4a5768;
+
+    --ink:   #dde5ed;
+    --ink-2: #a7b3c0;
+    --ink-3: #79868f;
+
+    --addr: #e18c58;
+    --mask: #4cc2a8;
+    --brd:  #949ceb;
+    --if:   #c69bf0;
+
+    --warn: #dda63f;
+    --ok:   #4cc2a8;
+  }
+}
+
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:        #0d1218;
+  --surface:   #161d26;
+  --surface-2: #1e2733;
+  --line:      #2c3644;
+  --line-2:    #4a5768;
+
+  --ink:   #dde5ed;
+  --ink-2: #a7b3c0;
+  --ink-3: #79868f;
+
+  --addr: #e18c58;
+  --mask: #4cc2a8;
+  --brd:  #949ceb;
+  --if:   #c69bf0;
+
+  --warn: #dda63f;
+  --ok:   #4cc2a8;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{ box-sizing: border-box; }
+body{
+  margin:0; background: var(--bg); color: var(--ink);
+  font-family: var(--serif); font-size: var(--fs-base); line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+::selection{ background: var(--ink); color: var(--bg); }
+a{ color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible{ outline: 2px solid var(--ink); outline-offset: 3px; }
+code, kbd, samp{ font-family: var(--mono); font-size: .92em; }
+h1,h2,h3{ text-wrap: balance; }
+
+.shell{ max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+.body-grid{ display: grid; grid-template-columns: 1fr; gap: 3rem; padding-bottom: 5rem; }
+@media (min-width: 1000px){ .body-grid{ grid-template-columns: 13rem minmax(0,1fr); gap: 4rem; } }
+main{ min-width: 0; }
+.prose{ max-width: var(--maxw); }
+section{ padding-block: clamp(2.5rem, 6vw, 4rem); border-top: 1px solid var(--line); }
+section:first-of-type{ border-top: 0; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{ border-bottom: 1px solid var(--line); padding-block: clamp(3rem, 9vw, 6rem) clamp(2.5rem, 7vw, 4rem); }
+.eyebrow{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 1.75rem;
+}
+.eyebrow a{ color: inherit; text-decoration: none; border-bottom: 1px solid var(--line-2); }
+.eyebrow a:hover{ color: var(--ink); border-color: var(--ink); }
+h1{
+  font-family: var(--mono); font-size: var(--fs-3xl); font-weight: 600;
+  letter-spacing: -.045em; line-height: .98; margin: 0;
+}
+.hero-lede{ max-width: 48ch; margin: 1.5rem 0 0; font-size: var(--fs-lg); color: var(--ink-2); }
+
+.hero-line{
+  margin-top: clamp(2rem, 5vw, 3rem);
+  font-family: var(--mono); font-size: clamp(.95rem, 3.2vw, 1.7rem);
+  font-weight: 600; letter-spacing: .01em; line-height: 1.4;
+  display: flex; flex-wrap: wrap; gap: .1em .5em;
+}
+.hero-line span{ animation: drop .5s cubic-bezier(.2,.8,.3,1) backwards; }
+.h-key{ color: var(--ink-3); }
+.h-addr{ color: var(--addr); }
+.h-mask{ color: var(--mask); }
+.h-brd{ color: var(--brd); }
+.h-if{ color: var(--if); }
+@keyframes drop{ from{ opacity:0; transform: translateY(-.28em); } to{ opacity:1; transform: none; } }
+
+.hero-legend{
+  display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-top: 1.25rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+.hero-legend b{ font-weight: 600; }
+.hero-legend .k-addr{ color: var(--addr); }
+.hero-legend .k-mask{ color: var(--mask); }
+.hero-legend .k-brd{ color: var(--brd); }
+.hero-legend .k-if{ color: var(--if); }
+
+/* ============================================================
+   ÍNDICE LATERAL
+   ============================================================ */
+.rail{ display: none; }
+@media (min-width: 1000px){
+  .rail{
+    display: block; position: sticky; top: 0; align-self: start;
+    padding-top: clamp(2.5rem, 6vw, 4rem); max-height: 100vh; overflow-y: auto;
+  }
+}
+.rail ol{
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55rem;
+  font-family: var(--mono); font-size: var(--fs-sm);
+}
+.rail a{ color: var(--ink-3); text-decoration: none; display: flex; gap: .6rem; transition: color .15s; }
+.rail a:hover{ color: var(--ink); }
+.rail a .glyph{ color: var(--line-2); width: 1.1em; flex: none; }
+.rail a.is-active{ color: var(--ink); }
+.rail a.is-active .glyph{ color: var(--addr); }
+
+/* ============================================================
+   SECCIONES
+   ============================================================ */
+.sec-mark{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 .9rem;
+}
+h2{
+  font-family: var(--mono); font-size: var(--fs-2xl); font-weight: 600;
+  letter-spacing: -.035em; line-height: 1.1; margin: 0 0 1.1rem;
+}
+h3{
+  font-family: var(--mono); font-size: 1.0625rem; font-weight: 600;
+  letter-spacing: -.02em; margin: 1.75rem 0 .6rem;
+}
+p{ margin: 0 0 1.1rem; }
+.note{
+  font-size: var(--fs-ui); font-family: var(--sans); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem;
+  margin: 1.5rem 0; max-width: var(--maxw);
+}
+.note b{ color: var(--ink); }
+.note.warn{ border-color: var(--warn); }
+.note.ok{ border-color: var(--ok); }
+
+.wide{ margin: 1.75rem 0; }
+.panel{
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: clamp(1.25rem, 3vw, 1.75rem);
+}
+.scroll-x{ overflow-x: auto; }
+
+table{
+  border-collapse: collapse; width: 100%; min-width: 32rem;
+  font-family: var(--sans); font-size: var(--fs-ui);
+}
+th, td{ text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+thead th{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2); font-weight: 600;
+}
+tbody tr:last-child td{ border-bottom: 0; }
+td code{ color: var(--ink); white-space: nowrap; }
+.col-cmd{ width: 13rem; }
+.col-mid{ width: 17rem; }
+
+/* ============================================================
+   EXPLORADOR DE COMANDOS
+   ============================================================ */
+.chips{ display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.chip{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; text-transform: uppercase;
+  border: 1px solid var(--line); background: transparent; color: var(--ink-3);
+  border-radius: 999px; padding: .3rem .8rem; cursor: pointer; transition: all .12s;
+}
+.chip:hover{ color: var(--ink); border-color: var(--ink-3); }
+.chip[aria-pressed="true"]{ color: var(--ink); border-color: var(--ink); font-weight: 600; }
+
+.picker{ display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.25rem; }
+.pick{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+  border-radius: var(--r); padding: .35rem .7rem; cursor: pointer; transition: all .12s;
+}
+.pick:hover{ border-color: var(--ink-3); color: var(--ink); }
+.pick[aria-pressed="true"]{ border-color: var(--ink); color: var(--ink); font-weight: 600; background: var(--surface); }
+.pick[hidden]{ display: none; }
+
+.does{
+  font-family: var(--sans); font-size: var(--fs-lg); color: var(--ink);
+  margin: 0 0 1rem; max-width: var(--maxw);
+}
+.term{
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--r); overflow: hidden; margin-bottom: 1.1rem;
+}
+.term-bar{
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding: .5rem .8rem; border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.term pre{
+  margin: 0; padding: .9rem; overflow-x: auto;
+  font-family: var(--mono); font-size: var(--fs-sm); line-height: 1.5; color: var(--ink);
+}
+.term pre .prompt{ color: var(--ink-3); }
+.read{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: 0 0 1.1rem;
+}
+.more{ display: grid; gap: .4rem .9rem; grid-template-columns: auto minmax(0,1fr); margin: 0; font-size: var(--fs-sm); }
+.more dt{ font-family: var(--mono); font-weight: 600; color: var(--addr); white-space: nowrap; }
+.more dd{ margin: 0; font-family: var(--sans); color: var(--ink-2); }
+
+/* ============================================================
+   LÍNEA ANOTADA
+   ============================================================ */
+.line{
+  font-family: var(--mono); font-size: clamp(.9rem, 2.6vw, 1.2rem); font-weight: 600;
+  display: flex; flex-wrap: wrap; gap: .1em .55em; line-height: 1.8; margin-bottom: 1.1rem;
+}
+.tok{ border-bottom: 2px solid currentColor; padding-bottom: .1em; }
+.tok[data-k="addr"]{ color: var(--addr); }
+.tok[data-k="mask"]{ color: var(--mask); }
+.tok[data-k="brd"]{ color: var(--brd); }
+.tok[data-k="if"]{ color: var(--if); }
+.tok[data-k="plain"]{ color: var(--ink-3); border-color: transparent; }
+
+/* ============================================================
+   ESCALERA DE DIAGNÓSTICO
+   ============================================================ */
+.steps{ counter-reset: paso; display: flex; flex-direction: column; gap: .1rem; }
+.step{
+  display: grid; grid-template-columns: 2rem minmax(0,1fr); gap: 1rem;
+  padding: .85rem 0; border-bottom: 1px solid var(--line);
+}
+.step:last-child{ border-bottom: 0; }
+.step::before{
+  counter-increment: paso; content: counter(paso);
+  font-family: var(--mono); font-size: var(--fs-sm); font-weight: 600;
+  color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 999px;
+  width: 1.7rem; height: 1.7rem; display: grid; place-items: center;
+}
+.step b{ font-family: var(--mono); font-size: var(--fs-ui); display: block; margin-bottom: .2rem; }
+.step p{ margin: 0; font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); }
+.step .fail{ color: var(--warn); }
+
+/* ============================================================
+   QUIZ
+   ============================================================ */
+.quiz{ display: flex; flex-direction: column; gap: 1.5rem; }
+.q{ border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; }
+.q:last-child{ border-bottom: 0; padding-bottom: 0; }
+.q-text{ font-size: var(--fs-lg); margin: 0 0 .8rem; }
+.q-opts{ display: flex; flex-wrap: wrap; gap: .5rem; }
+.opt{
+  font-family: var(--mono); font-size: var(--fs-sm);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+  border-radius: var(--r); padding: .45rem .8rem; cursor: pointer; transition: all .12s;
+}
+.opt:hover:not(:disabled){ border-color: var(--ink-3); color: var(--ink); }
+.opt:disabled{ cursor: default; }
+.opt.good{ border-color: var(--ok); color: var(--ok); font-weight: 600; background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.opt.bad{ border-color: var(--warn); color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); text-decoration: line-through; }
+.q-exp{
+  font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2);
+  border-left: 2px solid var(--line-2); padding: .15rem 0 .15rem 1rem; margin: .9rem 0 0;
+}
+.q-exp[hidden]{ display: none; }
+
+/* ============================================================
+   CHULETA
+   ============================================================ */
+.cheat{ display: grid; gap: .1rem; font-family: var(--mono); font-size: var(--fs-ui); }
+.cheat-row{
+  display: grid; grid-template-columns: minmax(0, 16rem) minmax(0,1fr);
+  gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--line); align-items: baseline;
+}
+.cheat-row:last-child{ border-bottom: 0; }
+.cheat-row span{ font-family: var(--sans); font-size: var(--fs-ui); color: var(--ink-2); }
+.cheat-row b{ font-weight: 600; }
+
+footer{
+  border-top: 1px solid var(--line); padding-block: 2.5rem 4rem;
+  font-family: var(--mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="shell">
+    <p class="eyebrow"><a href="../">← Índice</a> · Guía · objetivo 4.4</p>
+    <h1>Tu equipo en la red</h1>
+    <p class="hero-lede">Una máquina conectada solo necesita cuatro datos. Estos comandos sirven para leerlos, y el examen pregunta justo por eso: cuál los muestra y qué significa cada campo.</p>
+
+    <div class="hero-line" aria-label="Una línea de la salida de ip addr">
+      <span class="h-key" style="animation-delay:.00s">inet</span><span class="h-addr" style="animation-delay:.05s">192.168.1.50</span><span class="h-mask" style="animation-delay:.10s">/24</span><span class="h-key" style="animation-delay:.15s">brd</span><span class="h-brd" style="animation-delay:.20s">192.168.1.255</span><span class="h-key" style="animation-delay:.25s">scope global</span><span class="h-if" style="animation-delay:.30s">enp0s3</span>
+    </div>
+
+    <p class="hero-legend">
+      <b class="k-addr">■ dirección</b>
+      <b class="k-mask">■ prefijo de red</b>
+      <b class="k-brd">■ difusión</b>
+      <b class="k-if">■ interfaz</b>
+    </p>
+  </div>
+</header>
+
+<div class="shell body-grid">
+
+  <nav class="rail" aria-label="Índice">
+    <ol>
+      <li><a href="#idea"><span class="glyph">·</span> Cuatro datos</a></li>
+      <li><a href="#explorador"><span class="glyph">$</span> Explorador</a></li>
+      <li><a href="#leer"><span class="glyph">@</span> Leer <code>ip a</code></a></li>
+      <li><a href="#ifconfig"><span class="glyph">~</span> ifconfig vs ip</a></li>
+      <li><a href="#rutas"><span class="glyph">&gt;</span> Rutas</a></li>
+      <li><a href="#dns"><span class="glyph">?</span> Nombres y DNS</a></li>
+      <li><a href="#diagnostico"><span class="glyph">!</span> Diagnóstico</a></li>
+      <li><a href="#quiz"><span class="glyph">#</span> Preguntas</a></li>
+      <li><a href="#chuleta"><span class="glyph">*</span> Chuleta</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- IDEA -->
+    <section id="idea">
+      <p class="sec-mark">La idea</p>
+      <h2>Cuatro datos y ya está</h2>
+      <div class="prose">
+        <p>Para que un equipo hable con el resto del mundo hacen falta cuatro cosas, ni una más. Todo lo que sigue en esta guía son formas de <b>leer</b> esas cuatro cosas y de comprobar en cuál se ha roto algo.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-mid">El dato</th><th class="col-cmd">Quién lo muestra</th><th>Dónde vive</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>Dirección IP y máscara</b><br>quién soy dentro de mi red</td>
+              <td><code>ip addr</code></td>
+              <td>Normalmente la reparte un servidor DHCP; si es fija, la fija la configuración de red de la distribución.</td>
+            </tr>
+            <tr>
+              <td><b>Puerta de enlace</b><br>por dónde salgo de mi red</td>
+              <td><code>ip route</code></td>
+              <td>La línea <code>default via</code> de la tabla de rutas del kernel.</td>
+            </tr>
+            <tr>
+              <td><b>Servidores DNS</b><br>quién traduce nombres a IP</td>
+              <td><code>cat /etc/resolv.conf</code></td>
+              <td><code>/etc/resolv.conf</code>, casi siempre generado por otro programa.</td>
+            </tr>
+            <tr>
+              <td><b>Nombre del equipo</b><br>cómo me llamo</td>
+              <td><code>hostname</code></td>
+              <td><code>/etc/hostname</code>, y se consulta o cambia con <code>hostnamectl</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Dos familias de comandos, no una.</b> Las órdenes antiguas (<code>ifconfig</code>, <code>route</code>, <code>netstat</code>, <code>arp</code>) vienen del paquete <b>net-tools</b> y están en desuso: en muchas distribuciones ni siquiera se instalan. Las modernas (<code>ip</code>, <code>ss</code>) vienen de <b>iproute2</b> y están siempre. El examen espera que conozcas las dos y sepas cuál sustituye a cuál.
+      </div>
+    </section>
+
+    <!-- EXPLORADOR -->
+    <section id="explorador">
+      <p class="sec-mark">Guía interactiva</p>
+      <h2>Los comandos, uno a uno</h2>
+      <div class="prose">
+        <p>Cada botón es un comando real con la salida que produce. Filtra por familia si buscas algo concreto: lo importante no es la salida en sí, sino <b>en qué te tienes que fijar</b> de ella.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="chips" id="chips" role="group" aria-label="Familias de comandos"></div>
+        <div class="picker" id="picker" role="group" aria-label="Comandos"></div>
+
+        <p class="does" id="does"></p>
+
+        <div class="term">
+          <div class="term-bar" id="term-bar">terminal</div>
+          <pre id="term-out"></pre>
+        </div>
+
+        <p class="read" id="read"></p>
+        <dl class="more" id="more"></dl>
+      </div>
+
+      <div class="note">
+        <b>Todos son de solo lectura.</b> Ninguno de estos comandos cambia nada en el sistema, así que puedes ejecutarlos sin miedo y sin <code>sudo</code>. Los que sí modifican la red (<code>ip addr add</code>, <code>ip link set</code>) aparecen más abajo, señalados.
+      </div>
+    </section>
+
+    <!-- LEER IP A -->
+    <section id="leer">
+      <p class="sec-mark">Campo a campo</p>
+      <h2>Leer la salida de <code>ip a</code></h2>
+      <div class="prose">
+        <p>Es la salida que más veces vas a mirar y la que más asusta la primera vez. En realidad son dos líneas útiles por interfaz: la del <b>enlace</b> (nombre, estado, MAC) y la de la <b>dirección</b> (IP, prefijo, difusión).</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="line" aria-label="Línea de dirección troceada">
+          <span class="tok" data-k="plain">inet</span><span class="tok" data-k="addr">192.168.1.50</span><span class="tok" data-k="mask">/24</span><span class="tok" data-k="plain">brd</span><span class="tok" data-k="brd">192.168.1.255</span><span class="tok" data-k="plain">scope global</span><span class="tok" data-k="if">enp0s3</span>
+        </div>
+        <p class="read"><code>inet</code> es IPv4 (<code>inet6</code> sería IPv6). El <code>/24</code> dice que los 24 primeros bits son la parte de red: eso es la máscara <code>255.255.255.0</code> escrita de otra forma. <code>scope global</code> significa que la dirección vale fuera de la propia máquina; <code>scope host</code> es solo interna, como <code>127.0.0.1</code>.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Lo que ves</th><th>Qué significa</th></tr></thead>
+          <tbody>
+            <tr><td><code>1: lo:</code></td><td>Interfaz número 1, la de <i>loopback</i>. Siempre existe, siempre es <code>127.0.0.1</code> y no sale de la máquina: sirve para que los programas locales se hablen entre sí.</td></tr>
+            <tr><td><code>2: enp0s3:</code></td><td>La tarjeta de red real. Los nombres modernos describen dónde está enchufada la tarjeta (<code>en</code> = ethernet, <code>wl</code> = wifi); los antiguos eran <code>eth0</code>, <code>wlan0</code>.</td></tr>
+            <tr><td><code>&lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt;</code></td><td>Banderas del enlace. <code>UP</code> = el sistema la ha activado; <code>LOWER_UP</code> = hay cable conectado o wifi asociada. Si falta <code>LOWER_UP</code>, el problema es físico.</td></tr>
+            <tr><td><code>state UP</code> · <code>state DOWN</code></td><td>El resumen del estado. <code>lo</code> aparece como <code>UNKNOWN</code> y es normal.</td></tr>
+            <tr><td><code>mtu 1500</code></td><td>Tamaño máximo de paquete en bytes. 1500 es lo normal en ethernet.</td></tr>
+            <tr><td><code>link/ether 08:00:27:1c:4f:aa</code></td><td>La dirección <b>MAC</b>: identifica la tarjeta dentro de la red local. Es lo que <code>ifconfig</code> llama <code>ether</code> o <code>HWaddr</code>.</td></tr>
+            <tr><td><code>inet 192.168.1.50/24</code></td><td>La dirección IPv4 y su prefijo. <b>Este es el dato que buscas el 90 % de las veces.</b></td></tr>
+            <tr><td><code>brd 192.168.1.255</code></td><td>Dirección de difusión: la que alcanza a todos los equipos de esa red a la vez.</td></tr>
+            <tr><td><code>inet6 fe80::…/64</code></td><td>Dirección IPv6. Las que empiezan por <code>fe80::</code> son de enlace local: se autogeneran y no salen de la red local.</td></tr>
+            <tr><td><code>valid_lft 84523sec</code></td><td>Lo que queda del préstamo DHCP. Si pone <code>forever</code>, la dirección es fija.</td></tr>
+            <tr><td><code>dynamic</code></td><td>La dirección la ha dado un servidor DHCP. Sin esa palabra, está configurada a mano.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Cuando solo quieres el dato.</b> <code>ip -br a</code> imprime una línea por interfaz, y <code>hostname -I</code> imprime únicamente las direcciones, sin nada alrededor: es la forma cómoda de meter la IP en un script.
+      </div>
+    </section>
+
+    <!-- IFCONFIG -->
+    <section id="ifconfig">
+      <p class="sec-mark">Lo viejo y lo nuevo</p>
+      <h2><code>ifconfig</code> frente a <code>ip</code></h2>
+      <div class="prose">
+        <p><code>ifconfig</code> (<i>interface configurator</i>) fue durante veinte años <b>el</b> comando de red de Unix. Hoy está sin mantenimiento: no entiende varias direcciones por interfaz, ni las etiquetas modernas del kernel, ni buena parte de IPv6. Su sustituto es <code>ip</code>, un único comando con subórdenes: <code>ip addr</code>, <code>ip link</code>, <code>ip route</code>, <code>ip neigh</code>.</p>
+        <p>Sigue apareciendo en el examen, en documentación antigua y en máquinas heredadas, así que conviene saber traducir de uno a otro.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-mid">Antiguo · net-tools</th><th class="col-mid">Moderno · iproute2</th><th>Para qué</th></tr></thead>
+          <tbody>
+            <tr><td><code>ifconfig</code></td><td><code>ip addr show</code> · <code>ip a</code></td><td>Ver las direcciones de todas las interfaces.</td></tr>
+            <tr><td><code>ifconfig -a</code></td><td><code>ip a</code></td><td>Incluir también las interfaces inactivas. <code>ip</code> ya las muestra siempre.</td></tr>
+            <tr><td><code>ifconfig eth0</code></td><td><code>ip a show eth0</code></td><td>Ver una interfaz concreta.</td></tr>
+            <tr><td><code>ifconfig eth0 up</code> · <code>down</code></td><td><code>ip link set eth0 up</code> · <code>down</code></td><td>Activar o desactivar una interfaz. Requiere root.</td></tr>
+            <tr><td><code>ifconfig eth0 10.0.0.5 netmask 255.255.255.0</code></td><td><code>ip addr add 10.0.0.5/24 dev eth0</code></td><td>Asignar una dirección a mano. Requiere root.</td></tr>
+            <tr><td><code>route -n</code></td><td><code>ip route show</code> · <code>ip r</code></td><td>Ver la tabla de rutas.</td></tr>
+            <tr><td><code>route add default gw 192.168.1.1</code></td><td><code>ip route add default via 192.168.1.1</code></td><td>Fijar la puerta de enlace. Requiere root.</td></tr>
+            <tr><td><code>arp -a</code></td><td><code>ip neigh show</code> · <code>ip n</code></td><td>Ver los vecinos conocidos de la red local.</td></tr>
+            <tr><td><code>netstat -tuln</code></td><td><code>ss -tuln</code></td><td>Ver puertos en escucha.</td></tr>
+            <tr><td><code>netstat -r</code></td><td><code>ip route show</code></td><td>Rutas, otra vez.</td></tr>
+            <tr><td><code>iwconfig</code></td><td><code>iw dev</code></td><td>Parámetros del wifi.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note warn">
+        <b>«ifconfig: no se encontró la orden».</b> No es un fallo del sistema: es que net-tools no está instalado, cosa normal en Debian 12, Ubuntu moderno o Fedora. Se arregla con <code>sudo apt install net-tools</code> (o <code>dnf install net-tools</code>), pero casi siempre la respuesta correcta es escribir <code>ip a</code> en su lugar.
+      </div>
+
+      <h3>La misma interfaz, contada por los dos</h3>
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-mid">Dato</th><th class="col-mid">Lo dice <code>ifconfig</code></th><th>Lo dice <code>ip a</code></th></tr></thead>
+          <tbody>
+            <tr><td>Dirección IPv4</td><td><code>inet 192.168.1.50</code></td><td><code>inet 192.168.1.50/24</code></td></tr>
+            <tr><td>Máscara</td><td><code>netmask 255.255.255.0</code>, aparte</td><td>El <code>/24</code>, pegado a la dirección</td></tr>
+            <tr><td>MAC</td><td><code>ether 08:00:27:1c:4f:aa</code></td><td><code>link/ether 08:00:27:1c:4f:aa</code></td></tr>
+            <tr><td>Estado</td><td><code>flags=…&lt;UP,RUNNING&gt;</code></td><td><code>state UP</code> y <code>LOWER_UP</code></td></tr>
+            <tr><td>Contadores de tráfico</td><td><code>RX/TX packets</code>, sí</td><td>Solo con <code>ip -s link</code></td></tr>
+            <tr><td>Puerta de enlace</td><td>No la muestra</td><td>Tampoco: eso es <code>ip route</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Ni uno ni otro guardan nada.</b> Todo lo que cambies con <code>ip</code> o <code>ifconfig</code> vive en la memoria del kernel y desaparece al reiniciar. La configuración permanente está en otro sitio según la distribución: NetworkManager (<code>nmcli</code>), <code>systemd-networkd</code>, <code>/etc/network/interfaces</code> en Debian clásico o <code>/etc/netplan/</code> en Ubuntu.
+      </div>
+    </section>
+
+    <!-- RUTAS -->
+    <section id="rutas">
+      <p class="sec-mark">Por dónde sale</p>
+      <h2>La tabla de rutas</h2>
+      <div class="prose">
+        <p>Tener IP no basta: cuando el kernel va a enviar un paquete, mira esta tabla para decidir por qué interfaz sale y a quién se lo entrega primero. La regla es simple: <b>gana la ruta más específica</b>, y si ninguna encaja, se usa la de por defecto.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="term">
+          <div class="term-bar">ip route show</div>
+<pre><span class="prompt">$ ip route show</span>
+default via 192.168.1.1 dev enp0s3 proto dhcp metric 100
+192.168.1.0/24 dev enp0s3 proto kernel scope link src 192.168.1.50 metric 100</pre>
+        </div>
+        <p class="read">Dos líneas y dos ideas. La segunda dice «lo que sea de <code>192.168.1.0/24</code> está aquí al lado, lo entrego yo directamente». La primera dice «cualquier otra cosa, dásela a <code>192.168.1.1</code>»: eso es la <b>puerta de enlace</b>, el router.</p>
+
+        <dl class="more">
+          <dt>default via</dt><dd>La puerta de enlace. Si esta línea no existe, tendrás red local pero no Internet.</dd>
+          <dt>dev enp0s3</dt><dd>Por qué interfaz se envía.</dd>
+          <dt>proto dhcp · kernel</dt><dd>Quién puso la ruta: el cliente DHCP o el propio kernel al configurar la dirección.</dd>
+          <dt>src 192.168.1.50</dt><dd>Con qué dirección de origen saldrán los paquetes.</dd>
+          <dt>metric 100</dt><dd>Coste. Si hay dos rutas equivalentes, gana la de métrica más baja: así el cable gana al wifi.</dd>
+        </dl>
+      </div>
+
+      <div class="note">
+        <b>Para saber por dónde saldría <i>un</i> paquete concreto</b> no hace falta interpretar la tabla entera: <code>ip route get 1.1.1.1</code> te responde con la ruta que se usaría, la interfaz y la IP de origen. Es la forma rápida de comprobar si el tráfico sale por donde crees.
+      </div>
+
+      <div class="note warn">
+        <b>Estos sí modifican (requieren root).</b> <code>ip link set enp0s3 up</code> activa la interfaz, <code>ip addr add 192.168.1.60/24 dev enp0s3</code> añade una dirección y <code>ip route add default via 192.168.1.1</code> fija la salida. Se deshacen con <code>down</code>, <code>del</code> y <code>route del</code>, y se pierden al reiniciar.
+      </div>
+    </section>
+
+    <!-- DNS -->
+    <section id="dns">
+      <p class="sec-mark">De nombre a número</p>
+      <h2>Nombres y DNS</h2>
+      <div class="prose">
+        <p>Las máquinas se hablan por IP; las personas escribimos nombres. El <b>DNS</b> es el servicio que traduce <code>www.lpi.org</code> en <code>104.22.28.145</code>. Antes de preguntar a nadie, el sistema mira su propia chuleta local.</p>
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Fichero</th><th>Qué contiene</th></tr></thead>
+          <tbody>
+            <tr><td><code>/etc/hosts</code></td><td>Traducciones fijas escritas a mano, que <b>ganan al DNS</b>. Siempre trae al menos <code>127.0.0.1 localhost</code>. Es donde mirar cuando un nombre resuelve a algo imposible.</td></tr>
+            <tr><td><code>/etc/resolv.conf</code></td><td>A qué servidores DNS preguntar: líneas <code>nameserver 192.168.1.1</code>. Suele generarlo NetworkManager o <code>systemd-resolved</code>, así que editarlo a mano rara vez dura.</td></tr>
+            <tr><td><code>/etc/nsswitch.conf</code></td><td>El orden de consulta. La línea <code>hosts: files dns</code> es la que dice «primero <code>/etc/hosts</code>, luego el DNS».</td></tr>
+            <tr><td><code>/etc/hostname</code></td><td>El nombre de este equipo. Se consulta con <code>hostname</code> y se cambia con <code>hostnamectl set-hostname nombre</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Tres comandos para preguntar lo mismo</h3>
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-cmd">Comando</th><th>Cuándo usarlo</th></tr></thead>
+          <tbody>
+            <tr><td><code>host lpi.org</code></td><td>Respuesta en una línea, legible. Lo primero que probar.</td></tr>
+            <tr><td><code>dig lpi.org</code></td><td>Respuesta completa: secciones, tipo de registro, TTL y <b>qué servidor contestó</b>. Con <code>+short</code> imprime solo la IP.</td></tr>
+            <tr><td><code>nslookup lpi.org</code></td><td>El clásico, también en Windows. Funciona, pero <code>dig</code> y <code>host</code> se consideran preferibles en Linux.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <b>Truco de diagnóstico.</b> Si <code>ping 8.8.8.8</code> funciona y <code>ping google.com</code> falla con «Nombre o servicio desconocido», la red está bien y lo que está roto es el DNS: mira <code>/etc/resolv.conf</code>. Es el fallo más frecuente y el que más se pregunta.
+      </div>
+    </section>
+
+    <!-- DIAGNÓSTICO -->
+    <section id="diagnostico">
+      <p class="sec-mark">Cuando no hay red</p>
+      <h2>La escalera de diagnóstico</h2>
+      <div class="prose">
+        <p>«No tengo Internet» son cinco problemas distintos. Se prueban en orden, de dentro hacia fuera, y el primer escalón que falla señala la causa.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="steps">
+          <div class="step">
+            <div>
+              <b>ip link show</b>
+              <p>¿Existe la interfaz y está <code>UP</code>? <span class="fail">Si está <code>DOWN</code>: actívala con <code>ip link set … up</code>. Si falta <code>LOWER_UP</code>, el cable o el wifi no están conectados.</span></p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <b>ip addr show</b>
+              <p>¿Tiene una IP que no sea la de loopback? <span class="fail">Sin <code>inet</code>, o con una <code>169.254.x.x</code>, el DHCP no ha respondido.</span></p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <b>ping -c 3 192.168.1.1</b>
+              <p>¿Contesta la puerta de enlace? <span class="fail">Si no, el problema está en la red local: cable, wifi, máscara mal puesta o el propio router.</span></p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <b>ping -c 3 8.8.8.8</b>
+              <p>¿Se sale a Internet por IP? <span class="fail">Si el router responde pero esto no, falta la ruta por defecto (<code>ip route</code>) o el corte está más arriba: <code>traceroute -n 8.8.8.8</code> enseña dónde.</span></p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <b>ping -c 3 google.com</b>
+              <p>¿Se resuelven los nombres? <span class="fail">Si los cuatro pasos anteriores van y este falla, es el DNS: <code>/etc/resolv.conf</code>, y compruébalo con <code>dig +short google.com</code>.</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <b><code>ping 127.0.0.1</code> es un caso aparte.</b> No prueba la red: prueba que la pila TCP/IP del propio sistema funciona. Si eso falla, no mires el cable. Y ojo, hay servidores que ignoran los <i>ping</i> por política: que uno no conteste no siempre significa que esté caído.
+      </div>
+
+      <div class="wide panel scroll-x">
+        <table>
+          <thead><tr><th class="col-mid">Síntoma</th><th>Sospechoso</th></tr></thead>
+          <tbody>
+            <tr><td>Ping por IP sí, por nombre no</td><td>DNS. <code>/etc/resolv.conf</code>.</td></tr>
+            <tr><td>La IP empieza por <code>169.254.</code></td><td>Autoconfiguración: no hubo respuesta del DHCP.</td></tr>
+            <tr><td>La puerta de enlace responde, Internet no</td><td>Falta la ruta <code>default</code>, o el corte está aguas arriba.</td></tr>
+            <tr><td>Un servicio local no acepta conexiones</td><td>Mira si escucha: <code>ss -tuln | grep :puerto</code>. Si escucha en <code>127.0.0.1</code>, solo acepta conexiones de la propia máquina.</td></tr>
+            <tr><td>Nada responde, ni el propio equipo</td><td><code>ping 127.0.0.1</code>: si falla, el problema es la configuración del sistema, no la red.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz">
+      <p class="sec-mark">Compruébalo</p>
+      <h2>Diez preguntas</h2>
+      <div class="prose">
+        <p>Del tipo que cae en el examen. Elige y te explico por qué.</p>
+      </div>
+
+      <div class="wide panel">
+        <div class="quiz" id="quiz"></div>
+      </div>
+    </section>
+
+    <!-- CHULETA -->
+    <section id="chuleta">
+      <p class="sec-mark">Para tener a mano</p>
+      <h2>Chuleta</h2>
+
+      <div class="wide panel">
+        <div class="cheat">
+          <div class="cheat-row"><b>ip a</b><span>Direcciones IP de todas las interfaces. El comando de cabecera.</span></div>
+          <div class="cheat-row"><b>ip -br a</b><span>Lo mismo, una línea por interfaz.</span></div>
+          <div class="cheat-row"><b>ip link</b><span>Interfaces y su estado, sin direcciones.</span></div>
+          <div class="cheat-row"><b>ip route</b><span>Tabla de rutas. La línea <code>default via</code> es la puerta de enlace.</span></div>
+          <div class="cheat-row"><b>ip route get 1.1.1.1</b><span>Por dónde saldría ese paquete concreto.</span></div>
+          <div class="cheat-row"><b>ip neigh</b><span>Vecinos de la red local con su MAC (el antiguo <code>arp -a</code>).</span></div>
+          <div class="cheat-row"><b>hostname</b><span>Nombre del equipo. <code>hostname -I</code> imprime solo sus IPs.</span></div>
+          <div class="cheat-row"><b>ss -tuln</b><span>Puertos TCP y UDP en escucha, sin resolver nombres.</span></div>
+          <div class="cheat-row"><b>ss -tp</b><span>Conexiones TCP establecidas y qué proceso las tiene.</span></div>
+          <div class="cheat-row"><b>ping -c 4 destino</b><span>Cuatro paquetes y para. Sin <code>-c</code> no termina nunca.</span></div>
+          <div class="cheat-row"><b>traceroute -n destino</b><span>Los saltos hasta el destino, sin resolver nombres.</span></div>
+          <div class="cheat-row"><b>tracepath destino</b><span>Igual, sin necesitar root ni opciones.</span></div>
+          <div class="cheat-row"><b>dig +short nombre</b><span>Solo la IP. <code>dig</code> a secas da la respuesta completa.</span></div>
+          <div class="cheat-row"><b>host nombre</b><span>Consulta DNS breve y legible.</span></div>
+          <div class="cheat-row"><b>nslookup nombre</b><span>El clásico, también presente en Windows.</span></div>
+          <div class="cheat-row"><b>curl -I url</b><span>Solo las cabeceras HTTP. <code>-s</code> silencia el medidor de progreso.</span></div>
+          <div class="cheat-row"><b>wget url</b><span>Descarga a un fichero. <code>-O nombre</code> elige cómo se llama.</span></div>
+          <div class="cheat-row"><b>ssh usuario@host</b><span>Sesión remota cifrada. <code>-p</code> si el puerto no es el 22.</span></div>
+          <div class="cheat-row"><b>scp fichero usuario@host:/ruta</b><span>Copiar por SSH. <code>-r</code> para directorios.</span></div>
+          <div class="cheat-row" style="border-top:1px solid var(--line-2); margin-top:.5rem; padding-top:.9rem"><b>cat /etc/resolv.conf</b><span>Qué servidores DNS se están usando.</span></div>
+          <div class="cheat-row"><b>cat /etc/hosts</b><span>Traducciones locales, que ganan al DNS.</span></div>
+          <div class="cheat-row"><b>ifconfig → ip a</b><span>net-tools está en desuso; iproute2 lo sustituye entero.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="shell">Objetivo 4.4 · interfaces · rutas · DNS · diagnóstico</div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ==========================================================
+     DATOS — cada comando con su salida real y qué mirar en ella.
+     Las direcciones son de ejemplo: 192.168.1.50/24 en enp0s3,
+     router 192.168.1.1, equipo llamado debian-lab.
+     ========================================================== */
+  var FAMS = [
+    { id:"all",   label:"Todos" },
+    { id:"dir",   label:"Direcciones" },
+    { id:"rutas", label:"Rutas" },
+    { id:"dns",   label:"DNS" },
+    { id:"diag",  label:"Diagnóstico" },
+    { id:"remoto",label:"Remoto" }
+  ];
+
+  var CMDS = [
+    { id:"ip-addr", fam:"dir", btn:"ip addr", cmd:"ip addr show",
+      does:"Muestra todas las interfaces de red con las direcciones IP que tienen configuradas.",
+      out:[
+        "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000",
+        "    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00",
+        "    inet 127.0.0.1/8 scope host lo",
+        "       valid_lft forever preferred_lft forever",
+        "2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000",
+        "    link/ether 08:00:27:1c:4f:aa brd ff:ff:ff:ff:ff:ff",
+        "    inet 192.168.1.50/24 brd 192.168.1.255 scope global dynamic enp0s3",
+        "       valid_lft 84523sec preferred_lft 84523sec",
+        "    inet6 fe80::a00:27ff:fe1c:4faa/64 scope link",
+        "       valid_lft forever preferred_lft forever"
+      ].join("\n"),
+      read:"Busca la línea que empieza por inet dentro de la interfaz que no sea lo. Ahí está tu dirección (192.168.1.50) y tu prefijo de red (/24). La primera interfaz siempre es el loopback y siempre es 127.0.0.1: no cuenta.",
+      more:[["ip a","exactamente lo mismo, abreviado"],
+            ["ip -br a","una línea por interfaz, mucho más legible"],
+            ["ip -4 a","solo IPv4; -6 para solo IPv6"],
+            ["ip a show enp0s3","solo una interfaz"]] },
+
+    { id:"ip-a", fam:"dir", btn:"ip a", cmd:"ip -br a",
+      does:"ip a es la forma corta de ip addr. Y con -br (brief) la salida cabe de un vistazo.",
+      out:[
+        "lo               UNKNOWN        127.0.0.1/8 ::1/128",
+        "enp0s3           UP             192.168.1.50/24 fe80::a00:27ff:fe1c:4faa/64",
+        "wlp2s0           DOWN"
+      ].join("\n"),
+      read:"Tres columnas: interfaz, estado y direcciones. Aquí se ve de golpe que el cable (enp0s3) está en marcha con IP y que el wifi (wlp2s0) está apagado y sin dirección.",
+      more:[["ip a","salida completa, con MAC y MTU"],
+            ["ip -br -c a","añade color al estado"],
+            ["ip a | grep inet","el filtro de toda la vida"]] },
+
+    { id:"ip-link", fam:"dir", btn:"ip link", cmd:"ip link show",
+      does:"Muestra las interfaces y su estado físico, sin direcciones IP: nombre, MAC, MTU y si están activas.",
+      out:[
+        "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000",
+        "    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00",
+        "2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DEFAULT group default qlen 1000",
+        "    link/ether 08:00:27:1c:4f:aa brd ff:ff:ff:ff:ff:ff"
+      ].join("\n"),
+      read:"Esta es la capa de abajo: el enlace. UP significa que el sistema la ha encendido; LOWER_UP, que hay señal de verdad (cable enchufado, wifi asociada). Una interfaz puede estar UP y no tener ninguna IP: por eso ip link y ip addr son preguntas distintas.",
+      more:[["ip -s link","añade contadores de paquetes y errores"],
+            ["ip link set enp0s3 up","la activa — requiere root"],
+            ["ip link set enp0s3 down","la desactiva — requiere root"]] },
+
+    { id:"ifconfig", fam:"dir", btn:"ifconfig", cmd:"ifconfig enp0s3",
+      does:"El comando clásico de net-tools. Muestra lo mismo que ip addr, con otro formato y en desuso.",
+      out:[
+        "enp0s3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500",
+        "        inet 192.168.1.50  netmask 255.255.255.0  broadcast 192.168.1.255",
+        "        inet6 fe80::a00:27ff:fe1c:4faa  prefixlen 64  scopeid 0x20<link>",
+        "        ether 08:00:27:1c:4f:aa  txqueuelen 1000  (Ethernet)",
+        "        RX packets 128934  bytes 174829301 (166.7 MiB)",
+        "        RX errors 0  dropped 0  overruns 0  frame 0",
+        "        TX packets 74210  bytes 9182034 (8.7 MiB)",
+        "        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0"
+      ].join("\n"),
+      read:"Los mismos datos, colocados de otra forma: la máscara aparece como netmask 255.255.255.0 en vez de /24, y la MAC como ether en vez de link/ether. Si al ejecutarlo responde «no se encontró la orden», es que net-tools no está instalado — usa ip a.",
+      more:[["ifconfig","todas las interfaces activas"],
+            ["ifconfig -a","incluidas las inactivas"],
+            ["ip a show enp0s3","el equivalente moderno"]] },
+
+    { id:"hostname", fam:"dir", btn:"hostname", cmd:"hostname",
+      does:"Imprime el nombre de este equipo.",
+      out:[
+        "debian-lab",
+        "$ hostname -f",
+        "debian-lab.local",
+        "$ cat /etc/hostname",
+        "debian-lab"
+      ].join("\n"),
+      read:"El nombre corto sale de /etc/hostname. Con -f pide el nombre completo con dominio, que ya depende de la resolución de nombres. Para cambiarlo de forma permanente: hostnamectl set-hostname nuevo-nombre.",
+      more:[["hostname -f","nombre completo con dominio"],
+            ["hostnamectl","nombre, sistema y kernel de una vez"],
+            ["hostnamectl set-hostname x","lo cambia — requiere root"]] },
+
+    { id:"hostname-i", fam:"dir", btn:"hostname -I", cmd:"hostname -I",
+      does:"Imprime solo las direcciones IP asignadas al equipo, separadas por espacios y sin el loopback.",
+      out:[
+        "192.168.1.50 ",
+        "$ hostname -I | awk '{print $1}'",
+        "192.168.1.50"
+      ].join("\n"),
+      read:"Es la forma más cómoda de sacar la IP desde un script: nada de cabeceras ni de campos que filtrar. Si hay varias interfaces, imprime varias direcciones en una sola línea y el orden no está garantizado.",
+      more:[["ip -br a","si además quieres saber de qué interfaz es"],
+            ["hostname -i","resuelve el nombre; puede devolver 127.0.1.1"]] },
+
+    { id:"ip-route", fam:"rutas", btn:"ip route", cmd:"ip route show",
+      does:"Muestra la tabla de rutas: por dónde salen los paquetes y cuál es la puerta de enlace.",
+      out:[
+        "default via 192.168.1.1 dev enp0s3 proto dhcp metric 100",
+        "192.168.1.0/24 dev enp0s3 proto kernel scope link src 192.168.1.50 metric 100",
+        "$ ip route get 1.1.1.1",
+        "1.1.1.1 via 192.168.1.1 dev enp0s3 src 192.168.1.50 uid 1000"
+      ].join("\n"),
+      read:"La línea que importa es la primera: default via 192.168.1.1 es tu router. Sin esa línea hay red local pero no Internet. ip route get responde por dónde saldría un destino concreto, que es más rápido que interpretar la tabla entera.",
+      more:[["ip r","abreviatura"],
+            ["ip route get IP","la ruta que se usaría para ese destino"],
+            ["route -n","el equivalente antiguo de net-tools"]] },
+
+    { id:"ip-neigh", fam:"rutas", btn:"ip neigh", cmd:"ip neigh show",
+      does:"Muestra la tabla de vecinos (ARP): qué direcciones IP de la red local se han visto y con qué MAC.",
+      out:[
+        "192.168.1.1 dev enp0s3 lladdr 5c:64:8e:12:ab:cd REACHABLE",
+        "192.168.1.23 dev enp0s3 lladdr 3c:22:fb:0a:11:02 STALE",
+        "192.168.1.99 dev enp0s3 FAILED"
+      ].join("\n"),
+      read:"Solo aparecen equipos de tu propia red local, porque ARP no cruza routers. REACHABLE es contacto reciente, STALE es «hace rato que no hablamos» y FAILED significa que se preguntó por esa IP y no contestó nadie: no hay ningún equipo ahí.",
+      more:[["ip n","abreviatura"],["arp -a","el equivalente antiguo de net-tools"],
+            ["ping -c1 IP && ip n","forzar una entrada nueva"]] },
+
+    { id:"ss", fam:"diag", btn:"ss", cmd:"ss -tuln",
+      does:"Muestra los sockets: qué puertos escuchan en esta máquina y qué conexiones hay abiertas.",
+      out:[
+        "Netid State  Recv-Q Send-Q  Local Address:Port   Peer Address:Port",
+        "udp   UNCONN 0      0       127.0.0.53%lo:53          0.0.0.0:*",
+        "udp   UNCONN 0      0             0.0.0.0:68          0.0.0.0:*",
+        "tcp   LISTEN 0      128           0.0.0.0:22          0.0.0.0:*",
+        "tcp   LISTEN 0      4096        127.0.0.1:631         0.0.0.0:*",
+        "tcp   LISTEN 0      128              [::]:22             [::]:*"
+      ].join("\n"),
+      read:"Las cuatro letras se leen así: -t TCP, -u UDP, -l solo los que escuchan, -n sin traducir puertos a nombres. Fíjate en la dirección local: 0.0.0.0:22 acepta conexiones desde fuera; 127.0.0.1:631 solo desde la propia máquina.",
+      more:[["ss -tulnp","añade qué proceso lo abrió — requiere root"],
+            ["ss -t","conexiones TCP establecidas"],
+            ["netstat -tuln","el equivalente antiguo de net-tools"]] },
+
+    { id:"ping", fam:"diag", btn:"ping", cmd:"ping -c 4 192.168.1.1",
+      does:"Envía paquetes ICMP y mide si el destino responde y cuánto tarda.",
+      out:[
+        "PING 192.168.1.1 (192.168.1.1) 56(84) bytes of data.",
+        "64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=1.83 ms",
+        "64 bytes from 192.168.1.1: icmp_seq=2 ttl=64 time=1.71 ms",
+        "64 bytes from 192.168.1.1: icmp_seq=3 ttl=64 time=2.05 ms",
+        "64 bytes from 192.168.1.1: icmp_seq=4 ttl=64 time=1.95 ms",
+        "",
+        "--- 192.168.1.1 ping statistics ---",
+        "4 packets transmitted, 4 received, 0% packet loss, time 3005ms",
+        "rtt min/avg/max/mdev = 1.712/1.884/2.055/0.132 ms"
+      ].join("\n"),
+      read:"Las dos cifras que cuentan están en el resumen: packet loss (cuántos se perdieron) y avg (la latencia media). Sin -c 4 el comando no termina nunca; se corta con Ctrl+C. Que un servidor no conteste no prueba que esté caído: muchos ignoran los ping a propósito.",
+      more:[["ping -c 4 8.8.8.8","¿hay Internet, sin depender del DNS?"],
+            ["ping -c 4 google.com","¿funciona además el DNS?"],
+            ["ping 127.0.0.1","prueba la pila local, no la red"]] },
+
+    { id:"traceroute", fam:"diag", btn:"traceroute", cmd:"traceroute -n 1.1.1.1",
+      does:"Muestra los saltos por los que pasa un paquete hasta el destino, con el tiempo de cada uno.",
+      out:[
+        "traceroute to 1.1.1.1 (1.1.1.1), 30 hops max, 60 byte packets",
+        " 1  192.168.1.1  1.402 ms  1.363 ms  1.331 ms",
+        " 2  10.20.0.1  8.914 ms  9.002 ms  9.115 ms",
+        " 3  * * *",
+        " 4  172.16.4.9  18.44 ms  18.51 ms  18.60 ms",
+        " 5  1.1.1.1  19.02 ms  19.10 ms  19.22 ms"
+      ].join("\n"),
+      read:"El salto 1 siempre es tu router. Donde el tiempo pega un salto grande, ahí está el cuello de botella. Los asteriscos son un salto que no contesta: es normal y no significa que el camino esté roto, porque el paquete llegó al final. -n evita resolver nombres y va mucho más rápido.",
+      more:[["traceroute destino","con nombres, más lento"],
+            ["tracepath destino","alternativa sin root ni opciones"],
+            ["mtr destino","ping y traceroute a la vez, en vivo"]] },
+
+    { id:"tracepath", fam:"diag", btn:"tracepath", cmd:"tracepath -n 1.1.1.1",
+      does:"Lo mismo que traceroute, pero sin necesitar privilegios y sin opciones que recordar. Además descubre la MTU del camino.",
+      out:[
+        " 1?: [LOCALHOST]                      pmtu 1500",
+        " 1:  192.168.1.1                       1.512ms",
+        " 2:  10.20.0.1                         9.031ms",
+        " 3:  no reply",
+        " 4:  1.1.1.1                          19.114ms reached",
+        "     Resume: pmtu 1500 hops 4 back 4"
+      ].join("\n"),
+      read:"Viene instalado por defecto en más sitios que traceroute, así que suele ser el que está a mano. reached confirma que se llegó, y pmtu es el paquete más grande que cabe por el camino sin fragmentarse.",
+      more:[["traceroute -n destino","el clásico, con tres medidas por salto"],
+            ["tracepath -4 destino","forzar IPv4"]] },
+
+    { id:"dig", fam:"dns", btn:"dig", cmd:"dig lpi.org",
+      does:"Consulta al DNS y enseña la respuesta completa: qué se preguntó, qué contestó y qué servidor lo hizo.",
+      out:[
+        "; <<>> DiG 9.18.28 <<>> lpi.org",
+        ";; global options: +cmd",
+        ";; Got answer:",
+        ";; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 51230",
+        ";; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1",
+        "",
+        ";; QUESTION SECTION:",
+        ";lpi.org.                       IN      A",
+        "",
+        ";; ANSWER SECTION:",
+        "lpi.org.                285     IN      A       104.22.28.145",
+        "",
+        ";; Query time: 12 msec",
+        ";; SERVER: 192.168.1.1#53(192.168.1.1) (UDP)"
+      ].join("\n"),
+      read:"Tres cosas: ANSWER SECTION es la respuesta (el 285 es el TTL, segundos que se puede cachear), status: NOERROR dice que la consulta fue bien (NXDOMAIN sería «ese nombre no existe») y SERVER dice quién contestó, que es como compruebas si estás usando el DNS que crees.",
+      more:[["dig +short lpi.org","solo la IP, ideal para scripts"],
+            ["dig lpi.org MX","registros de correo; también NS, TXT, AAAA"],
+            ["dig @8.8.8.8 lpi.org","preguntar a otro servidor a propósito"]] },
+
+    { id:"host", fam:"dns", btn:"host", cmd:"host lpi.org",
+      does:"Consulta al DNS y responde en una línea legible. Es el atajo cuando solo quieres saber a qué IP apunta un nombre.",
+      out:[
+        "lpi.org has address 104.22.28.145",
+        "lpi.org has IPv6 address 2606:4700:10::6816:1c91",
+        "lpi.org mail is handled by 10 mx.lpi.org.",
+        "$ host 104.22.28.145",
+        "145.28.22.104.in-addr.arpa domain name pointer lpi.org."
+      ].join("\n"),
+      read:"Con un nombre te da la IP; con una IP hace la consulta inversa y te da el nombre. Es el mismo servicio que usa dig, solo que resumido.",
+      more:[["host -t MX dominio","pedir un tipo de registro concreto"],
+            ["host nombre 8.8.8.8","preguntar a otro servidor"],
+            ["dig +short nombre","salida aún más escueta"]] },
+
+    { id:"nslookup", fam:"dns", btn:"nslookup", cmd:"nslookup lpi.org",
+      does:"El consultor de DNS clásico, presente también en Windows. Hace lo mismo que host y dig.",
+      out:[
+        "Server:         192.168.1.1",
+        "Address:        192.168.1.1#53",
+        "",
+        "Non-authoritative answer:",
+        "Name:   lpi.org",
+        "Address: 104.22.28.145"
+      ].join("\n"),
+      read:"Server es a quién se preguntó y Address la respuesta. «Non-authoritative» solo significa que contestó un servidor intermedio con la respuesta cacheada, no un servidor oficial del dominio: es lo normal y no es un problema.",
+      more:[["nslookup","modo interactivo; se sale con exit"],
+            ["nslookup nombre 8.8.8.8","preguntar a otro servidor"],
+            ["dig nombre","preferido en Linux; más detalle"]] },
+
+    { id:"curl", fam:"remoto", btn:"curl", cmd:"curl -I https://www.lpi.org",
+      does:"Habla con un servidor web (u otros protocolos) desde la terminal. Por defecto escribe la respuesta en pantalla.",
+      out:[
+        "HTTP/2 200",
+        "date: Mon, 24 Aug 2026 10:15:00 GMT",
+        "content-type: text/html; charset=UTF-8",
+        "server: cloudflare",
+        "$ curl -s https://api.example.com/hora",
+        "{\"hora\":\"2026-08-24T10:15:00Z\"}"
+      ].join("\n"),
+      read:"-I pide solo las cabeceras: sirve para comprobar si un servicio responde y con qué código (200 bien, 404 no existe, 500 error del servidor). Sin opciones, curl vuelca el contenido en la salida estándar, así que se encadena con tuberías como cualquier otro comando.",
+      more:[["curl -s url","sin el medidor de progreso"],
+            ["curl -O url","guardar con el nombre remoto"],
+            ["curl -L url","seguir las redirecciones"]] },
+
+    { id:"wget", fam:"remoto", btn:"wget", cmd:"wget https://ftp.debian.org/debian/README",
+      does:"Descarga ficheros por HTTP, HTTPS o FTP y los guarda en disco.",
+      out:[
+        "--2026-08-24 10:15:00--  https://ftp.debian.org/debian/README",
+        "Resolviendo ftp.debian.org... 151.101.66.132",
+        "Conectando con ftp.debian.org|151.101.66.132|:443... conectado.",
+        "Petición HTTP enviada, esperando respuesta... 200 OK",
+        "Longitud: 1290 (1,3K) [text/plain]",
+        "Grabando a: «README»",
+        "",
+        "README        100%[===================>]   1,26K  --.-KB/s    en 0s",
+        "",
+        "2026-08-24 10:15:01 (24,1 MB/s) - «README» guardado [1290/1290]"
+      ].join("\n"),
+      read:"La diferencia con curl está en el destino: wget guarda un fichero, curl escribe en pantalla. Además wget reintenta solo si se corta la conexión y sabe descargar un sitio entero de forma recursiva.",
+      more:[["wget -O nombre url","elegir el nombre del fichero"],
+            ["wget -c url","continuar una descarga cortada"],
+            ["curl -O url","el equivalente en curl"]] },
+
+    { id:"ssh", fam:"remoto", btn:"ssh", cmd:"ssh ana@192.168.1.60",
+      does:"Abre una sesión de terminal en otro equipo, con todo el tráfico cifrado.",
+      out:[
+        "The authenticity of host '192.168.1.60' can't be established.",
+        "ED25519 key fingerprint is SHA256:9pJkL2+Qw8ZsxT1oR4hVn0cB7yGdM3fAe5UkPqXsWb0.",
+        "Are you sure you want to continue connecting (yes/no)? yes",
+        "Warning: Permanently added '192.168.1.60' to the list of known hosts.",
+        "ana@192.168.1.60's password:",
+        "Linux servidor 6.1.0-42-amd64 x86_64",
+        "ana@servidor:~$"
+      ].join("\n"),
+      read:"La pregunta de la huella aparece solo la primera vez: a partir de ahí la clave queda anotada en ~/.ssh/known_hosts. Si algún día vuelve a preguntar por un equipo conocido, o avisa de que la clave cambió, merece la pena averiguar por qué antes de aceptar. Se sale con exit o Ctrl+D.",
+      more:[["ssh -p 2222 usuario@host","puerto distinto del 22"],
+            ["ssh host comando","ejecutar algo y volver, sin sesión"],
+            ["ssh-keygen · ssh-copy-id","entrar con clave en vez de contraseña"]] },
+
+    { id:"scp", fam:"remoto", btn:"scp", cmd:"scp informe.pdf ana@192.168.1.60:/home/ana/",
+      does:"Copia ficheros entre equipos usando la misma conexión cifrada que ssh.",
+      out:[
+        "ana@192.168.1.60's password:",
+        "informe.pdf                          100%  412KB   9.8MB/s   00:00",
+        "$ scp ana@192.168.1.60:/var/log/syslog .",
+        "ana@192.168.1.60's password:",
+        "syslog                               100%  1.2MB  14.3MB/s   00:00"
+      ].join("\n"),
+      read:"El orden es el de cp: origen primero, destino después. Lo remoto se escribe usuario@equipo:/ruta, con los dos puntos como separador — olvidarlos hace que scp copie en local un fichero llamado «usuario@equipo». Funciona en las dos direcciones.",
+      more:[["scp -r dir usuario@host:/ruta","copiar un directorio entero"],
+            ["scp -P 2222 …","puerto distinto; ojo, P mayúscula"],
+            ["rsync -a origen destino","mejor para sincronizar o reanudar"]] }
+  ];
+
+  var QUESTIONS = [
+    { q:"¿Qué comando muestra las direcciones IP configuradas en las interfaces de red?",
+      opts:["ip addr show","ip route show","ss -tuln","ping -a"], ok:0,
+      exp:"ip addr show (abreviado ip a) sustituye al antiguo ifconfig. ip route show muestra la tabla de rutas y ss los puertos y conexiones." },
+
+    { q:"En la salida inet 192.168.1.50/24, ¿qué indica el /24?",
+      opts:["Que los 24 primeros bits son la parte de red: máscara 255.255.255.0",
+            "Que la interfaz es la número 24 del sistema",
+            "Que quedan 24 segundos de préstamo DHCP",
+            "Que el MTU de la interfaz es de 24 bytes"], ok:0,
+      exp:"Es la notación CIDR del prefijo: 24 bits de red y 8 de equipo. Escrito de la forma antigua, la máscara 255.255.255.0 que muestra ifconfig." },
+
+    { q:"¿Qué línea de la salida de ip route identifica la puerta de enlace?",
+      opts:["La que empieza por default via","La que dice proto kernel","La que incluye scope link","La primera, sea cual sea"], ok:0,
+      exp:"default via 192.168.1.1 significa «lo que no encaje en ninguna otra ruta, entrégaselo a 192.168.1.1». Sin esa línea hay red local pero no salida a Internet." },
+
+    { q:"ping 127.0.0.1 responde, pero ping a la puerta de enlace no. ¿Qué has demostrado?",
+      opts:["Que la pila TCP/IP local funciona y el fallo está en la interfaz o en la red local",
+            "Que el servidor DNS está mal configurado",
+            "Que falta la ruta por defecto",
+            "Que el equipo no tiene nombre asignado"], ok:0,
+      exp:"127.0.0.1 es el loopback: no sale de la máquina, así que solo prueba que el sistema de red del propio equipo funciona. El siguiente escalón que falla —el router— señala cable, wifi, dirección o máscara." },
+
+    { q:"El sistema resuelve ping 8.8.8.8 sin problemas, pero ping google.com falla con «Nombre o servicio desconocido». ¿Qué revisas?",
+      opts:["/etc/resolv.conf, la configuración del DNS","La tabla de rutas con ip route","El estado del enlace con ip link","La tabla ARP con ip neigh"], ok:0,
+      exp:"Si la IP responde, hay conectividad: lo que falla es la traducción de nombres. Los servidores DNS que usa el sistema están en /etc/resolv.conf, y /etc/hosts puede contener traducciones fijas que ganan al DNS." },
+
+    { q:"¿Qué comando muestra los puertos TCP y UDP en escucha sin traducir números a nombres?",
+      opts:["ss -tuln","ip neigh show","dig +short","traceroute -n"], ok:0,
+      exp:"-t TCP, -u UDP, -l solo los que escuchan, -n sin resolver nombres. Su equivalente antiguo de net-tools es netstat -tuln." },
+
+    { q:"¿Cuál es la diferencia entre ip link e ip addr?",
+      opts:["ip link muestra el enlace (MAC, MTU, UP/DOWN) y ip addr añade las direcciones IP",
+            "ip link es de net-tools e ip addr de iproute2",
+            "ip link solo funciona como root",
+            "Son sinónimos exactos"], ok:0,
+      exp:"Son dos capas distintas: una interfaz puede estar UP sin tener ninguna dirección IP. ip link se queda en el enlace; ip addr muestra además lo que hay configurado encima." },
+
+    { q:"¿Qué comando devuelve únicamente la dirección IP de un nombre, sin texto alrededor?",
+      opts:["dig +short lpi.org","nslookup lpi.org","host -a lpi.org","ping -c 1 lpi.org"], ok:0,
+      exp:"+short reduce la respuesta a lo imprescindible, que es justo lo que se necesita dentro de un script. dig sin opciones imprime la respuesta completa con secciones y TTL." },
+
+    { q:"Al escribir ifconfig el sistema responde «no se encontró la orden». ¿Qué ocurre?",
+      opts:["net-tools no está instalado; el comando actual es ip a",
+            "Hace falta ser root para ejecutarlo",
+            "La tarjeta de red está desactivada",
+            "El comando se llama ahora ifconf"], ok:0,
+      exp:"ifconfig pertenece a net-tools, un paquete en desuso que muchas distribuciones ya no instalan. Se puede añadir con apt install net-tools, pero lo correcto hoy es usar ip a." },
+
+    { q:"¿Qué comando copia un fichero local a otro equipo a través de una conexión cifrada?",
+      opts:["scp informe.pdf ana@servidor:/home/ana/","curl -O informe.pdf","wget servidor:/home/ana/","ss -t informe.pdf"], ok:0,
+      exp:"scp usa el transporte de SSH. El orden es el de cp —origen y luego destino— y lo remoto se escribe usuario@equipo:/ruta; sin los dos puntos, la copia se queda en local." }
+  ];
+
+  /* ==========================================================
+     UTILIDADES
+     ========================================================== */
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function shuffled(opts, ok){
+    var a = opts.map(function(t,i){ return [t, i === ok]; });
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  /* ==========================================================
+     EXPLORADOR
+     ========================================================== */
+  var chips   = document.getElementById("chips");
+  var picker  = document.getElementById("picker");
+  var doesEl  = document.getElementById("does");
+  var barEl   = document.getElementById("term-bar");
+  var outEl   = document.getElementById("term-out");
+  var readEl  = document.getElementById("read");
+  var moreEl  = document.getElementById("more");
+
+  FAMS.forEach(function(f, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = f.label;
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", function(){ filter(i); });
+    chips.appendChild(b);
+  });
+
+  CMDS.forEach(function(item, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "pick";
+    b.textContent = item.btn;
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", function(){ show(i); });
+    picker.appendChild(b);
+  });
+
+  function filter(fi){
+    var fam = FAMS[fi].id;
+    Array.prototype.forEach.call(chips.children, function(c, n){
+      c.setAttribute("aria-pressed", n === fi ? "true" : "false");
+    });
+    var primero = -1;
+    CMDS.forEach(function(item, n){
+      var visible = (fam === "all" || item.fam === fam);
+      picker.children[n].hidden = !visible;
+      if (visible && primero < 0) primero = n;
+    });
+    /* si lo que se está mostrando queda fuera del filtro, saltamos al primero */
+    if (primero >= 0 && picker.children[actual].hidden) show(primero);
+  }
+
+  var actual = 0;
+
+  function show(i){
+    actual = i;
+    var item = CMDS[i];
+    Array.prototype.forEach.call(picker.children, function(b, n){
+      b.setAttribute("aria-pressed", n === i ? "true" : "false");
+    });
+    doesEl.textContent = item.does;
+    barEl.textContent = item.cmd;
+    /* la salida puede traer sus propios prompts para encadenar varios ejemplos */
+    outEl.innerHTML = '<span class="prompt">$ ' + esc(item.cmd) + "</span>\n" +
+      esc(item.out).replace(/^\$ (.*)$/gm, '<span class="prompt">$ $1</span>');
+    readEl.textContent = item.read;
+    moreEl.innerHTML = item.more.map(function(m){
+      return "<dt>" + esc(m[0]) + "</dt><dd>" + esc(m[1]) + "</dd>";
+    }).join("");
+  }
+  show(0);
+
+  /* ==========================================================
+     QUIZ
+     ========================================================== */
+  var quiz = document.getElementById("quiz");
+
+  QUESTIONS.forEach(function(item){
+    var wrap = document.createElement("div");
+    wrap.className = "q";
+
+    var p = document.createElement("p");
+    p.className = "q-text";
+    p.textContent = item.q;
+    wrap.appendChild(p);
+
+    var opts = document.createElement("div");
+    opts.className = "q-opts";
+    var exp = document.createElement("p");
+    exp.className = "q-exp";
+    exp.hidden = true;
+    exp.textContent = item.exp;
+
+    shuffled(item.opts, item.ok).forEach(function(pair){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt";
+      b.textContent = pair[0];
+      b.dataset.ok = pair[1] ? "1" : "0";
+      b.addEventListener("click", function(){
+        /* al responder se bloquea la pregunta y se marca la correcta */
+        Array.prototype.forEach.call(opts.children, function(o){
+          o.disabled = true;
+          if (o.dataset.ok === "1") o.classList.add("good");
+        });
+        if (!pair[1]) b.classList.add("bad");
+        exp.hidden = false;
+      });
+      opts.appendChild(b);
+    });
+
+    wrap.appendChild(opts);
+    wrap.appendChild(exp);
+    quiz.appendChild(wrap);
+  });
+
+  /* ==========================================================
+     ÍNDICE LATERAL
+     ========================================================== */
+  var links = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".rail a"), function(a){
+    links[a.getAttribute("href").slice(1)] = a;
+  });
+  if ("IntersectionObserver" in window){
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        var a = links[e.target.id];
+        if (a) a.classList.toggle("is-active", e.isIntersecting);
+      });
+    }, { rootMargin: "-30% 0px -60% 0px" });
+    Array.prototype.forEach.call(document.querySelectorAll("main section"), function(s){ obs.observe(s); });
+  }
+})();
+</script>
+
+</body>
+</html>
