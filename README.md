@@ -17,6 +17,7 @@ conexión.
 | `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
+| `linux_system_files/index.html` | Guía interactiva de los ficheros de configuración de `/etc` |
 | `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
 | `linux_shell_scripting/index.html` | Guía del objetivo 3.3: de comandos sueltos a script de Bash |
 | `linux_networking/index.html` | Guía del objetivo 4.4: comandos de red, de `ip a` a `scp` |
@@ -127,7 +128,42 @@ directorios que no viven en ningún disco.
 
 ---
 
-## 4. Guía de comandos — `linux_basic_commands/index.html`
+## 4. Guía de ficheros del sistema — `linux_system_files/index.html`
+
+Los ficheros de configuración que el examen da por conocidos, leídos campo a campo.
+Cubre los temas 104 y 105 en la parte que no son permisos sino formato: quién eres,
+a qué grupos perteneces, qué se monta y cómo se resuelve un nombre.
+
+- **Disector de líneas** (interactivo): ocho ficheros con una línea real troceada
+  campo a campo —`/etc/passwd`, `/etc/shadow`, `/etc/group`, `/etc/gshadow`,
+  `/etc/fstab`, `/etc/hosts`, `/etc/crontab` y `/etc/sudoers`—. Cada campo se pulsa
+  y se resalta a la vez en la línea y en la leyenda, con lo que significa y por qué
+  está ahí. Los campos vacíos se muestran como tales, porque en estos ficheros
+  «vacío» significa «sin límite».
+- **Por qué passwd y shadow son dos ficheros**: la obligación de que `/etc/passwd`
+  sea legible por todos, los cuatro valores posibles del campo de contraseña
+  (`$6$…`, `!`, `*`, vacío) y los rangos de UID con su origen en `/etc/login.defs`.
+- **Explorador de ficheros** (interactivo): 23 rutas filtrables por tema
+  (cuentas / red / sistema / entorno / registros), cada una con sus permisos
+  reales, su formato y las órdenes que la consultan.
+- **Grupos**: la diferencia entre primario (cuarto campo de `passwd`) y secundarios
+  (cuarto campo de `group`), y por qué tu nombre no aparece en la línea de tu propio
+  grupo. Tabla de los grupos que conceden privilegios: `adm`, `disk`, `sudo`,
+  `shadow`, `docker`.
+- **Visor de consultas** (interactivo): doce órdenes con su salida real capturada en
+  una Debian 12 —`id`, `getent`, `chage -l`, `passwd -S`, `awk -F:`, `sudo -l`—
+  incluida la de `wc -l /etc/shadow` fallando con *Permission denied*.
+- **No los edites con nano**: `vipw`, `vigr`, `visudo`, `gpasswd`, `chage`,
+  `mount -a`, y el error clásico de `usermod -G` frente a `-aG`.
+- **Doce preguntas** de autoevaluación con opciones barajadas y explicación.
+- **Chuleta** final.
+
+El hash de contraseña que aparece en el disector es inventado; el resto de las
+líneas y todas las salidas del visor son reales.
+
+---
+
+## 5. Guía de comandos — `linux_basic_commands/index.html`
 
 Guía deliberadamente breve: siete secciones cortas en lugar de un manual.
 El foco no es la lista de comandos sino cómo se combinan.
@@ -144,7 +180,7 @@ El foco no es la lista de comandos sino cómo se combinan.
 
 ---
 
-## 5. Guía de scripting — `linux_shell_scripting/index.html`
+## 6. Guía de scripting — `linux_shell_scripting/index.html`
 
 El objetivo **3.3 «Turning Commands into a Script»**, que con peso 4 es el de mayor
 puntuación individual del examen. Va de no saber qué es un script a leer uno de
@@ -178,38 +214,6 @@ Trece secciones, cinco de ellas interactivas:
 - **Los ocho errores de siempre**: cada mensaje de error real, su causa y su arreglo.
 - **Doce preguntas** de autoevaluación con opciones barajadas y explicación.
 - **Chuleta** final.
-
-## 6. Guía de red — `linux_networking/index.html`
-
-El objetivo **4.4 «Your Computer on the Network»**, montado alrededor de la idea de
-que una máquina conectada solo necesita cuatro datos: dirección, puerta de enlace,
-DNS y nombre. Todo lo demás son formas de leerlos.
-
-Nueve secciones, una de ellas interactiva:
-
-- **Cuatro datos**: qué comando muestra cada uno y en qué fichero vive.
-- **Explorador de comandos** (interactivo): los 19 comandos de la tabla del objetivo
-  —`ip addr`, `ip a`, `ip link`, `ip route`, `ip neigh`, `ifconfig`, `hostname`,
-  `hostname -I`, `ss`, `ping`, `traceroute`, `tracepath`, `dig`, `host`, `nslookup`,
-  `curl`, `wget`, `ssh`, `scp`— con **su salida real**, en qué fijarse de ella y las
-  variantes que se usan a diario. Filtro por familia: direcciones, rutas, DNS,
-  diagnóstico y remoto.
-- **Leer `ip a` campo a campo**: `inet`, el prefijo `/24`, `brd`, `scope`, las banderas
-  `UP` y `LOWER_UP`, `link/ether`, `valid_lft` y por qué `lo` no cuenta.
-- **`ifconfig` frente a `ip`**: net-tools contra iproute2, tabla de equivalencias
-  completa (`route -n` → `ip r`, `arp -a` → `ip n`, `netstat -tuln` → `ss -tuln`),
-  la misma interfaz contada por los dos, y qué significa «ifconfig: no se encontró
-  la orden».
-- **La tabla de rutas**: `default via`, `dev`, `proto`, `src`, `metric` y `ip route get`.
-- **Nombres y DNS**: `/etc/hosts`, `/etc/resolv.conf`, `/etc/nsswitch.conf` y los tres
-  comandos que preguntan lo mismo (`host`, `dig`, `nslookup`).
-- **Escalera de diagnóstico**: cinco pasos de dentro hacia fuera y qué significa que
-  falle cada uno, más una tabla de síntoma → sospechoso.
-- **Diez preguntas** de autoevaluación con opciones barajadas y explicación.
-- **Chuleta** final.
-
-Los comandos que modifican la red (`ip link set`, `ip addr add`, `ip route add`)
-aparecen señalados aparte: requieren root y se pierden al reiniciar.
 
 ## 7. Especificación pendiente — `docs/specs/`
 
@@ -249,6 +253,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 | Examen | <https://jsalio.github.io/Lixnux-exam-test/lpi_practice_exam/> |
 | Permisos | <https://jsalio.github.io/Lixnux-exam-test/sample_linux_permissions/> |
 | Directorios | <https://jsalio.github.io/Lixnux-exam-test/linux_special_directories/> |
+| Ficheros del sistema | <https://jsalio.github.io/Lixnux-exam-test/linux_system_files/> |
 | Comandos | <https://jsalio.github.io/Lixnux-exam-test/linux_basic_commands/> |
 | Scripting | <https://jsalio.github.io/Lixnux-exam-test/linux_shell_scripting/> |
 | Red | <https://jsalio.github.io/Lixnux-exam-test/linux_networking/> |
