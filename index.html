@@ -11,6 +11,7 @@
   --bg:#eef1f4; --surface:#ffffff; --surface-2:#e6eaef;
   --line:#ccd4dc; --line-2:#9aa6b3;
   --ink:#131920; --ink-2:#3f4a57; --ink-3:#6d7884;
+  --exam:#a8481a; --perm:#10695a; --tree:#464fa2; --cmd:#7a3ea1; --script:#3f6d24; --net:#1f5f8b;
   --exam:#a8481a; --perm:#10695a; --tree:#464fa2; --cmd:#7a3ea1; --script:#3f6d24; --files:#9c2f3d;
   --mono: ui-monospace,"JetBrains Mono","SFMono-Regular","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
   --serif: Charter,"Bitstream Charter","Iowan Old Style","Source Serif Pro",Georgia,serif;
@@ -23,6 +24,7 @@
     --bg:#0d1218; --surface:#161d26; --surface-2:#1e2733;
     --line:#2c3644; --line-2:#4a5768;
     --ink:#dde5ed; --ink-2:#a7b3c0; --ink-3:#79868f;
+    --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --net:#6fb3e0;
     --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --files:#ec8a97;
   }
 }
@@ -31,6 +33,7 @@
   --bg:#0d1218; --surface:#161d26; --surface-2:#1e2733;
   --line:#2c3644; --line-2:#4a5768;
   --ink:#dde5ed; --ink-2:#a7b3c0; --ink-3:#79868f;
+  --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --net:#6fb3e0;
   --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --files:#ec8a97;
 }
 
@@ -85,6 +88,7 @@ main{ padding-block: clamp(2.5rem,7vw,4.5rem) 1rem; }
 .card[data-kind="tree"]{ --accent:var(--tree); }
 .card[data-kind="cmd"]{ --accent:var(--cmd); }
 .card[data-kind="script"]{ --accent:var(--script); }
+.card[data-kind="net"]{ --accent:var(--net); }
 .card[data-kind="files"]{ --accent:var(--files); }
 
 .tag{
@@ -224,6 +228,19 @@ footer{
         <li>Doce preguntas y chuleta</li>
       </ul>
       <p class="go">Aprender <span class="arrow">→</span></p>
+    </li>
+
+    <li class="card" data-kind="net">
+      <p class="tag">Guía</p>
+      <h2><a href="linux_networking/">Tu equipo en la red</a></h2>
+      <p class="desc">Objetivo 4.4: los cuatro datos que necesita una máquina conectada y los comandos que los leen, de <code>ip a</code> a <code>dig</code>, con el <code>ifconfig</code> de siempre al lado.</p>
+      <ul class="facts">
+        <li>Explorador de 19 comandos con su salida real</li>
+        <li>La salida de <code>ip a</code> explicada campo a campo</li>
+        <li>Tabla de equivalencias <code>ifconfig</code> ↔ <code>ip</code></li>
+        <li>Escalera de diagnóstico y 10 preguntas</li>
+      </ul>
+      <p class="go">Conectar <span class="arrow">→</span></p>
     </li>
 
   </ul>

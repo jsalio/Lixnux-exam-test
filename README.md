@@ -20,6 +20,7 @@ conexión.
 | `linux_system_files/index.html` | Guía interactiva de los ficheros de configuración de `/etc` |
 | `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
 | `linux_shell_scripting/index.html` | Guía del objetivo 3.3: de comandos sueltos a script de Bash |
+| `linux_networking/index.html` | Guía del objetivo 4.4: comandos de red, de `ip a` a `scp` |
 | `docs/specs/registro-intentos-supabase.spec.md` | Especificación SDD (en estado *Draft*, **no implementada**) |
 
 Cada aplicación vive en su propia carpeta con un `index.html`, de modo que su URL
@@ -255,6 +256,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 | Ficheros del sistema | <https://jsalio.github.io/Lixnux-exam-test/linux_system_files/> |
 | Comandos | <https://jsalio.github.io/Lixnux-exam-test/linux_basic_commands/> |
 | Scripting | <https://jsalio.github.io/Lixnux-exam-test/linux_shell_scripting/> |
+| Red | <https://jsalio.github.io/Lixnux-exam-test/linux_networking/> |
 
 Al ser un *project site*, el sitio cuelga de `/Lixnux-exam-test/` y no de la raíz
 del dominio. Por eso **todos los enlaces internos son relativos**: una ruta que
