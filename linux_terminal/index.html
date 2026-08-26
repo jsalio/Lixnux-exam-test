@@ -1,0 +1,2986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LPI 010-160 Linux Essentials — Terminal simulada</title>
+<meta name="description" content="Terminal de Linux simulada en el navegador, con sistema de ficheros virtual e intérprete de órdenes, para practicar los comandos de los objetivos 102, 103 y 105.">
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --border:#d7dbe0;
+  --text:#1b1f24; --muted:#5c6773; --accent:#1f6feb; --accent-ink:#ffffff;
+  --ok:#1a7f4b; --bad:#b42318; --warn:#8a5a00;
+  --term-bg:#12161c; --term-ink:#d7dee7; --term-dim:#8b98a8;
+  --term-err:#ff9b8f; --term-prompt:#7fd1a8; --term-eco:#cfd8e3;
+  --radius:10px; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c222b; --border:#2b323c;
+    --text:#e6edf3; --muted:#9aa7b4; --accent:#4c8dff; --accent-ink:#0b0f14;
+    --ok:#5ddc9a; --bad:#ff8a80; --warn:#ffcf70;
+    --term-bg:#0a0d12; --term-ink:#d7dee7; --term-dim:#7d8996;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+code{font-family:var(--mono); font-size:.92em; background:var(--panel2); border:1px solid var(--border);
+  border-radius:5px; padding:.05em .35em; white-space:nowrap}
+.wrap{max-width:900px; margin:0 auto; padding:0 16px 64px}
+.topbar{position:sticky; top:0; z-index:20; background:var(--panel); border-bottom:1px solid var(--border)}
+.topbar .inner{max-width:900px; margin:0 auto; padding:10px 16px; display:flex; gap:12px;
+  align-items:center; justify-content:space-between; flex-wrap:wrap}
+.brand{font-weight:700; letter-spacing:.2px}
+.brand small{display:block; font-weight:400; color:var(--muted); font-size:.78rem}
+.brand a.home{display:block; font-weight:400; font-size:.78rem; color:var(--muted);
+  text-decoration:none; margin-bottom:2px}
+.brand a.home:hover{color:var(--accent)}
+button.btn{font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--border);
+  background:var(--panel2); color:var(--text); padding:8px 13px; font-size:.9rem}
+button.btn:hover{border-color:var(--accent)}
+button.btn[disabled]{opacity:.5; cursor:default}
+h1{font-size:1.6rem; margin:28px 0 6px}
+h2{font-size:1.18rem; margin:26px 0 10px}
+p.lead{color:var(--muted); margin:0 0 18px}
+.card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px}
+.card h3{margin:0 0 8px; font-size:1rem}
+.card p{margin:0 0 10px}
+.card p:last-child{margin-bottom:0}
+.cols{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+
+/* ---- la terminal ---- */
+.term{
+  background:var(--term-bg); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px 14px; margin:18px 0 10px;
+  font-family:var(--mono); font-size:.88rem; line-height:1.45;
+  color:var(--term-ink);
+  height:min(60vh,30rem); overflow-y:auto; overflow-x:auto;
+  cursor:text;
+}
+.term:focus-within{border-color:var(--accent)}
+.term pre{margin:0; font:inherit; white-space:pre; tab-size:8}
+.term .eco{color:var(--term-eco)}
+.term .err{color:var(--term-err)}
+.term .aviso{color:var(--term-dim)}
+.term .prompt{color:var(--term-prompt)}
+.fila{display:flex; align-items:baseline; gap:0}
+.fila input{
+  flex:1 1 auto; min-width:4ch; background:transparent; border:0; outline:0; padding:0;
+  color:var(--term-ink); font:inherit; caret-color:var(--term-prompt);
+}
+.medida{position:absolute; visibility:hidden; white-space:pre; font-family:var(--mono); font-size:.88rem}
+.barra{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:0 0 8px}
+.barra .estado{margin-left:auto; font-family:var(--mono); font-size:.78rem; color:var(--muted)}
+.teclas{font-family:var(--mono); font-size:.78rem; color:var(--muted); margin:0 0 18px}
+.teclas b{color:var(--text); font-weight:600}
+table{border-collapse:collapse; width:100%; font-size:.9rem; margin:10px 0}
+th,td{border:1px solid var(--border); padding:6px 9px; text-align:left; vertical-align:top}
+th{background:var(--panel2); font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+td code{white-space:normal}
+ul.lista{margin:8px 0 0; padding-left:20px; color:var(--muted); font-size:.92rem}
+ul.lista li{margin-bottom:4px}
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0}
+.chip{font-family:var(--mono); font-size:.8rem; background:var(--panel2); border:1px solid var(--border);
+  border-radius:6px; padding:2px 7px}
+footer{border-top:1px solid var(--border); margin-top:40px; padding:18px 16px 40px;
+  color:var(--muted); font-size:.85rem}
+footer .inner{max-width:900px; margin:0 auto}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="inner">
+    <div class="brand"><a class="home" href="../">← Índice</a>LPI 010-160 · Linux Essentials
+      <small>Terminal simulada / Simulated terminal</small></div>
+    <button class="btn" id="btnReiniciar" type="button">Reiniciar el árbol</button>
+  </div>
+</div>
+
+<main class="wrap">
+  <h1>Terminal simulada</h1>
+  <p class="lead">
+    Un shell con sistema de ficheros propio para practicar los comandos de los objetivos
+    102, 103 y 105 sin tocar tu equipo. Escribe una orden y pulsa <b>Enter</b>.
+  </p>
+
+  <div class="barra">
+    <button class="btn" id="btnLimpiar" type="button">Limpiar pantalla</button>
+    <span class="estado" id="estado" aria-live="polite">listo</span>
+  </div>
+
+  <div class="term" id="term">
+    <div id="salida" role="log" aria-live="polite" aria-label="Salida de la terminal"></div>
+    <div class="fila" id="fila">
+      <span class="prompt" id="prompt"></span>
+      <input id="entrada" type="text" autocomplete="off" autocapitalize="off"
+             autocorrect="off" spellcheck="false" aria-label="Orden">
+    </div>
+    <span class="medida" id="regla">MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
+  </div>
+
+  <p class="teclas">
+    <b>↑</b> / <b>↓</b> historial · <b>Ctrl+L</b> limpiar la pantalla ·
+    <b>Ctrl+C</b> descartar la línea en curso
+  </p>
+
+  <div class="cols">
+    <div class="card">
+      <h3>Es una simulación, y lo dice</h3>
+      <p>
+        Lo que el simulador no sabe hacer lo declara con un mensaje que empieza por
+        <code>simulador:</code>. Nunca se inventa una salida: una respuesta plausible pero
+        falsa enseñaría algo incorrecto sin que puedas notarlo.
+      </p>
+      <p>
+        La referencia es Debian 12 con coreutils 9.1 y bash 5.2, en la locale <code>C</code>
+        y con la hora en UTC. Un banco de pruebas compara la salida de cada orden con la del
+        sistema real, carácter a carácter.
+      </p>
+    </div>
+    <div class="card">
+      <h3>El árbol se reinicia en cada carga</h3>
+      <p>
+        Los cambios que hagas viven solo en esta pestaña. Al recargar la página, o con el botón
+        <b>Reiniciar el árbol</b>, todo vuelve al estado de partida: así la misma orden da
+        siempre el mismo resultado.
+      </p>
+      <p>
+        Tu carpeta personal es <code>/home/jorge</code> y contiene ficheros preparados para
+        practicar: uno sin permiso de lectura, uno vacío, uno con más de seis meses, ocultos,
+        un directorio ilegible y un script con <code>setuid</code>.
+      </p>
+    </div>
+  </div>
+
+  <h2>Órdenes disponibles</h2>
+  <div class="chips" id="chips"></div>
+
+  <h2>Huecos declarados</h2>
+  <p class="lead">Lo que este simulador sabe que no sabe. Si lo escribes, te lo dirá.</p>
+  <table>
+    <thead><tr><th>Qué</th><th>Por qué no está</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>for</code>, <code>while</code>, <code>if</code>, <code>case</code></td>
+        <td>Exigen interpretar bloques, no líneas. El objetivo 3.3 lo cubre la
+            <a href="../linux_shell_scripting/">guía de scripting</a>.
+            <code>test</code> y <code>[</code> sí están: son comandos, no sintaxis.</td>
+      </tr>
+      <tr>
+        <td><code>ps</code>, <code>kill</code>, <code>top</code>, <code>jobs</code></td>
+        <td>No hay procesos que mirar. Son objetivo 104; aquí se cubren 102, 103 y 105.</td>
+      </tr>
+      <tr>
+        <td><code>man</code></td>
+        <td>Habría que escribir el manual entero, no simularlo.</td>
+      </tr>
+      <tr>
+        <td><code>nano</code>, <code>vi</code></td>
+        <td>Editar ficheros se practica en la
+            <a href="../linux_shell_scripting/">guía de scripting</a>, que trae un simulador de
+            <code>vi</code>.</td>
+      </tr>
+      <tr>
+        <td><code>ping</code>, <code>ip</code>, <code>ssh</code></td>
+        <td>No hay red. Los comandos del objetivo 4.4 están en la
+            <a href="../linux_networking/">guía de red</a>.</td>
+      </tr>
+      <tr>
+        <td><code>wc -L</code>, <code>ls -R</code>, <code>ls -C</code>, <code>ls -i</code></td>
+        <td>Opciones sin implementar. Se declaran una a una en vez de aceptarse y hacer otra cosa.</td>
+      </tr>
+      <tr>
+        <td>Ejecutar programas: <code>./script.sh</code></td>
+        <td>El fichero está y se ve si es ejecutable —con su <code>126</code> o su
+            <code>127</code>—, pero no se ejecuta: haría falta interpretar el script entero.</td>
+      </tr>
+      <tr>
+        <td>Autocompletado con <b>Tab</b>, alias, <code>sudo</code>, <code>&lt;&lt;</code></td>
+        <td>Fuera del alcance de esta versión.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Qué se puede practicar aquí</h2>
+  <ul class="lista">
+    <li><b>Rutas y navegación</b>: absolutas y relativas, <code>.</code>, <code>..</code>,
+        <code>~</code>, y por qué <code>cd</code> por un enlace deja el enlace en el prompt.</li>
+    <li><b>Permisos</b>: los nueve bits, <code>chmod</code> octal y simbólico, la
+        <code>umask</code>, <code>setuid</code>, <code>setgid</code> y <code>sticky</code>,
+        y la regla de que el kernel aplica un solo bloque de tres bits.</li>
+    <li><b>Enlaces</b>: duros y simbólicos. Se modelan inodos, así que <code>ls -l</code>
+        cuenta 2 enlaces de verdad y borrar un nombre no borra el contenido.</li>
+    <li><b>Tuberías y redirección</b>: <code>|</code>, <code>&gt;</code>, <code>&gt;&gt;</code>,
+        <code>&lt;</code>, <code>2&gt;</code>, <code>2&gt;&amp;1</code>, y el orden en que bash
+        abre los ficheros.</li>
+    <li><b>Códigos de salida</b>: <code>$?</code>, <code>&amp;&amp;</code>, <code>||</code>,
+        y la diferencia entre «no hay coincidencias» y «no pude mirar».</li>
+    <li><b>Comodines y entrecomillado</b>: <code>*</code>, <code>?</code>, <code>[…]</code>,
+        <code>{…}</code>, y qué se expande dentro de <code>'…'</code> y de <code>"…"</code>.</li>
+  </ul>
+</main>
+
+<footer>
+  <div class="inner">
+    Página estática, sin dependencias ni red · <a href="../">Índice del material</a>
+  </div>
+</footer>
+
+<script>
+/* ===== NUCLEO PURO — INICIO =====
+   El shell entero: sistema de ficheros con inodos, permisos, intérprete de
+   órdenes y los comandos. Sin document, sin almacenamiento, sin reloj, sin
+   azar y sin red: lo de aquí se extrae con tools/extract-core.mjs y se prueba
+   con `node --test`. La guardia del extractor falla si alguien mete una
+   dependencia del navegador dentro de esta región.
+   Contrato: docs/specs/terminal-simulador-nucleo.spec.md                     */
+
+/* ================= 1. INODOS Y SISTEMA DE FICHEROS =================
+   El nombre y el contenido son cosas distintas. Un inodo guarda el contenido y
+   los atributos; un directorio guarda nombres que apuntan a inodos. Sin esa
+   separación no se puede explicar por qué `ls -l` cuenta 2 enlaces, ni por qué
+   borrar un nombre no borra el fichero.                                      */
+
+/** Bloques de 4 KiB: es lo que asume `ls -l` al calcular la línea `total`. */
+const BLOQUE = 4096;
+
+/** Seis meses en segundos: el umbral con el que `ls -l` cambia hora por año. */
+const SEIS_MESES = 15778476;
+
+/** Enlaces simbólicos que se siguen antes de rendirse con ELOOP. */
+const SALTOS_MAX = 40;
+
+/**
+ * Crea un sistema de ficheros vacío con su directorio raíz.
+ *
+ * @param {number} mtime  Fecha de la raíz, en segundos desde epoch.
+ * @returns {object} Sistema con la tabla de inodos y el id de la raíz.
+ */
+function sistemaNuevo(mtime) {
+  const fs = { inodos: new Map(), raiz: 0, siguienteId: 1 };
+  const raiz = crearInodo(fs, { tipo: 'd', modo: 0o755, usuario: 'root', grupo: 'root', mtime });
+  fs.raiz = raiz.id;
+  return fs;
+}
+
+/**
+ * Añade un inodo a la tabla. No lo enlaza a ningún nombre: eso es otro paso, y
+ * separarlos es lo que permite que un mismo inodo tenga dos nombres.
+ *
+ * @param {object} fs     Sistema de ficheros.
+ * @param {object} attr   tipo, modo, usuario, grupo, mtime y, según el tipo,
+ *                        contenido o destino.
+ * @returns {object} El inodo recién creado, ya en la tabla.
+ */
+function crearInodo(fs, attr) {
+  const inodo = {
+    id: fs.siguienteId++,
+    tipo: attr.tipo,
+    modo: attr.modo ?? 0o644,
+    usuario: attr.usuario ?? 'root',
+    grupo: attr.grupo ?? 'root',
+    mtime: attr.mtime ?? 0
+  };
+  if (attr.tipo === 'd') inodo.hijos = {};
+  else if (attr.tipo === 'l') inodo.destino = attr.destino ?? '';
+  else inodo.contenido = attr.contenido ?? '';
+  fs.inodos.set(inodo.id, inodo);
+  return inodo;
+}
+
+/** El inodo con ese id, o null si no está en la tabla. */
+function inodoDe(fs, id) {
+  return fs.inodos.get(id) ?? null;
+}
+
+/** El inodo al que apunta un nombre dentro de un directorio, o null. */
+function hijoDe(fs, directorio, nombre) {
+  if (directorio.tipo !== 'd') return null;
+  const id = directorio.hijos[nombre];
+  return id === undefined ? null : inodoDe(fs, id);
+}
+
+/** Los nombres que contiene un directorio, en el orden en que se crearon. */
+function nombresDe(directorio) {
+  return Object.keys(directorio.hijos);
+}
+
+/**
+ * Cuántas entradas de directorio apuntan a un inodo. Es el recuento de
+ * enlaces duros, y se calcula recorriendo la tabla en vez de guardarlo: así no
+ * puede desincronizarse del árbol, que es la única verdad.
+ *
+ * @param {object} fs
+ * @param {number} id
+ * @returns {number}
+ */
+function cuantosNombres(fs, id) {
+  let n = 0;
+  for (const inodo of fs.inodos.values()) {
+    if (inodo.tipo !== 'd') continue;
+    for (const hijo of Object.values(inodo.hijos)) if (hijo === id) n++;
+  }
+  return n;
+}
+
+/**
+ * El número de enlaces que muestra `ls -l`.
+ *
+ * Un directorio no admite enlaces duros: cuenta su propio `.`, su nombre en el
+ * padre y el `..` de cada subdirectorio. Todo lo demás cuenta sus nombres.
+ *
+ * @param {object} fs
+ * @param {object} inodo
+ * @returns {number}
+ */
+function enlaces(fs, inodo) {
+  if (inodo.tipo !== 'd') return cuantosNombres(fs, inodo.id);
+  return 2 + Object.values(inodo.hijos).filter((id) => inodoDe(fs, id).tipo === 'd').length;
+}
+
+/** Da nombre a un inodo dentro de un directorio, sin tocar nada más. */
+function enlazar(directorio, nombre, id) {
+  directorio.hijos[nombre] = id;
+}
+
+/**
+ * Sustituye lo que hubiera con ese nombre. Si el inodo anterior se queda sin
+ * nombres, desaparece: es lo que hace que `mv a b` libere el antiguo `b`.
+ */
+function reemplazar(fs, directorio, nombre, id) {
+  const anterior = directorio.hijos[nombre];
+  directorio.hijos[nombre] = id;
+  if (anterior !== undefined && anterior !== id) liberarSiHuerfano(fs, anterior);
+}
+
+/**
+ * Quita un nombre. El contenido solo se pierde cuando se va el último nombre:
+ * eso es lo que distingue `rm` de un enlace duro de `rm` del único que había.
+ */
+function desenlazar(fs, directorio, nombre) {
+  const id = directorio.hijos[nombre];
+  if (id === undefined) return;
+  delete directorio.hijos[nombre];
+  liberarSiHuerfano(fs, id);
+}
+
+/**
+ * Borra de la tabla un inodo al que ya no apunta ningún nombre, y con él lo que
+ * hubiera dentro. La raíz nunca se libera: no tiene nombre en ningún padre.
+ */
+function liberarSiHuerfano(fs, id) {
+  if (id === fs.raiz) return;
+  const inodo = inodoDe(fs, id);
+  if (!inodo || cuantosNombres(fs, id) > 0) return;
+  fs.inodos.delete(id);
+  if (inodo.tipo === 'd') {
+    for (const hijo of Object.values(inodo.hijos)) liberarSiHuerfano(fs, hijo);
+  }
+}
+
+/**
+ * Longitud en bytes de un texto, contando UTF-8.
+ *
+ * `ls -l` y `wc -c` informan bytes, no caracteres, y una letra acentuada ocupa
+ * dos. Contar la longitud de la cadena de JavaScript daría un tamaño falso en
+ * cuanto alguien escriba una eñe.
+ *
+ * @param {string} texto
+ * @returns {number}
+ */
+function bytesDe(texto) {
+  let n = 0;
+  for (const ch of texto) {
+    const c = ch.codePointAt(0);
+    n += c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+  }
+  return n;
+}
+
+/** Tamaño en bytes de un inodo, como lo informaría `stat`. */
+function tamano(inodo) {
+  if (inodo.tipo === 'd') return BLOQUE;
+  if (inodo.tipo === 'l') return bytesDe(inodo.destino);
+  if (inodo.tipo === 'c') return 0;
+  return bytesDe(inodo.contenido);
+}
+
+/** Bloques de 1 KiB que `ls -l` suma en la línea `total`. */
+function bloques(inodo) {
+  if (inodo.tipo === 'l' || inodo.tipo === 'c') return 0;
+  if (inodo.tipo === 'd') return 4;
+  return Math.ceil(bytesDe(inodo.contenido) / BLOQUE) * 4;
+}
+
+/**
+ * Copia profunda del estado, tabla de inodos incluida.
+ *
+ * Es lo que permite deshacer un intento: el verificador de un ejercicio clona,
+ * ejecuta y compara sin arruinar el estado del alumno.
+ *
+ * @param {object} estado
+ * @returns {object} Estado independiente del original.
+ */
+function clonar(estado) {
+  const inodos = new Map();
+  for (const [id, inodo] of estado.fs.inodos) {
+    const copia = { ...inodo };
+    if (inodo.tipo === 'd') copia.hijos = { ...inodo.hijos };
+    inodos.set(id, copia);
+  }
+  return {
+    ...estado,
+    fs: { inodos, raiz: estado.fs.raiz, siguienteId: estado.fs.siguienteId },
+    grupos: estado.grupos.slice(),
+    uids: { ...estado.uids },
+    gids: { ...estado.gids },
+    entorno: { ...estado.entorno }
+  };
+}
+
+/* ================= 2. RUTAS ================= */
+
+/** Trocea una ruta en segmentos, descartando los vacíos. */
+function segmentosDe(ruta) {
+  return ruta.split('/').filter((s) => s !== '');
+}
+
+/** Normaliza una ruta absoluta resolviendo `.` y `..` sin tocar el árbol. */
+function normalizar(ruta) {
+  const pila = [];
+  for (const s of segmentosDe(ruta)) {
+    if (s === '.') continue;
+    if (s === '..') { pila.pop(); continue; }
+    pila.push(s);
+  }
+  return '/' + pila.join('/');
+}
+
+/**
+ * Convierte una ruta escrita por el usuario en absoluta.
+ *
+ * @param {object} estado  Estado del shell (`cwd`, `usuario`).
+ * @param {string} ruta    Ruta tal como la escribió el usuario.
+ * @returns {string} Ruta absoluta normalizada.
+ */
+function absoluta(estado, ruta) {
+  if (ruta === '~' || ruta.startsWith('~/')) {
+    const casa = estado.usuario === 'root' ? '/root' : '/home/' + estado.usuario;
+    return normalizar(casa + ruta.slice(1));
+  }
+  if (ruta.startsWith('/')) return normalizar(ruta);
+  return normalizar(estado.cwd + '/' + ruta);
+}
+
+/**
+ * Busca un inodo por ruta, comprobando el permiso de travesía en cada tramo.
+ *
+ * @param {object} estado
+ * @param {string} ruta
+ * @param {object} [opts]
+ * @param {boolean} [opts.seguirFinal=true]  Si el último tramo es un enlace,
+ *        `true` devuelve su destino —lo que hace `cat`— y `false` el enlace en
+ *        sí —lo que hacen `ls -l` y `rm`—. Los tramos intermedios se siguen
+ *        siempre.
+ * @returns {{inodo:object|null, padre:object|null, nombre:string, ruta:string, error:string|null}}
+ *          `error` es el errno simbólico: ENOENT, ENOTDIR, EACCES o ELOOP.
+ */
+function buscar(estado, ruta, { seguirFinal = true, saltos = 0 } = {}) {
+  const abs = absoluta(estado, ruta);
+  if (saltos > SALTOS_MAX) return { inodo: null, padre: null, nombre: ruta, ruta: abs, error: 'ELOOP' };
+
+  const fs = estado.fs;
+  const partes = segmentosDe(abs);
+  let inodo = inodoDe(fs, fs.raiz);
+  let padre = null;
+  let nombre = '/';
+  let recorrido = '';
+
+  for (let i = 0; i < partes.length; i++) {
+    if (inodo.tipo !== 'd') return { inodo: null, padre, nombre: partes[i], ruta: abs, error: 'ENOTDIR' };
+    if (!puede(estado, inodo, 'x')) return { inodo: null, padre, nombre: partes[i], ruta: abs, error: 'EACCES' };
+    padre = inodo;
+    nombre = partes[i];
+    recorrido += '/' + nombre;
+    const hijo = hijoDe(fs, inodo, nombre);
+    if (!hijo) return { inodo: null, padre, nombre, ruta: abs, error: 'ENOENT' };
+
+    const ultimo = i === partes.length - 1;
+    if (hijo.tipo === 'l' && (!ultimo || seguirFinal)) {
+      const destino = hijo.destino.startsWith('/')
+        ? hijo.destino
+        : recorrido.slice(0, recorrido.lastIndexOf('/')) + '/' + hijo.destino;
+      const resto = partes.slice(i + 1).join('/');
+      return buscar(estado, resto ? destino + '/' + resto : destino, { seguirFinal, saltos: saltos + 1 });
+    }
+    inodo = hijo;
+  }
+  return { inodo, padre, nombre, ruta: abs, error: null };
+}
+
+/* ================= 3. PERMISOS ================= */
+
+/**
+ * Decide si el usuario del estado puede hacer algo sobre un inodo.
+ *
+ * Aplica la regla que el examen pregunta una y otra vez: el kernel elige **un
+ * solo** bloque de tres bits —dueño, o grupo, o otros— y no los acumula.
+ *
+ * @param {object} estado
+ * @param {object} inodo
+ * @param {'r'|'w'|'x'} acceso
+ * @returns {boolean}
+ */
+function puede(estado, inodo, acceso) {
+  const bit = { r: 4, w: 2, x: 1 }[acceso];
+
+  if (estado.usuario === 'root') {
+    // root se salta lectura y escritura; para ejecutar aún necesita algún bit x.
+    if (acceso !== 'x') return true;
+    if (inodo.tipo === 'd') return true;
+    return (inodo.modo & 0o111) !== 0;
+  }
+
+  let tres;
+  if (inodo.usuario === estado.usuario) tres = (inodo.modo >> 6) & 7;
+  else if ((estado.grupos ?? []).includes(inodo.grupo)) tres = (inodo.modo >> 3) & 7;
+  else tres = inodo.modo & 7;
+
+  return (tres & bit) !== 0;
+}
+
+/** Los diez caracteres de la primera columna de `ls -l`. */
+function modoTexto(inodo) {
+  const TRIOS = ['---', '--x', '-w-', '-wx', 'r--', 'r-x', 'rw-', 'rwx'];
+  const m = inodo.modo;
+  let s = TRIOS[(m >> 6) & 7] + TRIOS[(m >> 3) & 7] + TRIOS[m & 7];
+  const sustituir = (i, ch) => { s = s.slice(0, i) + ch + s.slice(i + 1); };
+  if (m & 0o4000) sustituir(2, s[2] === 'x' ? 's' : 'S');
+  if (m & 0o2000) sustituir(5, s[5] === 'x' ? 's' : 'S');
+  if (m & 0o1000) sustituir(8, s[8] === 'x' ? 't' : 'T');
+  const TIPOS = { d: 'd', l: 'l', c: 'c', f: '-' };
+  return TIPOS[inodo.tipo] + s;
+}
+
+/**
+ * Calcula el modo resultante, en octal o en simbólico.
+ *
+ * @param {number} actual  Modo previo.
+ * @param {string} spec    `755`, `u+x`, `go-w`, `a=r`, `+x`…
+ * @param {boolean} esDir  `X` mayúscula solo afecta a directorios y a lo ya ejecutable.
+ * @returns {number|null} Modo nuevo, o `null` si la especificación es inválida.
+ */
+function calcularModo(actual, spec, esDir) {
+  if (/^[0-7]{1,4}$/.test(spec)) return parseInt(spec, 8);
+
+  let modo = actual;
+  for (const clausula of spec.split(',')) {
+    const m = clausula.match(/^([ugoa]*)([+\-=])([rwxXst]*)$/);
+    if (!m) return null;
+    const quien = m[1] || 'a';
+    const op = m[2];
+    const que = m[3];
+
+    let bits = 0;
+    if (que.includes('r')) bits |= 4;
+    if (que.includes('w')) bits |= 2;
+    if (que.includes('x')) bits |= 1;
+    if (que.includes('X') && (esDir || actual & 0o111)) bits |= 1;
+
+    const triadas = [];
+    if (quien.includes('u') || quien.includes('a')) triadas.push(6);
+    if (quien.includes('g') || quien.includes('a')) triadas.push(3);
+    if (quien.includes('o') || quien.includes('a')) triadas.push(0);
+
+    for (const t of triadas) {
+      if (op === '+') modo |= bits << t;
+      else if (op === '-') modo &= ~(bits << t);
+      else modo = (modo & ~(7 << t)) | (bits << t);
+    }
+    if (que.includes('s')) {
+      if (quien.includes('u') || quien.includes('a')) modo = op === '-' ? modo & ~0o4000 : modo | 0o4000;
+      if (quien.includes('g') || quien.includes('a')) modo = op === '-' ? modo & ~0o2000 : modo | 0o2000;
+    }
+    if (que.includes('t')) modo = op === '-' ? modo & ~0o1000 : modo | 0o1000;
+  }
+  return modo;
+}
+
+/** Dueño, grupo, fecha y modo de algo recién creado, con la umask aplicada. */
+function atributosNuevos(estado, base) {
+  return {
+    modo: (base ?? 0o777) & ~estado.umask,
+    usuario: estado.usuario,
+    grupo: estado.usuario,
+    mtime: estado.ahora
+  };
+}
+
+/* ================= 4. FECHAS ================= */
+
+const MESES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * La columna de fecha de `ls -l`, con el criterio de GNU coreutils: hora si el
+ * fichero es reciente, año si tiene más de seis meses o está en el futuro.
+ *
+ * Se calcula en UTC a propósito: el núcleo tiene que ser determinista, así que
+ * no puede depender de la zona horaria de quien lo ejecute.
+ *
+ * @param {number} mtime  Segundos desde epoch.
+ * @param {number} ahora  Instante actual en segundos (dato, no reloj).
+ * @returns {string} Doce caracteres, en formato de la locale C.
+ */
+function fechaLs(mtime, ahora) {
+  const d = new Date(mtime * 1000);
+  const mes = MESES[d.getUTCMonth()];
+  const dia = String(d.getUTCDate()).padStart(2, ' ');
+  const reciente = mtime <= ahora + 3600 && ahora - mtime <= SEIS_MESES;
+  if (!reciente) return mes + ' ' + dia + '  ' + d.getUTCFullYear();
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return mes + ' ' + dia + ' ' + hh + ':' + mm;
+}
+
+/* ================= 5. TROCEADO Y PARSER ================= */
+
+const OPERADORES = ['2>&1', '2>>', '2>', '>>', '&&', '||', '|', '>', '<', ';'];
+
+/** Palabras reservadas de bash: estructuras de control que este núcleo no interpreta. */
+const CLAVES = ['if', 'then', 'elif', 'else', 'fi', 'for', 'while', 'until', 'do', 'done',
+  'case', 'esac', 'select', 'function', 'in'];
+
+/**
+ * Trocea una línea en palabras y operadores.
+ *
+ * Cada palabra se guarda como una lista de segmentos con su tipo de comilla,
+ * porque de eso —y no de la palabra entera— depende qué se expande después:
+ * dentro de `'…'` no se expande nada, dentro de `"…"` se expanden variables
+ * pero no comodines, y fuera se expande todo. Tratar la palabra como un bloque
+ * único haría que `echo '$HOME'` imprimiera la ruta, que es exactamente el
+ * error que el examen pregunta.
+ *
+ * @param {string} linea
+ * @returns {{tokens:Array<object>, error:string|null}}
+ */
+function trocear(linea) {
+  const tokens = [];
+  let segmentos = [];
+  let cur = '';
+  let tipo = 'plano';
+  let comilla = null;
+  let abierta = false;
+
+  const cerrarSegmento = () => {
+    if (cur !== '' || tipo !== 'plano') segmentos.push({ tipo, texto: cur });
+    cur = '';
+    tipo = 'plano';
+  };
+  const cerrarPalabra = () => {
+    cerrarSegmento();
+    if (abierta) tokens.push({ t: 'palabra', segmentos, v: segmentos.map((g) => g.texto).join('') });
+    segmentos = [];
+    abierta = false;
+  };
+
+  for (let i = 0; i < linea.length; i++) {
+    const c = linea[i];
+
+    if (comilla) {
+      if (c === comilla) { cerrarSegmento(); comilla = null; continue; }
+      // Dentro de comillas dobles la barra invertida sí escapa, pero solo a
+      // `$`, a la comilla, al acento grave y a sí misma. El carácter escapado
+      // pasa a un segmento sin expansión: `"\$HOME"` imprime $HOME.
+      if (comilla === '"' && c === '\\' && '$`"\\'.includes(linea[i + 1])) {
+        cerrarSegmento();
+        segmentos.push({ tipo: 'simple', texto: linea[++i] });
+        tipo = 'doble';
+        continue;
+      }
+      cur += c;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      cerrarSegmento();
+      comilla = c;
+      tipo = c === "'" ? 'simple' : 'doble';
+      abierta = true;
+      continue;
+    }
+    if (c === '\\' && i + 1 < linea.length) {
+      cerrarSegmento();
+      segmentos.push({ tipo: 'simple', texto: linea[++i] });
+      abierta = true;
+      continue;
+    }
+    if (c === ' ' || c === '\t') { cerrarPalabra(); continue; }
+    if (c === '#' && !abierta) break;
+
+    // Sustitución de órdenes: se traga los operadores que lleve dentro.
+    if (c === '$' && linea[i + 1] === '(') {
+      let nivel = 0;
+      let j = i + 1;
+      for (; j < linea.length; j++) {
+        if (linea[j] === '(') nivel++;
+        else if (linea[j] === ')' && --nivel === 0) break;
+      }
+      cur += linea.slice(i, j + 1);
+      abierta = true;
+      i = j;
+      continue;
+    }
+    if (c === '`') {
+      const cierre = linea.indexOf('`', i + 1);
+      if (cierre < 0) return { tokens, error: 'comilla ` sin cerrar' };
+      cur += '$(' + linea.slice(i + 1, cierre) + ')';
+      abierta = true;
+      i = cierre;
+      continue;
+    }
+
+    const op = OPERADORES.find((o) => linea.startsWith(o, i));
+    if (op) { cerrarPalabra(); tokens.push({ t: 'op', v: op }); i += op.length - 1; continue; }
+
+    cur += c;
+    abierta = true;
+  }
+
+  if (comilla) return { tokens, error: 'comilla ' + comilla + ' sin cerrar' };
+  cerrarPalabra();
+  return { tokens, error: null };
+}
+
+/**
+ * Construye el árbol de ejecución a partir de los tokens.
+ *
+ * Gramática: lista → (tubería (`&&`|`||`|`;`) …); tubería → orden (`|` orden)*.
+ *
+ * @param {Array<object>} tokens
+ * @returns {{lista:Array<object>, error:string|null}}
+ */
+function parsear(tokens) {
+  const lista = [];
+  let tuberia = [];
+  let orden = null;
+  let union = ';';
+
+  const nuevaOrden = () => ({ palabras: [], redir: [] });
+
+  const cerrarOrden = () => {
+    if (orden && (orden.palabras.length || orden.redir.length)) tuberia.push(orden);
+    orden = null;
+  };
+  const cerrarTuberia = (siguienteUnion) => {
+    cerrarOrden();
+    if (tuberia.length) lista.push({ union, ordenes: tuberia });
+    tuberia = [];
+    union = siguienteUnion;
+  };
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tk = tokens[i];
+
+    if (tk.t === 'palabra') {
+      if (!orden) orden = nuevaOrden();
+      orden.palabras.push(tk);
+      continue;
+    }
+
+    if (tk.v === '|') {
+      cerrarOrden();
+      if (!tuberia.length) return { lista, error: 'error de sintaxis cerca de `|`' };
+      continue;
+    }
+    if (tk.v === '&&' || tk.v === '||' || tk.v === ';') {
+      const habia = tuberia.length || (orden && (orden.palabras.length || orden.redir.length));
+      if (!habia && tk.v !== ';') return { lista, error: 'error de sintaxis cerca de `' + tk.v + '`' };
+      cerrarTuberia(tk.v);
+      continue;
+    }
+
+    if (tk.v === '2>&1') {
+      if (!orden) orden = nuevaOrden();
+      orden.redir.push({ op: '2>&1' });
+      continue;
+    }
+
+    // Redirecciones: consumen la palabra siguiente como destino.
+    const destino = tokens[i + 1];
+    if (!destino || destino.t !== 'palabra') {
+      return { lista, error: 'error de sintaxis: falta el fichero de la redirección' };
+    }
+    if (!orden) orden = nuevaOrden();
+    orden.redir.push({ op: tk.v, fichero: destino.v });
+    i++;
+  }
+
+  cerrarTuberia(';');
+  return { lista, error: null };
+}
+
+/* ================= 6. COMODINES Y EXPANSIONES ================= */
+
+/** Traduce un patrón de shell a expresión regular anclada. */
+function patronARegex(patron) {
+  let re = '^';
+  for (let i = 0; i < patron.length; i++) {
+    const c = patron[i];
+    if (c === '*') re += '[^/]*';
+    else if (c === '?') re += '[^/]';
+    else if (c === '[') {
+      const cierre = patron.indexOf(']', i + 1);
+      if (cierre < 0) { re += '\\['; continue; }
+      let clase = patron.slice(i + 1, cierre);
+      if (clase.startsWith('!')) clase = '^' + clase.slice(1);
+      re += '[' + clase + ']';
+      i = cierre;
+    } else re += c.replace(/[.+^${}()|\\]/g, '\\$&');
+  }
+  return new RegExp(re + '$');
+}
+
+/** Une un prefijo de ruta con un nombre, sin duplicar barras. */
+function unirRuta(base, nombre) {
+  if (base === '') return nombre;
+  if (base === '/') return '/' + nombre;
+  return base + '/' + nombre;
+}
+
+/**
+ * Expande una palabra con comodines, componente a componente.
+ *
+ * Va por tramos porque un patrón puede llevar comodín en medio, y cada tramo se
+ * resuelve contra los directorios que sobrevivieron al anterior. Un directorio
+ * que no se puede leer se salta en silencio, igual que bash.
+ *
+ * Sigue la regla de bash con `nullglob` desactivado: si el patrón no encuentra
+ * nada, la palabra se pasa literal al comando. De ahí vienen la mitad de los
+ * mensajes de error confusos que ve un principiante.
+ *
+ * @param {object} estado
+ * @param {string} palabra
+ * @returns {string[]} Coincidencias ordenadas, o `[palabra]` si no hay ninguna.
+ */
+function expandir(estado, palabra) {
+  if (!/[*?[]/.test(palabra)) return [palabra];
+
+  const absoluto = palabra.startsWith('/');
+  const tramos = palabra.split('/').filter((t, i) => !(i === 0 && t === ''));
+  let actuales = [absoluto ? '/' : ''];
+
+  for (const tramo of tramos) {
+    if (!/[*?[]/.test(tramo)) {
+      actuales = actuales.map((base) => unirRuta(base, tramo));
+      continue;
+    }
+    const re = patronARegex(tramo);
+    const ocultos = tramo.startsWith('.');
+    const siguientes = [];
+    for (const base of actuales) {
+      const { inodo, error } = buscar(estado, base === '' ? '.' : base);
+      if (error || inodo.tipo !== 'd' || !puede(estado, inodo, 'r')) continue;
+      for (const nombre of nombresDe(inodo)) {
+        if (!ocultos && nombre.startsWith('.')) continue;
+        if (re.test(nombre)) siguientes.push(unirRuta(base, nombre));
+      }
+    }
+    actuales = siguientes;
+  }
+
+  const validos = actuales.filter((r) => !buscar(estado, r, { seguirFinal: false }).error).sort();
+  return validos.length ? validos : [palabra];
+}
+
+/**
+ * Expande las llaves: `{1..3}` y `{a,b}`. Ocurre antes que los comodines y no
+ * mira el sistema de ficheros, que es justo lo que la distingue de `*`.
+ *
+ * @param {string} palabra
+ * @returns {string[]}
+ */
+function expandirLlaves(palabra) {
+  const m = palabra.match(/^(.*?)\{([^{}]*)\}(.*)$/);
+  if (!m) return [palabra];
+  const antes = m[1];
+  const dentro = m[2];
+  const despues = m[3];
+
+  let piezas;
+  const rango = dentro.match(/^(-?\d+)\.\.(-?\d+)$/);
+  if (rango) {
+    const a = Number(rango[1]);
+    const b = Number(rango[2]);
+    piezas = [];
+    for (let v = a; a <= b ? v <= b : v >= b; a <= b ? v++ : v--) piezas.push(String(v));
+  } else if (dentro.includes(',')) {
+    piezas = dentro.split(',');
+  } else {
+    return [palabra];
+  }
+
+  return piezas.flatMap((pieza) => expandirLlaves(antes + pieza + despues));
+}
+
+/** Expande `$VAR`, `${VAR}` y `$?` en lo que no va entre comillas simples. */
+function expandirVariables(estado, palabra) {
+  return palabra.replace(/\$\{(\w+)\}|\$(\w+)|\$\?/g, (m, a, b) => {
+    if (m === '$?') return String(estado.ultimoCodigo ?? 0);
+    const nombre = a ?? b;
+    return estado.entorno[nombre] ?? '';
+  });
+}
+
+/**
+ * Traduce una expresión regular básica (BRE, la de grep sin -E) a RegExp de JS.
+ *
+ * En BRE `+ ? { } ( ) |` son literales y sus versiones con barra invertida son
+ * los operadores: justo lo contrario que en JS. Sin esta traducción el
+ * simulador aceptaría patrones que grep rechaza, que es la peor clase de error
+ * en algo que se usa para estudiar.
+ *
+ * @param {string} patron
+ * @returns {string} Fuente de una RegExp equivalente.
+ */
+function breARegex(patron) {
+  let re = '';
+  for (let i = 0; i < patron.length; i++) {
+    const c = patron[i];
+    if (c === '\\' && i + 1 < patron.length) {
+      const s = patron[++i];
+      re += '+?{}()|'.includes(s) ? s : '\\' + s;
+      continue;
+    }
+    re += '+?{}()'.includes(c) ? '\\' + c : c;
+  }
+  return re;
+}
+
+/* ================= 7. UTILIDADES DE LOS COMANDOS ================= */
+
+/** Texto a líneas, descartando la vacía que deja el salto final. */
+function lineas(texto) {
+  if (texto === '') return [];
+  const l = texto.split('\n');
+  if (l[l.length - 1] === '') l.pop();
+  return l;
+}
+
+/** Líneas a texto, con salto final: así se guardan los ficheros de verdad. */
+function unirLineas(l) {
+  return l.length ? l.join('\n') + '\n' : '';
+}
+
+/** Mensaje de errno tal como lo imprime coreutils en la locale C. */
+const ERRNO = {
+  ELOOP: 'Too many levels of symbolic links',
+  ENOENT: 'No such file or directory',
+  ENOTDIR: 'Not a directory',
+  EACCES: 'Permission denied',
+  EEXIST: 'File exists',
+  ENOTEMPTY: 'Directory not empty',
+  EISDIR: 'Is a directory'
+};
+
+/**
+ * Opciones largas que este núcleo entiende, comando a comando.
+ *
+ * Solo aparecen las que tienen detrás una opción corta implementada: una
+ * opción larga que no esté aquí se declara como hueco en vez de aceptarse y
+ * hacer otra cosa.
+ */
+const LARGAS = {
+  ls: { all: 'a', 'almost-all': 'A', 'human-readable': 'h', reverse: 'r', directory: 'd' },
+  cat: { number: 'n', 'show-all': 'A', 'show-ends': 'E', 'show-tabs': 'T' },
+  head: { lines: 'n', bytes: 'c', quiet: 'q', silent: 'q', verbose: 'v' },
+  tail: { lines: 'n', bytes: 'c', quiet: 'q', silent: 'q', verbose: 'v' },
+  wc: { lines: 'l', words: 'w', bytes: 'c', chars: 'm' },
+  grep: {
+    'invert-match': 'v', 'ignore-case': 'i', count: 'c', 'line-number': 'n',
+    'extended-regexp': 'E', quiet: 'q', silent: 'q', 'files-with-matches': 'l',
+    'word-regexp': 'w', 'after-context': 'A', 'before-context': 'B', context: 'C'
+  },
+  sort: {
+    'numeric-sort': 'n', reverse: 'r', unique: 'u', 'ignore-case': 'f',
+    'ignore-leading-blanks': 'b', key: 'k', 'field-separator': 't'
+  },
+  uniq: { count: 'c', repeated: 'd', 'ignore-case': 'i', unique: 'u' },
+  cut: { delimiter: 'd', fields: 'f', characters: 'c', 'only-delimited': 's' },
+  tr: { delete: 'd', 'squeeze-repeats': 's' },
+  mkdir: { parents: 'p', mode: 'm' },
+  rmdir: { parents: 'p' },
+  touch: { 'no-create': 'c' },
+  rm: { recursive: 'r', force: 'f' },
+  cp: { recursive: 'r', force: 'f', 'no-clobber': 'n' },
+  mv: { force: 'f', 'no-clobber': 'n' },
+  chmod: { recursive: 'R' },
+  ln: { symbolic: 's', force: 'f' }
+};
+
+/**
+ * Separa opciones de operandos.
+ *
+ * Cualquier letra o nombre que no esté declarado se devuelve en `error` para
+ * que el comando lo declare como hueco: aceptar una opción y no hacerle caso
+ * enseñaría algo falso.
+ *
+ * @param {string[]} args      Argumentos, sin el nombre del comando.
+ * @param {string} booleanas   Letras sin valor, p.ej. `'laA1h'`.
+ * @param {string} [conValor]  Letras con valor, p.ej. `'n'`.
+ * @param {object} [largas]    Nombre largo → letra corta.
+ * @returns {{flags:Set<string>, valores:object, repeticiones:object, resto:string[], error:string|null}}
+ *          `valores` guarda el último valor de cada letra y `repeticiones` cuántas veces se dio.
+ */
+function opciones(args, booleanas, conValor = '', largas = {}) {
+  const flags = new Set();
+  const valores = {};
+  const repeticiones = {};
+  const resto = [];
+  let finDeOpciones = false;
+  const sinValor = (letra) => !conValor.includes(letra);
+
+  const anotar = (letra, valor) => {
+    valores[letra] = valor;
+    repeticiones[letra] = (repeticiones[letra] ?? 0) + 1;
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (finDeOpciones || a === '-' || a === '' || !a.startsWith('-')) { resto.push(a); continue; }
+    if (a === '--') { finDeOpciones = true; continue; }
+
+    if (a.startsWith('--')) {
+      const igual = a.indexOf('=');
+      const nombre = igual < 0 ? a.slice(2) : a.slice(2, igual);
+      const letra = largas[nombre];
+      if (letra === undefined) return { flags, valores, repeticiones, resto, error: igual < 0 ? a : a.slice(0, igual) };
+      if (sinValor(letra)) {
+        if (igual >= 0) return { flags, valores, repeticiones, resto, error: a.slice(0, igual) };
+        flags.add(letra);
+        continue;
+      }
+      const valor = igual < 0 ? args[++i] : a.slice(igual + 1);
+      if (valor === undefined) return { flags, valores, repeticiones, resto, error: a };
+      anotar(letra, valor);
+      continue;
+    }
+
+    for (let j = 1; j < a.length; j++) {
+      const letra = a[j];
+      if (booleanas.includes(letra)) { flags.add(letra); continue; }
+      if (conValor.includes(letra)) {
+        const valor = a.slice(j + 1) || args[++i];
+        if (valor === undefined) return { flags, valores, repeticiones, resto, error: '-' + letra };
+        anotar(letra, valor);
+        j = a.length;
+        continue;
+      }
+      return { flags, valores, repeticiones, resto, error: '-' + letra };
+    }
+  }
+  return { flags, valores, repeticiones, resto, error: null };
+}
+
+/** Fallo de comando con el formato de coreutils. */
+function fallo(cmd, mensaje, codigo = 1) {
+  return { salida: '', error: cmd + ': ' + mensaje + '\n', codigo };
+}
+
+/** Fallo de coreutils que remite a `--help`, como los de `cut`. */
+function falloConAyuda(cmd, mensaje) {
+  return {
+    salida: '',
+    error: cmd + ': ' + mensaje + "\nTry '" + cmd + " --help' for more information.\n",
+    codigo: 1
+  };
+}
+
+/**
+ * Hueco declarado. Se dice, no se ignora: una salida plausible pero falsa
+ * enseña algo incorrecto y el alumno no tiene forma de notarlo.
+ *
+ * @param {string} cmd    Quién no sabe hacerlo.
+ * @param {string} frase  Qué no sabe hacer, en una frase completa.
+ */
+function noImplementado(cmd, frase) {
+  return { salida: '', error: 'simulador: ' + cmd + ': ' + frase + '\n', codigo: 2 };
+}
+
+/** Hueco de una opción, con el nombre que escribió el usuario. */
+function opcionNoImplementada(cmd, opcion) {
+  return noImplementado(cmd, 'la opción ' + opcion + ' no está implementada');
+}
+
+/**
+ * Lee los operandos de fichero de un comando de texto, o la entrada estándar.
+ *
+ * @param {object} ctx    Contexto del comando: `{estado, argv, entrada}`.
+ * @param {string} cmd    Nombre del comando, para los mensajes de error.
+ * @param {string[]} rutas
+ * @returns {{partes:Array<{nombre:string, contenido:string}>, error:string, codigo:number}}
+ */
+function leerEntradas(ctx, cmd, rutas) {
+  const partes = [];
+  let error = '';
+  let codigo = 0;
+
+  if (!rutas.length) return { partes: [{ nombre: '-', contenido: ctx.entrada }], error, codigo };
+
+  for (const ruta of rutas) {
+    if (ruta === '-') { partes.push({ nombre: '-', contenido: ctx.entrada }); continue; }
+    const r = buscar(ctx.estado, ruta);
+    if (r.error) { error += cmd + ': ' + ruta + ': ' + ERRNO[r.error] + '\n'; codigo = 1; continue; }
+    if (r.inodo.tipo === 'd') { error += cmd + ': ' + ruta + ': Is a directory\n'; codigo = 1; continue; }
+    if (!puede(ctx.estado, r.inodo, 'r')) { error += cmd + ': ' + ruta + ': Permission denied\n'; codigo = 1; continue; }
+    partes.push({ nombre: ruta, contenido: r.inodo.contenido });
+  }
+  return { partes, error, codigo };
+}
+
+/** Solo ASCII se puede recortar por bytes sin partir un carácter por la mitad. */
+function esAscii(texto) {
+  for (const ch of texto) if (ch.codePointAt(0) > 0x7f) return false;
+  return true;
+}
+
+/* ================= 8. COMANDOS =================
+   Registro abierto: añadir un comando es añadir una entrada, sin tocar el
+   motor ni el parser. Cada comando recibe `{estado, argv, entrada}` y devuelve
+   `{salida, error, codigo}`; nada más entra y nada más sale.                  */
+
+const COMANDOS = {};
+
+COMANDOS.pwd = (ctx) => ({ salida: ctx.estado.cwd + '\n', error: '', codigo: 0 });
+
+COMANDOS.whoami = (ctx) => ({ salida: ctx.estado.usuario + '\n', error: '', codigo: 0 });
+
+COMANDOS.cd = (ctx) => {
+  const est = ctx.estado;
+  let destino = ctx.argv[1] ?? '~';
+  let anunciar = false;
+  if (destino === '-') {
+    if (!est.entorno.OLDPWD) return fallo('bash: cd', 'OLDPWD not set');
+    destino = est.entorno.OLDPWD;
+    anunciar = true;  // `cd -` imprime a dónde ha ido; `cd` normal, no.
+  }
+  const r = buscar(est, destino);
+  if (r.error) return fallo('bash: cd', destino + ': ' + ERRNO[r.error]);
+  if (anunciar) destino = r.ruta;
+  if (r.inodo.tipo !== 'd') return fallo('bash: cd', destino + ': Not a directory');
+  if (!puede(est, r.inodo, 'x')) return fallo('bash: cd', destino + ': Permission denied');
+  est.entorno.OLDPWD = est.cwd;
+  // `cd` de bash es lógico: guarda la ruta que escribiste, no la resuelta. Por
+  // eso tras `cd enlace` el prompt dice el enlace y `cd ..` vuelve al padre del
+  // enlace, no al del directorio real.
+  est.cwd = absoluta(est, destino);
+  return { salida: anunciar ? r.ruta + '\n' : '', error: '', codigo: 0 };
+};
+
+/** Los escapes que interpreta `echo -e`, que son los del builtin de bash. */
+const ESCAPES = { n: '\n', t: '\t', r: '\r', a: '\x07', b: '\b', f: '\f', v: '\v', '\\': '\\', e: '\x1b' };
+
+COMANDOS.echo = (ctx) => {
+  // bash solo trata como opciones las primeras palabras que sean -n, -e o -E:
+  // `echo -x` imprime «-x». Por eso no se usa el separador de opciones normal.
+  const args = ctx.argv.slice(1);
+  let i = 0;
+  let salto = true;
+  let escapes = false;
+  for (; i < args.length && /^-[neE]+$/.test(args[i]); i++) {
+    for (const letra of args[i].slice(1)) {
+      if (letra === 'n') salto = false;
+      if (letra === 'e') escapes = true;
+      if (letra === 'E') escapes = false;
+    }
+  }
+  let cuerpo = args.slice(i).join(' ');
+  if (escapes) {
+    cuerpo = cuerpo.replace(/\\(0[0-7]{0,3}|x[0-9A-Fa-f]{1,2}|.)/g, (m, s) => {
+      if (s[0] === '0') return String.fromCharCode(parseInt(s.slice(1) || '0', 8));
+      if (s[0] === 'x') return String.fromCharCode(parseInt(s.slice(1), 16));
+      return ESCAPES[s] ?? m;
+    });
+  }
+  return { salida: salto ? cuerpo + '\n' : cuerpo, error: '', codigo: 0 };
+};
+
+COMANDOS.ls = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'laA1hdrtS', '', LARGAS.ls);
+  if (o.error) return opcionNoImplementada('ls', o.error);
+
+  const est = ctx.estado;
+  const fs = est.fs;
+  const largo = o.flags.has('l');
+  const todos = o.flags.has('a');
+  const casiTodos = o.flags.has('A');
+  const rutas = o.resto.length ? o.resto : ['.'];
+
+  // El orden es parte de lo que se pregunta: por defecto alfabético, con -t por
+  // fecha descendente y con -S por tamaño descendente. En los empates GNU
+  // vuelve al nombre, y -r invierte el resultado final.
+  const signo = o.flags.has('r') ? -1 : 1;
+  const comparar = (a, b) => {
+    if (o.flags.has('t')) {
+      const d = b.inodo.mtime - a.inodo.mtime;
+      if (d) return signo * (d < 0 ? -1 : 1);
+    } else if (o.flags.has('S')) {
+      const d = tamano(b.inodo) - tamano(a.inodo);
+      if (d) return signo * (d < 0 ? -1 : 1);
+    }
+    if (a.nombre === b.nombre) return 0;
+    return signo * (a.nombre < b.nombre ? -1 : 1);
+  };
+
+  let salida = '';
+  let error = '';
+  let codigo = 0;
+  const sueltos = [];
+  const directorios = [];
+
+  for (const ruta of rutas.slice().sort()) {
+    // `ls pd` sigue el enlace y lista el directorio de destino; `ls -l pd`
+    // muestra el enlace en sí. El formato largo cambia lo que se pregunta.
+    const r = buscar(est, ruta, { seguirFinal: !largo && !o.flags.has('d') });
+    if (r.error) { error += "ls: cannot access '" + ruta + "': " + ERRNO[r.error] + '\n'; codigo = 2; continue; }
+    if (r.inodo.tipo === 'd' && !o.flags.has('d')) directorios.push({ ruta, inodo: r.inodo, padre: r.padre });
+    else sueltos.push({ nombre: ruta, inodo: r.inodo });
+  }
+
+  if (sueltos.length) {
+    salida += formatear(ctx, sueltos.sort(comparar), { largo, humano: o.flags.has('h'), total: false });
+  }
+
+  const conCabecera = rutas.length > 1;
+  directorios.sort((a, b) => (a.ruta < b.ruta ? -1 : a.ruta > b.ruta ? 1 : 0)).forEach((d) => {
+    if (!puede(est, d.inodo, 'r')) {
+      error += "ls: cannot open directory '" + d.ruta + "': Permission denied\n";
+      codigo = 2;
+      return;
+    }
+    if (conCabecera || sueltos.length) salida += (salida ? '\n' : '') + d.ruta + ':\n';
+
+    const entradas = [];
+    if (todos) {
+      entradas.push({ nombre: '.', inodo: d.inodo });
+      entradas.push({ nombre: '..', inodo: d.padre ?? d.inodo });
+    }
+    for (const nombre of nombresDe(d.inodo)) {
+      if (!todos && !casiTodos && nombre.startsWith('.')) continue;
+      entradas.push({ nombre, inodo: hijoDe(fs, d.inodo, nombre) });
+    }
+    salida += formatear(ctx, entradas.sort(comparar), { largo, humano: o.flags.has('h'), total: true });
+  });
+
+  return { salida, error, codigo };
+};
+
+/** Tamaño en el formato de `-h`: la unidad más grande con una cifra decimal. */
+function humanizar(bytes) {
+  if (bytes < 1024) return String(bytes);
+  const UNIDADES = ['K', 'M', 'G', 'T'];
+  let v = bytes / 1024;
+  let u = 0;
+  while (v >= 1024 && u < UNIDADES.length - 1) { v /= 1024; u++; }
+  // coreutils redondea hacia arriba y solo pone decimal por debajo de 10.
+  const redondeado = v < 10 ? Math.ceil(v * 10) / 10 : Math.ceil(v);
+  return (v < 10 ? redondeado.toFixed(1) : String(redondeado)) + UNIDADES[u];
+}
+
+/**
+ * Pinta una lista de entradas ya ordenada, en corto o en largo.
+ *
+ * En corto sale una por línea, que es lo que `ls` manda por una tubería; el
+ * reparto en columnas es cosa de la presentación (ver `enColumnas`). En largo
+ * alinea cada columna al ancho del elemento más largo de la lista, como GNU.
+ *
+ * @param {object} ctx
+ * @param {Array<{nombre:string, inodo:object}>} entradas
+ * @param {{largo:boolean, humano:boolean, total:boolean}} opts
+ * @returns {string}
+ */
+function formatear(ctx, entradas, { largo, humano, total }) {
+  // Un directorio vacío listado en largo no imprime nada... salvo su `total 0`.
+  if (!entradas.length) return largo && total ? 'total 0\n' : '';
+  if (!largo) return entradas.map((e) => e.nombre).join('\n') + '\n';
+
+  const fs = ctx.estado.fs;
+  const filas = entradas.map((e) => ({
+    modo: modoTexto(e.inodo),
+    enlaces: String(enlaces(fs, e.inodo)),
+    usuario: e.inodo.usuario,
+    grupo: e.inodo.grupo,
+    tamano: humano ? humanizar(tamano(e.inodo)) : String(tamano(e.inodo)),
+    fecha: fechaLs(e.inodo.mtime, ctx.estado.ahora),
+    nombre: e.inodo.tipo === 'l' ? e.nombre + ' -> ' + e.inodo.destino : e.nombre
+  }));
+
+  const ancho = (campo) => Math.max(...filas.map((f) => f[campo].length));
+  const aE = ancho('enlaces');
+  const aU = ancho('usuario');
+  const aG = ancho('grupo');
+  const aT = ancho('tamano');
+
+  const cuerpo = filas
+    .map((f) =>
+      f.modo + ' ' + f.enlaces.padStart(aE) + ' ' + f.usuario.padEnd(aU) + ' ' + f.grupo.padEnd(aG) +
+      ' ' + f.tamano.padStart(aT) + ' ' + f.fecha + ' ' + f.nombre
+    )
+    .join('\n');
+
+  // `ls -lh` humaniza también la línea `total`, que va en KiB.
+  const suma = entradas.reduce((s, e) => s + bloques(e.inodo), 0);
+  const cabecera = total ? 'total ' + (humano ? humanizar(suma * 1024) : suma) + '\n' : '';
+  return cabecera + cuerpo + '\n';
+}
+
+COMANDOS.cat = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'nAET', '', LARGAS.cat);
+  if (o.error) return opcionNoImplementada('cat', o.error);
+  const { partes, error, codigo } = leerEntradas(ctx, 'cat', o.resto);
+
+  const finDeLinea = o.flags.has('A') || o.flags.has('E');
+  const tabuladores = o.flags.has('A') || o.flags.has('T');
+  let salida = partes.map((p) => p.contenido).join('');
+
+  if (tabuladores) salida = salida.split('\t').join('^I');
+  if (finDeLinea) salida = salida.split('\n').join('$\n');
+  if (o.flags.has('n')) {
+    const numeradas = lineas(salida).map((l, i) => String(i + 1).padStart(6) + '\t' + l);
+    salida = unirLineas(numeradas);
+  }
+  return { salida, error, codigo };
+};
+
+/** `-5` es azúcar de `-n 5` en head y tail; hay que aceptarlo aparte. */
+function numeroSuelto(args) {
+  // Ojo: en `head -n -1` y en `head -c -20` el número es el valor de la opción
+  // anterior, no un atajo.
+  const CON_VALOR = ['-n', '-c', '--lines', '--bytes'];
+  const i = args.findIndex((a, k) => /^-\d+$/.test(a) && !CON_VALOR.includes(args[k - 1]));
+  if (i < 0) return { args, n: null };
+  const copia = args.slice();
+  const n = Number(copia.splice(i, 1)[0].slice(1));
+  return { args: copia, n };
+}
+
+COMANDOS.head = (ctx) => recortar(ctx, 'head');
+COMANDOS.tail = (ctx) => recortar(ctx, 'tail');
+
+/**
+ * El cuerpo común de `head` y `tail`.
+ *
+ * El signo del número importa y hay que conservarlo: `head -n -1` es «todas
+ * menos la última» y `tail -n +2` es «desde la segunda». Sin el signo, los dos
+ * casos acertarían por casualidad en ficheros de tres líneas y fallarían en el
+ * resto.
+ */
+function recortar(ctx, cmd) {
+  const suelto = numeroSuelto(ctx.argv.slice(1));
+  const o = opciones(suelto.args, 'qv', 'nc', LARGAS[cmd]);
+  if (o.error) return opcionNoImplementada(cmd, o.error);
+
+  const porBytes = o.valores.c !== undefined;
+  const crudo = suelto.n !== null ? String(suelto.n) : (porBytes ? o.valores.c : (o.valores.n ?? '10'));
+  const signo = /^[+-]/.test(crudo) ? crudo[0] : '';
+  const n = Math.abs(Number(crudo));
+  if (!/^[+-]?\d+$/.test(crudo)) {
+    return fallo(cmd, 'invalid number of ' + (porBytes ? 'bytes' : 'lines') + ": '" + crudo + "'");
+  }
+
+  const { partes, error, codigo } = leerEntradas(ctx, cmd, o.resto);
+  const varios = (partes.length > 1 || o.flags.has('v')) && !o.flags.has('q');
+
+  const trozos = partes.map((p) => {
+    let cuerpo;
+    if (porBytes) {
+      // Recortar por bytes con texto que no es ASCII partiría un carácter por
+      // la mitad: eso no se puede representar aquí, así que se declara.
+      if (!esAscii(p.contenido)) return null;
+      cuerpo = cmd === 'head'
+        ? (signo === '-' ? p.contenido.slice(0, Math.max(0, p.contenido.length - n)) : p.contenido.slice(0, n))
+        : (signo === '+' ? p.contenido.slice(Math.max(0, n - 1)) : p.contenido.slice(Math.max(0, p.contenido.length - n)));
+    } else {
+      const l = lineas(p.contenido);
+      const elegidas = cmd === 'head'
+        ? (signo === '-' ? l.slice(0, Math.max(0, l.length - n)) : l.slice(0, n))
+        : (signo === '+' ? l.slice(Math.max(0, n - 1)) : l.slice(Math.max(0, l.length - n)));
+      cuerpo = unirLineas(elegidas);
+    }
+    return varios ? '==> ' + p.nombre + ' <==\n' + cuerpo : cuerpo;
+  });
+
+  if (trozos.some((t) => t === null)) {
+    return noImplementado(cmd, 'la opción -c no está implementada sobre texto que no es ASCII');
+  }
+  return { salida: trozos.join(varios ? '\n' : ''), error, codigo };
+}
+
+COMANDOS.wc = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'lwcm', '', LARGAS.wc);
+  if (o.error) return opcionNoImplementada('wc', o.error);
+  const { partes, error, codigo } = leerEntradas(ctx, 'wc', o.resto);
+
+  // El orden de las columnas lo fija wc, no el orden de las opciones. `-m`
+  // cuenta caracteres y `-c` bytes; en la locale C de referencia coinciden.
+  const pedidas = o.flags.size ? ['l', 'w', 'm', 'c'].filter((f) => o.flags.has(f)) : ['l', 'w', 'c'];
+
+  const cuentas = partes.map((p) => ({
+    nombre: p.nombre === '-' ? '' : p.nombre,
+    l: lineas(p.contenido).length,
+    w: p.contenido.split(/\s+/).filter(Boolean).length,
+    m: bytesDe(p.contenido),
+    c: bytesDe(p.contenido)
+  }));
+
+  if (!cuentas.length) return { salida: '', error, codigo };
+
+  if (cuentas.length > 1) {
+    const suma = (campo) => cuentas.reduce((s, c) => s + c[campo], 0);
+    cuentas.push({ nombre: 'total', l: suma('l'), w: suma('w'), m: suma('m'), c: suma('c') });
+  }
+
+  // Anchura de columna, tal como la calcula coreutils: sin relleno cuando se
+  // pide un solo recuento de un solo fichero, y en el resto de los casos el
+  // ancho de los bytes contados —no el del número que se imprime—. Por eso
+  // `wc -l f` da «3» pero `wc -lw f` da « 3  6».
+  const sinRelleno = pedidas.length === 1 && cuentas.length === 1;
+  const ancho = Math.max(...cuentas.map((c) => String(c.c).length));
+
+  const salida = cuentas
+    .map((c) => {
+      const nums = pedidas.map((f) => (sinRelleno ? String(c[f]) : String(c[f]).padStart(ancho))).join(' ');
+      return c.nombre ? nums + ' ' + c.nombre : nums;
+    })
+    .join('\n');
+
+  return { salida: salida + '\n', error, codigo };
+};
+
+COMANDOS.grep = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'ivcnEqlw', 'ABC', LARGAS.grep);
+  if (o.error) return opcionNoImplementada('grep', o.error);
+  if (!o.resto.length) return { salida: '', error: 'Usage: grep [OPTION]... PATTERNS [FILE]...\n', codigo: 2 };
+
+  // Contexto: -A después, -B antes, -C ambos. Un valor que no sea un entero no
+  // nulo es un error de uso, no un hueco.
+  const contexto = (letra, porOmision) => {
+    const crudo = o.valores[letra];
+    if (crudo === undefined) return porOmision;
+    if (!/^\d+$/.test(crudo)) return crudo;
+    return Number(crudo);
+  };
+  const ambos = contexto('C', 0);
+  if (typeof ambos === 'string') return fallo('grep', ambos + ': invalid context length argument', 2);
+  const antes = contexto('B', ambos);
+  const despues = contexto('A', ambos);
+  if (typeof antes === 'string') return fallo('grep', antes + ': invalid context length argument', 2);
+  if (typeof despues === 'string') return fallo('grep', despues + ': invalid context length argument', 2);
+  const conContexto = o.valores.A !== undefined || o.valores.B !== undefined || o.valores.C !== undefined;
+
+  const patron = o.resto[0];
+  const rutas = o.resto.slice(1);
+  let re;
+  try {
+    const fuente = o.flags.has('E') ? patron : breARegex(patron);
+    re = new RegExp(o.flags.has('w') ? '\\b(?:' + fuente + ')\\b' : fuente, o.flags.has('i') ? 'i' : '');
+  } catch (e) {
+    return { salida: '', error: 'grep: ' + patron + ': expresión regular inválida\n', codigo: 2 };
+  }
+
+  const { partes, error, codigo } = leerEntradas(ctx, 'grep', rutas);
+  const prefijo = rutas.length > 1;
+  let hallados = 0;
+  let salida = '';
+  let algoImpreso = false;
+  let ultimaLinea = -2;
+  let ultimoFichero = null;
+
+  for (const p of partes) {
+    const ls = lineas(p.contenido);
+    const coincide = ls.map((l) => re.test(l) !== o.flags.has('v'));
+    hallados += coincide.filter(Boolean).length;
+
+    if (o.flags.has('l')) { if (coincide.includes(true)) salida += p.nombre + '\n'; continue; }
+    if (o.flags.has('c')) { salida += (prefijo ? p.nombre + ':' : '') + coincide.filter(Boolean).length + '\n'; continue; }
+    if (o.flags.has('q')) continue;
+
+    const aImprimir = new Set();
+    coincide.forEach((m, i) => {
+      if (!m) return;
+      for (let k = Math.max(0, i - antes); k <= Math.min(ls.length - 1, i + despues); k++) aImprimir.add(k);
+    });
+
+    for (const i of [...aImprimir].sort((a, b) => a - b)) {
+      // Con contexto, grep separa con `--` los grupos que no son contiguos, y
+      // el salto de un fichero a otro también cuenta como corte.
+      if (conContexto && algoImpreso && (p.nombre !== ultimoFichero || i !== ultimaLinea + 1)) salida += '--\n';
+      const sep = coincide[i] ? ':' : '-';
+      salida += (prefijo ? p.nombre + sep : '') + (o.flags.has('n') ? String(i + 1) + sep : '') + ls[i] + '\n';
+      algoImpreso = true;
+      ultimaLinea = i;
+      ultimoFichero = p.nombre;
+    }
+  }
+
+  // El código de salida de grep es información, no un fallo: 1 significa
+  // "no hay coincidencias" y es lo que encadena un `&&` o un `if`.
+  const cod = codigo === 1 ? 2 : hallados ? 0 : 1;
+  return { salida: o.flags.has('q') ? '' : salida, error, codigo: cod };
+};
+
+/**
+ * Divide una línea en campos, como los cuenta `sort`.
+ *
+ * Con `-t` el separador es el carácter dado y los campos son lo que hay entre
+ * separadores. Sin `-t` los separa cualquier tira de blancos, y los blancos
+ * cuentan como parte del campo que empieza después: por eso la clave de
+ * `-k2` sobre «b 1» es « 1» y no «1».
+ *
+ * @param {string} linea
+ * @param {string} [sep]
+ * @returns {Array<{inicio:number, fin:number}>}
+ */
+function camposDeLinea(linea, sep) {
+  const limites = [];
+  if (sep !== undefined) {
+    let inicio = 0;
+    for (let i = 0; i <= linea.length; i++) {
+      if (i === linea.length || linea[i] === sep) { limites.push({ inicio, fin: i }); inicio = i + 1; }
+    }
+    return limites;
+  }
+  const re = /[ \t]*[^ \t]+/g;
+  let m;
+  while ((m = re.exec(linea)) !== null) limites.push({ inicio: m.index, fin: m.index + m[0].length });
+  return limites;
+}
+
+COMANDOS.sort = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'nrufb', 'kt', LARGAS.sort);
+  if (o.error) return opcionNoImplementada('sort', o.error);
+  if ((o.repeticiones.k ?? 0) > 1) return noImplementado('sort', 'más de una clave -k no está implementada');
+
+  const sep = o.valores.t;
+  if (sep !== undefined && sep.length !== 1) return fallo('sort', "multi-character tab '" + sep + "'", 2);
+
+  let desde = null;
+  let hasta = null;
+  if (o.valores.k !== undefined) {
+    const m = o.valores.k.match(/^(\d+)(?:,(\d+))?$/);
+    if (!m) return noImplementado('sort', "la clave -k '" + o.valores.k + "' no está implementada");
+    desde = Number(m[1]);
+    hasta = m[2] === undefined ? null : Number(m[2]);
+    if (desde === 0) return fallo('sort', "field number is zero: invalid field specification '" + o.valores.k + "'", 2);
+  }
+
+  const { partes, error, codigo } = leerEntradas(ctx, 'sort', o.resto);
+  let l = partes.flatMap((p) => lineas(p.contenido));
+
+  /** La parte de la línea que se compara: la clave de -k, o la línea entera. */
+  const claveDe = (linea) => {
+    let clave = linea;
+    if (desde !== null) {
+      const campos = camposDeLinea(linea, sep);
+      if (desde > campos.length) clave = '';
+      else {
+        const inicio = campos[desde - 1].inicio;
+        const fin = hasta === null || hasta > campos.length ? linea.length : campos[hasta - 1].fin;
+        clave = linea.slice(inicio, Math.max(inicio, fin));
+      }
+    }
+    if (o.flags.has('b')) clave = clave.replace(/^[ \t]+/, '');
+    return o.flags.has('f') ? clave.toLowerCase() : clave;
+  };
+  const texto = (s) => (o.flags.has('f') ? s.toLowerCase() : s);
+
+  const compararClaves = (a, b) => {
+    if (o.flags.has('n')) {
+      const d = (parseFloat(a) || 0) - (parseFloat(b) || 0);
+      return d === 0 ? 0 : d < 0 ? -1 : 1;
+    }
+    return a < b ? -1 : a > b ? 1 : 0;
+  };
+  // Cuando las claves empatan, GNU compara la línea completa: es el «último
+  // recurso» que hace que `sort -n` de un CSV con cabecera salga en el orden
+  // de verdad y no en el que dejó el empate.
+  const comparar = (a, b) => {
+    const d = compararClaves(claveDe(a), claveDe(b));
+    if (d) return d;
+    return texto(a) < texto(b) ? -1 : texto(a) > texto(b) ? 1 : 0;
+  };
+
+  const signo = o.flags.has('r') ? -1 : 1;
+  l.sort((a, b) => signo * comparar(a, b));
+  // -u deja el primero de cada racha de claves iguales: la igualdad la decide
+  // la clave, no la línea entera.
+  if (o.flags.has('u')) l = l.filter((v, i) => i === 0 || compararClaves(claveDe(v), claveDe(l[i - 1])) !== 0);
+
+  return { salida: unirLineas(l), error, codigo };
+};
+
+COMANDOS.uniq = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'cdiu', '', LARGAS.uniq);
+  if (o.error) return opcionNoImplementada('uniq', o.error);
+  const { partes, error, codigo } = leerEntradas(ctx, 'uniq', o.resto);
+
+  const grupos = [];
+  for (const l of partes.flatMap((p) => lineas(p.contenido))) {
+    const anterior = grupos[grupos.length - 1];
+    const igual = anterior && (o.flags.has('i')
+      ? anterior.l.toLowerCase() === l.toLowerCase()
+      : anterior.l === l);
+    if (igual) anterior.n++;
+    else grupos.push({ l, n: 1 });
+  }
+
+  let elegidos = grupos;
+  if (o.flags.has('d')) elegidos = grupos.filter((g) => g.n > 1);
+  if (o.flags.has('u')) elegidos = grupos.filter((g) => g.n === 1);
+
+  const salida = o.flags.has('c')
+    ? unirLineas(elegidos.map((g) => String(g.n).padStart(7) + ' ' + g.l))
+    : unirLineas(elegidos.map((g) => g.l));
+  return { salida, error, codigo };
+};
+
+/**
+ * Interpreta una lista de rangos de `cut`: `1`, `1-3`, `-3`, `3-`, o varias
+ * separadas por comas.
+ *
+ * @param {string} spec
+ * @returns {{elegido:(n:number)=>boolean, error:string|null, cero:boolean}}
+ */
+function rangosDeCut(spec) {
+  const partes = spec.split(',');
+  const rangos = [];
+  for (const p of partes) {
+    const m = p.match(/^(\d*)(-?)(\d*)$/);
+    if (!m || (m[1] === '' && m[3] === '') || (m[1] === '' && m[2] === '')) return { error: p, cero: false };
+    const desde = m[1] === '' ? 1 : Number(m[1]);
+    const hasta = m[2] === '' ? desde : (m[3] === '' ? Infinity : Number(m[3]));
+    if (desde === 0 || (m[3] !== '' && Number(m[3]) === 0)) return { error: p, cero: true };
+    rangos.push([desde, hasta]);
+  }
+  return { elegido: (n) => rangos.some(([a, b]) => n >= a && n <= b), error: null, cero: false };
+}
+
+COMANDOS.cut = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 's', 'dfc', LARGAS.cut);
+  if (o.error) return opcionNoImplementada('cut', o.error);
+
+  const porCampos = o.valores.f !== undefined;
+  const porCaracteres = o.valores.c !== undefined;
+  if (porCampos && porCaracteres) return falloConAyuda('cut', 'only one list may be specified');
+  if (!porCampos && !porCaracteres) {
+    return falloConAyuda('cut', 'you must specify a list of bytes, characters, or fields');
+  }
+  if (porCaracteres && o.valores.d !== undefined) {
+    return falloConAyuda('cut', 'an input delimiter may be specified only when operating on fields');
+  }
+
+  const lista = rangosDeCut(porCampos ? o.valores.f : o.valores.c);
+  if (lista.error !== null) {
+    if (lista.cero) {
+      return falloConAyuda('cut', porCampos ? 'fields are numbered from 1' : 'byte/character positions are numbered from 1');
+    }
+    return falloConAyuda('cut', (porCampos ? "invalid field value '" : "invalid byte/character position '") + lista.error + "'");
+  }
+
+  const sep = o.valores.d ?? '\t';
+  const { partes, error, codigo } = leerEntradas(ctx, 'cut', o.resto);
+
+  if (porCaracteres && partes.some((p) => !esAscii(p.contenido))) {
+    // En la locale C de referencia `-c` cuenta bytes; con texto multibyte
+    // habría que cortar dentro de un carácter, y eso aquí no se puede.
+    return noImplementado('cut', 'la opción -c no está implementada sobre texto que no es ASCII');
+  }
+
+  const salida = unirLineas(
+    partes.flatMap((p) =>
+      lineas(p.contenido).map((l) => {
+        if (porCaracteres) return [...l].filter((_, i) => lista.elegido(i + 1)).join('');
+        if (!l.includes(sep)) return o.flags.has('s') ? null : l;
+        const trozos = l.split(sep);
+        return trozos.filter((_, i) => lista.elegido(i + 1)).join(sep);
+      }).filter((v) => v !== null)
+    )
+  );
+  return { salida, error, codigo };
+};
+
+COMANDOS.tr = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'ds', '', LARGAS.tr);
+  if (o.error) return opcionNoImplementada('tr', o.error);
+
+  /** Expande los rangos `a-z` y las clases que el examen usa. */
+  const juego = (s) => {
+    const CLASES = {
+      '[:upper:]': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      '[:lower:]': 'abcdefghijklmnopqrstuvwxyz',
+      '[:digit:]': '0123456789',
+      '[:space:]': ' \t\n',
+      '[:alpha:]': 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+    };
+    for (const [c, v] of Object.entries(CLASES)) s = s.split(c).join(v);
+    let out = '';
+    for (let i = 0; i < s.length; i++) {
+      if (s[i + 1] === '-' && s[i + 2]) {
+        for (let c = s.charCodeAt(i); c <= s.charCodeAt(i + 2); c++) out += String.fromCharCode(c);
+        i += 2;
+      } else out += s[i];
+    }
+    return out;
+  };
+
+  const borrar = o.flags.has('d');
+  const apretar = o.flags.has('s');
+  const de = juego(o.resto[0] ?? '');
+  if (!borrar && !apretar && o.resto.length < 2) return { salida: '', error: 'tr: missing operand\n', codigo: 1 };
+  const a = o.resto[1] !== undefined ? juego(o.resto[1]) : null;
+
+  let salida = '';
+  for (const c of ctx.entrada) {
+    if (borrar && de.includes(c)) continue;
+    if (!borrar && a !== null) {
+      const i = de.indexOf(c);
+      salida += i < 0 ? c : a[Math.min(i, a.length - 1)];
+      continue;
+    }
+    salida += c;
+  }
+  // -s aprieta las repeticiones del último juego dado: el de destino si hay
+  // dos, y el de origen si solo hay uno.
+  if (apretar) {
+    const juegoFinal = borrar ? (a ?? '') : (a ?? de);
+    let apretada = '';
+    for (const c of salida) {
+      if (apretada.length && apretada[apretada.length - 1] === c && juegoFinal.includes(c)) continue;
+      apretada += c;
+    }
+    salida = apretada;
+  }
+  return { salida, error: '', codigo: 0 };
+};
+
+/* ---------- comandos que modifican el sistema de ficheros ---------- */
+
+/**
+ * Localiza el directorio padre de una ruta nueva y comprueba que se puede
+ * escribir en él.
+ *
+ * @returns {{padre:object, nombre:string, abs:string}|{error:string}}
+ */
+function padreDe(estado, ruta, cmd, verbo) {
+  const abs = absoluta(estado, ruta);
+  const barra = abs.lastIndexOf('/');
+  const dirRuta = barra === 0 ? '/' : abs.slice(0, barra);
+  const nombre = abs.slice(barra + 1);
+  const r = buscar(estado, dirRuta);
+  if (r.error) return { error: cmd + ": " + verbo + " '" + ruta + "': " + ERRNO[r.error] + '\n' };
+  if (r.inodo.tipo !== 'd') return { error: cmd + ': ' + verbo + " '" + ruta + "': Not a directory\n" };
+  if (!puede(estado, r.inodo, 'w')) return { error: cmd + ': ' + verbo + " '" + ruta + "': Permission denied\n" };
+  return { padre: r.inodo, nombre, abs };
+}
+
+COMANDOS.mkdir = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'p', 'm', LARGAS.mkdir);
+  if (o.error) return opcionNoImplementada('mkdir', o.error);
+  if (!o.resto.length) return { salida: '', error: 'mkdir: missing operand\n', codigo: 1 };
+
+  const est = ctx.estado;
+  const fs = est.fs;
+  let error = '';
+  let codigo = 0;
+
+  // Con -m el modo lo fija la orden y la umask no interviene: es la diferencia
+  // entre pedir un permiso y aceptar el que sobre.
+  let atributos = () => ({ tipo: 'd', ...atributosNuevos(est, 0o777) });
+  if (o.valores.m !== undefined) {
+    const modo = calcularModo(0o000, o.valores.m, true);
+    if (modo === null) return fallo('mkdir', "invalid mode '" + o.valores.m + "'");
+    atributos = () => ({ tipo: 'd', ...atributosNuevos(est, 0o777), modo });
+  }
+
+  for (const ruta of o.resto) {
+    if (o.flags.has('p')) {
+      let actual = inodoDe(fs, fs.raiz);
+      let acumulada = '';
+      for (const parte of segmentosDe(absoluta(est, ruta))) {
+        acumulada += '/' + parte;
+        let hijo = hijoDe(fs, actual, parte);
+        if (!hijo) {
+          if (!puede(est, actual, 'w')) {
+            error += "mkdir: cannot create directory '" + ruta + "': Permission denied\n";
+            codigo = 1;
+            break;
+          }
+          hijo = crearInodo(fs, atributos());
+          enlazar(actual, parte, hijo.id);
+        }
+        if (hijo.tipo !== 'd') {
+          error += "mkdir: cannot create directory '" + acumulada + "': File exists\n";
+          codigo = 1;
+          break;
+        }
+        actual = hijo;
+      }
+      continue;
+    }
+    const p = padreDe(est, ruta, 'mkdir', 'cannot create directory');
+    if (p.error) { error += p.error; codigo = 1; continue; }
+    if (hijoDe(fs, p.padre, p.nombre)) {
+      error += "mkdir: cannot create directory '" + ruta + "': File exists\n";
+      codigo = 1;
+      continue;
+    }
+    enlazar(p.padre, p.nombre, crearInodo(fs, atributos()).id);
+  }
+  return { salida: '', error, codigo };
+};
+
+COMANDOS.rmdir = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'p', '', LARGAS.rmdir);
+  if (o.error) return opcionNoImplementada('rmdir', o.error);
+  const est = ctx.estado;
+  let error = '';
+  let codigo = 0;
+
+  for (const ruta of o.resto) {
+    // Con -p se borran también los padres que se quedan vacíos, del más
+    // profundo al más superficial, y se para en el primero que no se puede.
+    const cadena = o.flags.has('p') ? cadenaDeRutas(est, ruta) : [ruta];
+    for (const actual of cadena) {
+      const r = buscar(est, actual, { seguirFinal: false });
+      if (r.error) { error += "rmdir: failed to remove '" + actual + "': " + ERRNO[r.error] + '\n'; codigo = 1; break; }
+      if (r.inodo.tipo !== 'd') { error += "rmdir: failed to remove '" + actual + "': Not a directory\n"; codigo = 1; break; }
+      if (nombresDe(r.inodo).length) { error += "rmdir: failed to remove '" + actual + "': Directory not empty\n"; codigo = 1; break; }
+      if (!puede(est, r.padre, 'w')) { error += "rmdir: failed to remove '" + actual + "': Permission denied\n"; codigo = 1; break; }
+      desenlazar(est.fs, r.padre, r.nombre);
+    }
+  }
+  return { salida: '', error, codigo };
+};
+
+/** `a/b/c` → `['a/b/c', 'a/b', 'a']`: lo que recorre `rmdir -p`. */
+function cadenaDeRutas(estado, ruta) {
+  const cadena = [];
+  let actual = ruta.replace(/\/+$/, '');
+  while (actual !== '' && actual !== '/' && actual !== '.' && actual !== '..') {
+    cadena.push(actual);
+    const barra = actual.lastIndexOf('/');
+    if (barra < 0) break;
+    actual = barra === 0 ? '/' : actual.slice(0, barra);
+  }
+  return cadena;
+}
+
+COMANDOS.touch = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'cm', '', LARGAS.touch);
+  if (o.error) return opcionNoImplementada('touch', o.error);
+  if (!o.resto.length) return { salida: '', error: 'touch: missing file operand\n', codigo: 1 };
+
+  const est = ctx.estado;
+  let error = '';
+  let codigo = 0;
+  for (const ruta of o.resto) {
+    const r = buscar(est, ruta);
+    // La fecha vive en el inodo, no en el nombre: tocar uno de dos enlaces
+    // duros cambia la fecha que ve el otro.
+    if (!r.error) { r.inodo.mtime = est.ahora; continue; }
+    if (r.error !== 'ENOENT') { error += "touch: cannot touch '" + ruta + "': " + ERRNO[r.error] + '\n'; codigo = 1; continue; }
+    if (o.flags.has('c')) continue;
+    const p = padreDe(est, ruta, 'touch', 'cannot touch');
+    if (p.error) { error += p.error; codigo = 1; continue; }
+    enlazar(p.padre, p.nombre, crearInodo(est.fs, { tipo: 'f', contenido: '', ...atributosNuevos(est, 0o666) }).id);
+  }
+  return { salida: '', error, codigo };
+};
+
+COMANDOS.rm = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'rRf', '', LARGAS.rm);
+  if (o.error) return opcionNoImplementada('rm', o.error);
+  const recursivo = o.flags.has('r') || o.flags.has('R');
+  const forzar = o.flags.has('f');
+  if (!o.resto.length && !forzar) return { salida: '', error: 'rm: missing operand\n', codigo: 1 };
+
+  const est = ctx.estado;
+  let error = '';
+  let codigo = 0;
+  for (const ruta of o.resto) {
+    if (absoluta(est, ruta) === '/') {
+      error += "rm: it is dangerous to operate recursively on '/'\n" +
+               'rm: use --no-preserve-root to override this failsafe\n';
+      codigo = 1;
+      continue;
+    }
+    const base = ruta.replace(/\/+$/, '').split('/').pop();
+    if (base === '.' || base === '..') {
+      error += "rm: refusing to remove '.' or '..' directory: skipping '" + ruta + "'\n";
+      codigo = 1;
+      continue;
+    }
+    const r = buscar(est, ruta, { seguirFinal: false });
+    if (r.error) {
+      if (!forzar) { error += "rm: cannot remove '" + ruta + "': " + ERRNO[r.error] + '\n'; codigo = 1; }
+      continue;
+    }
+    if (r.inodo.tipo === 'd' && !recursivo) { error += "rm: cannot remove '" + ruta + "': Is a directory\n"; codigo = 1; continue; }
+    if (!puede(est, r.padre, 'w')) { error += "rm: cannot remove '" + ruta + "': Permission denied\n"; codigo = 1; continue; }
+    // Para vaciar un directorio hay que poder leerlo y entrar en él. Si está
+    // vacío basta con quitar el nombre, y por eso `rm -r` de un directorio en
+    // 000 pero vacío sí funciona.
+    if (r.inodo.tipo === 'd' && nombresDe(r.inodo).length &&
+        (!puede(est, r.inodo, 'r') || !puede(est, r.inodo, 'x'))) {
+      error += "rm: cannot remove '" + ruta + "': Permission denied\n";
+      codigo = 1;
+      continue;
+    }
+    desenlazar(est.fs, r.padre, r.nombre);
+  }
+  return { salida: '', error, codigo };
+};
+
+COMANDOS.cp = (ctx) => copiarOmover(ctx, 'cp');
+COMANDOS.mv = (ctx) => copiarOmover(ctx, 'mv');
+
+/**
+ * El cuerpo común de `cp` y `mv`.
+ *
+ * `cp` crea inodos nuevos —la copia es otro fichero, con su propio recuento de
+ * enlaces— y `mv` reengancha el mismo inodo a otro nombre, que es la razón de
+ * que mover sea instantáneo y de que el inodo no cambie.
+ */
+function copiarOmover(ctx, cmd) {
+  const o = opciones(ctx.argv.slice(1), cmd === 'cp' ? 'rRfnp' : 'fn', '', LARGAS[cmd]);
+  if (o.error) return opcionNoImplementada(cmd, o.error);
+  if (o.resto.length < 2) {
+    const falta = o.resto.length === 1
+      ? "missing destination file operand after '" + o.resto[0] + "'"
+      : 'missing file operand';
+    return { salida: '', error: cmd + ': ' + falta + '\n', codigo: 1 };
+  }
+
+  const est = ctx.estado;
+  const fs = est.fs;
+  const recursivo = cmd === 'mv' || o.flags.has('r') || o.flags.has('R');
+  const origenes = o.resto.slice(0, -1);
+  const destinoRuta = o.resto[o.resto.length - 1];
+  const dst = buscar(est, destinoRuta);
+  const aDirectorio = !dst.error && dst.inodo.tipo === 'd';
+
+  if (origenes.length > 1 && !aDirectorio) {
+    return { salida: '', error: cmd + ": target '" + destinoRuta + "' is not a directory\n", codigo: 1 };
+  }
+
+  let error = '';
+  let codigo = 0;
+
+  for (const origen of origenes) {
+    // `cp` sigue el enlace y copia lo que hay al otro lado; `mv` mueve el
+    // enlace en sí, que es lo que se espera de renombrar.
+    const src = buscar(est, origen, { seguirFinal: cmd === 'cp' });
+    if (src.error) {
+      error += cmd + ": cannot stat '" + origen + "': " + ERRNO[src.error] + '\n';
+      codigo = 1;
+      continue;
+    }
+    if (src.inodo.tipo === 'd' && !recursivo) {
+      error += "cp: -r not specified; omitting directory '" + origen + "'\n";
+      codigo = 1;
+      continue;
+    }
+    if (cmd === 'cp' && !puede(est, src.inodo, 'r')) {
+      error += cmd + ": cannot open '" + origen + "' for reading: Permission denied\n";
+      codigo = 1;
+      continue;
+    }
+    const nombreOrigen = origen.replace(/\/+$/, '').split('/').filter(Boolean).pop();
+    const destinoFinal = aDirectorio ? absoluta(est, destinoRuta) + '/' + nombreOrigen : absoluta(est, destinoRuta);
+    if (src.inodo.tipo === 'd' && (destinoFinal + '/').startsWith(src.ruta + '/')) {
+      error += cmd + ": cannot copy a directory, '" + origen + "', into itself, '" + destinoRuta + "'\n";
+      codigo = 1;
+      continue;
+    }
+    if (src.ruta === destinoFinal) {
+      error += cmd + ": '" + origen + "' and '" + destinoRuta + "' are the same file\n";
+      codigo = 1;
+      continue;
+    }
+
+    let padre;
+    let nombre;
+    if (aDirectorio) {
+      padre = dst.inodo;
+      nombre = nombreOrigen;
+    } else {
+      const p = padreDe(est, destinoRuta, cmd, 'cannot create regular file');
+      if (p.error) { error += p.error; codigo = 1; continue; }
+      padre = p.padre;
+      nombre = p.nombre;
+    }
+    if (!puede(est, padre, 'w')) {
+      error += cmd + ": cannot create '" + destinoRuta + "': Permission denied\n";
+      codigo = 1;
+      continue;
+    }
+    if (o.flags.has('n') && hijoDe(fs, padre, nombre)) continue;
+
+    if (cmd === 'mv') {
+      reemplazar(fs, padre, nombre, src.inodo.id);
+      delete src.padre.hijos[src.nombre];
+    } else {
+      copiarArbol(est, src.inodo, padre, nombre, o.flags.has('p'));
+    }
+  }
+  return { salida: '', error, codigo };
+}
+
+/**
+ * Copia un inodo, y lo que tenga dentro, con otro nombre.
+ *
+ * Sin `-p` la copia nace del usuario que copia, con la fecha de ahora y con la
+ * umask aplicada al modo del original: es lo que hace `cp`, y por eso copiar un
+ * fichero en 777 con `umask 022` da un 755.
+ *
+ * @param {object} estado
+ * @param {object} origen      Inodo de partida.
+ * @param {object} padre       Directorio donde va la copia.
+ * @param {string} nombre      Nombre de la copia.
+ * @param {boolean} preservar  `-p`: mantener modo, dueño y fecha.
+ * @returns {object} El inodo nuevo.
+ */
+function copiarArbol(estado, origen, padre, nombre, preservar) {
+  const copia = crearInodo(estado.fs, {
+    tipo: origen.tipo,
+    modo: preservar ? origen.modo : origen.modo & ~estado.umask,
+    usuario: preservar ? origen.usuario : estado.usuario,
+    grupo: preservar ? origen.grupo : estado.usuario,
+    mtime: preservar ? origen.mtime : estado.ahora,
+    contenido: origen.contenido,
+    destino: origen.destino
+  });
+  reemplazar(estado.fs, padre, nombre, copia.id);
+  if (origen.tipo === 'd') {
+    for (const hijo of nombresDe(origen)) {
+      copiarArbol(estado, hijoDe(estado.fs, origen, hijo), copia, hijo, preservar);
+    }
+  }
+  return copia;
+}
+
+COMANDOS.find = (ctx) => {
+  const args = ctx.argv.slice(1);
+  const rutas = [];
+  let i = 0;
+  while (i < args.length && !args[i].startsWith('-')) rutas.push(args[i++]);
+  if (!rutas.length) rutas.push('.');
+
+  const pruebas = [];
+  let profundidadMax = Infinity;
+  for (; i < args.length; i++) {
+    const a = args[i];
+    if (a === '-name' || a === '-iname') {
+      const patron = args[++i] ?? '';
+      if (a === '-iname') {
+        const re = patronARegex(patron.toLowerCase());
+        pruebas.push((nombre) => re.test(nombre.toLowerCase()));
+      } else {
+        const re = patronARegex(patron);
+        pruebas.push((nombre) => re.test(nombre));
+      }
+      continue;
+    }
+    if (a === '-type') {
+      const t = args[++i];
+      pruebas.push((_n, inodo) => inodo.tipo === t);
+      continue;
+    }
+    if (a === '-maxdepth') { profundidadMax = Number(args[++i]); continue; }
+    return noImplementado('find', 'el predicado ' + a + ' no está implementado');
+  }
+
+  const est = ctx.estado;
+  const fs = est.fs;
+  let salida = '';
+  let error = '';
+  let codigo = 0;
+
+  /** Recorre en el mismo orden en que se creó cada entrada, como hace find. */
+  const recorrer = (ruta, inodo, profundidad) => {
+    const nombre = ruta.split('/').filter(Boolean).pop() ?? ruta;
+    if (pruebas.every((p) => p(nombre, inodo, profundidad))) salida += ruta + '\n';
+    if (inodo.tipo !== 'd') return;
+    // `-maxdepth` corta antes de entrar: por eso no da «Permission denied» de
+    // un directorio ilegible que quedaba fuera del límite.
+    if (profundidad >= profundidadMax) return;
+    if (!puede(est, inodo, 'r')) {
+      error += "find: '" + ruta + "': Permission denied\n";
+      codigo = 1;
+      return;
+    }
+    for (const hijo of nombresDe(inodo)) {
+      recorrer(ruta === '/' ? '/' + hijo : ruta + '/' + hijo, hijoDe(fs, inodo, hijo), profundidad + 1);
+    }
+  };
+
+  for (const ruta of rutas) {
+    const r = buscar(est, ruta, { seguirFinal: false });
+    if (r.error) {
+      error += "find: '" + ruta + "': " + ERRNO[r.error] + '\n';
+      codigo = 1;
+      continue;
+    }
+    recorrer(ruta.replace(/\/$/, '') || '/', r.inodo, 0);
+  }
+  return { salida, error, codigo };
+};
+
+COMANDOS.chmod = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'R', '', LARGAS.chmod);
+  if (o.error) return opcionNoImplementada('chmod', o.error);
+  if (o.resto.length < 2) {
+    const tras = o.resto.length ? " after '" + o.resto[0] + "'" : '';
+    return { salida: '', error: 'chmod: missing operand' + tras + '\n', codigo: 1 };
+  }
+
+  const spec = o.resto[0];
+  const est = ctx.estado;
+  const fs = est.fs;
+  let error = '';
+  let codigo = 0;
+
+  const aplicar = (inodo, ruta) => {
+    if (inodo.usuario !== est.usuario && est.usuario !== 'root') {
+      error += "chmod: changing permissions of '" + ruta + "': Operation not permitted\n";
+      codigo = 1;
+      return;
+    }
+    const nuevo = calcularModo(inodo.modo, spec, inodo.tipo === 'd');
+    if (nuevo === null) { error += "chmod: invalid mode: '" + spec + "'\n"; codigo = 1; return; }
+    inodo.modo = nuevo;
+    if (o.flags.has('R') && inodo.tipo === 'd') {
+      for (const hijo of nombresDe(inodo)) aplicar(hijoDe(fs, inodo, hijo), ruta + '/' + hijo);
+    }
+  };
+
+  for (const ruta of o.resto.slice(1)) {
+    const r = buscar(est, ruta);
+    if (r.error) { error += "chmod: cannot access '" + ruta + "': " + ERRNO[r.error] + '\n'; codigo = 1; continue; }
+    aplicar(r.inodo, ruta);
+  }
+  return { salida: '', error, codigo };
+};
+
+COMANDOS.umask = (ctx) => {
+  const arg = ctx.argv[1];
+  if (arg === undefined) return { salida: '0' + ctx.estado.umask.toString(8).padStart(3, '0') + '\n', error: '', codigo: 0 };
+  if (!/^[0-7]{1,4}$/.test(arg)) return fallo('bash: umask', arg + ': invalid symbolic mode operator');
+  ctx.estado.umask = parseInt(arg, 8);
+  return { salida: '', error: '', codigo: 0 };
+};
+
+COMANDOS.id = (ctx) => {
+  const est = ctx.estado;
+  const u = est.uids[est.usuario];
+  if (u === undefined) return fallo('id', est.usuario + ': no such user');
+  const grupos = (est.grupos ?? []).map((g) => est.gids[g] + '(' + g + ')').join(',');
+  return {
+    salida: 'uid=' + u + '(' + est.usuario + ') gid=' + est.gids[est.usuario] + '(' + est.usuario + ') groups=' + grupos + '\n',
+    error: '',
+    codigo: 0
+  };
+};
+
+const BUILTINS = ['cd', 'echo', 'pwd', 'umask', 'type', 'exit', 'export', 'test', '['];
+
+COMANDOS.type = (ctx) => {
+  const nombre = ctx.argv[1];
+  if (!nombre) return { salida: '', error: '', codigo: 0 };
+  if (BUILTINS.includes(nombre)) return { salida: nombre + ' is a shell builtin\n', error: '', codigo: 0 };
+  if (COMANDOS[nombre]) return { salida: nombre + ' is /usr/bin/' + nombre + '\n', error: '', codigo: 0 };
+  return { salida: '', error: 'bash: type: ' + nombre + ': not found\n', codigo: 1 };
+};
+
+COMANDOS.ln = (ctx) => {
+  const o = opciones(ctx.argv.slice(1), 'sf', '', LARGAS.ln);
+  if (o.error) return opcionNoImplementada('ln', o.error);
+  if (o.resto.length < 2) return { salida: '', error: "ln: missing operand after '" + (o.resto[0] ?? '') + "'\n", codigo: 1 };
+
+  const est = ctx.estado;
+  const fs = est.fs;
+  const simbolico = o.flags.has('s');
+  const origen = o.resto[0];
+  const nombreEnlace = o.resto[1];
+  const clase = simbolico ? 'symbolic link' : 'hard link';
+
+  // Un enlace duro necesita un inodo que exista; uno simbólico es solo texto y
+  // puede apuntar a lo que no está. Esa es la diferencia que hay que ver.
+  let inodoOrigen = null;
+  if (!simbolico) {
+    // `ln` no dereferencia: un enlace duro a un enlace simbólico da otro nombre
+    // del enlace, no del fichero al que apunta.
+    const src = buscar(est, origen, { seguirFinal: false });
+    if (src.error) return fallo('ln', "failed to access '" + origen + "': " + ERRNO[src.error]);
+    if (src.inodo.tipo === 'd') return fallo('ln', origen + ': hard link not allowed for directory');
+    inodoOrigen = src.inodo;
+  }
+
+  const dst = buscar(est, nombreEnlace, { seguirFinal: false });
+  let padre;
+  let nombre;
+  if (!dst.error && dst.inodo.tipo === 'd') {
+    padre = dst.inodo;
+    nombre = origen.replace(/\/+$/, '').split('/').filter(Boolean).pop();
+  } else {
+    const pd = padreDe(est, nombreEnlace, 'ln', 'failed to create ' + clase);
+    if (pd.error) return { salida: '', error: pd.error, codigo: 1 };
+    padre = pd.padre;
+    nombre = pd.nombre;
+  }
+  if (hijoDe(fs, padre, nombre) && !o.flags.has('f')) {
+    return fallo('ln', "failed to create " + clase + " '" + nombreEnlace + "': File exists");
+  }
+
+  if (simbolico) {
+    const enlace = crearInodo(fs, {
+      tipo: 'l', modo: 0o777, destino: origen, usuario: est.usuario, grupo: est.usuario, mtime: est.ahora
+    });
+    reemplazar(fs, padre, nombre, enlace.id);
+  } else {
+    // Aquí está la lección: no se copia nada. El mismo inodo pasa a tener dos
+    // nombres, y `ls -l` empieza a contar 2.
+    reemplazar(fs, padre, nombre, inodoOrigen.id);
+  }
+  return { salida: '', error: '', codigo: 0 };
+};
+
+COMANDOS.export = (ctx) => {
+  for (const a of ctx.argv.slice(1)) {
+    const i = a.indexOf('=');
+    if (i > 0) ctx.estado.entorno[a.slice(0, i)] = a.slice(i + 1);
+  }
+  return { salida: '', error: '', codigo: 0 };
+};
+
+/**
+ * `test` y `[` son el mismo programa, y son un **comando**, no una sintaxis.
+ * De ahí las dos cosas que el examen pregunta: que `[` exija espacios a los
+ * lados porque es el nombre de un ejecutable, y que su respuesta sea un código
+ * de salida y no un texto.
+ */
+function probar(ctx, a) {
+  const est = ctx.estado;
+  const verdad = (b) => ({ salida: '', error: '', codigo: b ? 0 : 1 });
+
+  if (a[0] === '!' && a.length > 1) {
+    const r = probar(ctx, a.slice(1));
+    return { ...r, codigo: r.codigo === 0 ? 1 : 0 };
+  }
+  if (a.length === 0) return verdad(false);
+  if (a.length === 1) return verdad(a[0] !== '');
+
+  if (a.length === 2) {
+    const op = a[0];
+    const x = a[1];
+    if (op === '-z') return verdad(x === '');
+    if (op === '-n') return verdad(x !== '');
+    const r = buscar(est, x, { seguirFinal: op !== '-L' && op !== '-h' });
+    const existe = !r.error;
+    if (op === '-e') return verdad(existe);
+    if (op === '-f') return verdad(existe && r.inodo.tipo === 'f');
+    if (op === '-d') return verdad(existe && r.inodo.tipo === 'd');
+    if (op === '-L' || op === '-h') return verdad(existe && r.inodo.tipo === 'l');
+    if (op === '-s') return verdad(existe && tamano(r.inodo) > 0);
+    if (op === '-r') return verdad(existe && puede(est, r.inodo, 'r'));
+    if (op === '-w') return verdad(existe && puede(est, r.inodo, 'w'));
+    if (op === '-x') return verdad(existe && puede(est, r.inodo, 'x'));
+    return { salida: '', error: 'bash: test: ' + op + ': unary operator expected\n', codigo: 2 };
+  }
+
+  if (a.length === 3) {
+    const x = a[0];
+    const op = a[1];
+    const y = a[2];
+    if (op === '=' || op === '==') return verdad(x === y);
+    if (op === '!=') return verdad(x !== y);
+    const numericos = {
+      '-eq': (p, q) => p === q, '-ne': (p, q) => p !== q,
+      '-lt': (p, q) => p < q, '-le': (p, q) => p <= q,
+      '-gt': (p, q) => p > q, '-ge': (p, q) => p >= q
+    };
+    if (numericos[op]) return verdad(numericos[op](Number(x), Number(y)));
+    return { salida: '', error: 'bash: test: ' + op + ': binary operator expected\n', codigo: 2 };
+  }
+  return { salida: '', error: 'bash: test: too many arguments\n', codigo: 2 };
+}
+
+COMANDOS.test = (ctx) => probar(ctx, ctx.argv.slice(1));
+
+COMANDOS['['] = (ctx) => {
+  const args = ctx.argv.slice(1);
+  if (args[args.length - 1] !== ']') return { salida: '', error: "bash: [: missing `]'\n", codigo: 2 };
+  return probar(ctx, args.slice(0, -1));
+};
+
+COMANDOS.true = () => ({ salida: '', error: '', codigo: 0 });
+COMANDOS.false = () => ({ salida: '', error: '', codigo: 1 });
+
+// No hay sesión que cerrar ni pantalla que borrar desde el núcleo: se declara
+// en vez de callar, porque `bash: exit: command not found` sería mentira —exit
+// es un builtin— y porque limpiar la pantalla es cosa de la vista (Ctrl+L).
+COMANDOS.exit = () => noImplementado('bash', 'la orden `exit` no está implementada: no hay sesión que cerrar');
+COMANDOS.clear = () => noImplementado('clear', 'limpiar la pantalla no está implementado; usa Ctrl+L para hacerlo');
+
+/* ================= 9. MOTOR ================= */
+
+/**
+ * Aplica las redirecciones de una orden y la ejecuta.
+ *
+ * @param {object} estado
+ * @param {object} orden    Nodo del parser: `{palabras, redir}`.
+ * @param {string} entrada  Lo que llega por la tubería.
+ * @returns {{salida:string, error:string, codigo:number}}
+ */
+function ejecutarOrden(estado, orden, entrada) {
+  const argv = orden.palabras.flatMap((p) => expandirPalabra(estado, p));
+
+  // Las redirecciones de salida se abren ANTES de ejecutar nada: bash crea o
+  // vacía el fichero al abrirlo, y si no puede, el comando no llega a
+  // ejecutarse. Por eso `chmod 400 f && echo x > f` no imprime la x en ningún
+  // sitio, ni siquiera por pantalla.
+  for (const r of orden.redir) {
+    if (r.op !== '>' && r.op !== '>>' && r.op !== '2>' && r.op !== '2>>') continue;
+    const err = abrir(estado, r.fichero, r.op === '>' || r.op === '2>');
+    if (err) return { salida: '', error: err, codigo: 1 };
+  }
+
+  // Una orden que solo redirige ya ha hecho su trabajo al abrir: `> vacio`.
+  if (!argv.length) return { salida: '', error: '', codigo: 0 };
+
+  let stdin = entrada;
+  for (const r of orden.redir.filter((x) => x.op === '<')) {
+    const b = buscar(estado, r.fichero);
+    if (b.error) return { salida: '', error: 'bash: ' + r.fichero + ': ' + ERRNO[b.error] + '\n', codigo: 1 };
+    if (b.inodo.tipo === 'd') return { salida: '', error: 'bash: ' + r.fichero + ': Is a directory\n', codigo: 1 };
+    if (!puede(estado, b.inodo, 'r')) return { salida: '', error: 'bash: ' + r.fichero + ': Permission denied\n', codigo: 1 };
+    stdin = b.inodo.contenido;
+  }
+
+  // Estructuras de control: bash las entiende, este núcleo no. Se declara en
+  // vez de intentar ejecutar `for` como si fuera un programa, que es lo que
+  // daría una cascada de errores inventados.
+  if (CLAVES.includes(argv[0])) return noImplementado('bash', 'la estructura de control `' + argv[0] + '` no está implementada');
+
+  // Asignaciones delante de la orden. Solas, se quedan en el entorno del shell;
+  // delante de un comando, valen solo para ese comando.
+  const asignaciones = [];
+  while (argv.length && /^[A-Za-z_]\w*=/.test(argv[0])) asignaciones.push(argv.shift());
+  if (!argv.length) {
+    for (const a of asignaciones) {
+      const i = a.indexOf('=');
+      estado.entorno[a.slice(0, i)] = a.slice(i + 1);
+    }
+    return { salida: '', error: '', codigo: 0 };
+  }
+  const previos = asignaciones.map((a) => {
+    const i = a.indexOf('=');
+    const nombre = a.slice(0, i);
+    const anterior = estado.entorno[nombre];
+    estado.entorno[nombre] = a.slice(i + 1);
+    return { nombre, anterior };
+  });
+
+  // Un nombre con barra es una ruta a un programa, no una orden del PATH: hay
+  // que ir a buscarlo al árbol. Decir «command not found» de un fichero que
+  // está ahí sería falso, y el código de salida es distinto: 126 es «existe
+  // pero no puedo ejecutarlo» y 127 es «no está».
+  if (argv[0].includes('/')) {
+    const res = programaEnRuta(estado, argv[0]);
+    for (const p of previos) {
+      if (p.anterior === undefined) delete estado.entorno[p.nombre];
+      else estado.entorno[p.nombre] = p.anterior;
+    }
+    return res;
+  }
+
+  const cmd = COMANDOS[argv[0]];
+  if (!cmd) {
+    for (const p of previos) {
+      if (p.anterior === undefined) delete estado.entorno[p.nombre];
+      else estado.entorno[p.nombre] = p.anterior;
+    }
+    return { salida: '', error: 'bash: ' + argv[0] + ': command not found\n', codigo: 127 };
+  }
+
+  let res = cmd({ estado, argv, entrada: stdin });
+  for (const p of previos) {
+    if (p.anterior === undefined) delete estado.entorno[p.nombre];
+    else estado.entorno[p.nombre] = p.anterior;
+  }
+
+  for (const r of orden.redir) {
+    // `2>&1` no escribe en ningún fichero: manda el error por la misma tubería
+    // que la salida, y por eso `ls nope 2>&1 | wc -l` cuenta una línea.
+    if (r.op === '2>&1') { res = { ...res, salida: res.salida + res.error, error: '' }; continue; }
+    // El fichero ya está abierto y vaciado: aquí solo se añade.
+    if (r.op === '>' || r.op === '>>') {
+      escribir(estado, r.fichero, res.salida, true);
+      res = { ...res, salida: '' };
+    }
+    if (r.op === '2>' || r.op === '2>>') {
+      escribir(estado, r.fichero, res.error, true);
+      res = { ...res, error: '' };
+    }
+  }
+  return res;
+}
+
+/**
+ * Resuelve una orden escrita como ruta: `./script.sh`, `/usr/bin/ls`.
+ *
+ * Reproduce lo que contesta bash en cada caso —no está, no es un directorio, no
+ * se puede ejecutar— y declara lo único que este simulador no hace: ejecutar el
+ * programa que sí está ahí.
+ *
+ * @param {object} estado
+ * @param {string} ruta
+ * @returns {{salida:string, error:string, codigo:number}}
+ */
+function programaEnRuta(estado, ruta) {
+  const r = buscar(estado, ruta);
+  const CODIGOS = { ENOENT: 127, ENOTDIR: 126, EACCES: 126, ELOOP: 126 };
+  if (r.error) return { salida: '', error: 'bash: ' + ruta + ': ' + ERRNO[r.error] + '\n', codigo: CODIGOS[r.error] };
+  if (r.inodo.tipo === 'd') return { salida: '', error: 'bash: ' + ruta + ': Is a directory\n', codigo: 126 };
+  if (!puede(estado, r.inodo, 'x')) return { salida: '', error: 'bash: ' + ruta + ': Permission denied\n', codigo: 126 };
+  return noImplementado('bash', 'ejecutar un programa por su ruta (' + ruta + ') no está implementado; escribe solo su nombre');
+}
+
+/**
+ * Expande una palabra completa, en el orden en que lo hace bash y respetando
+ * el tipo de comilla de cada segmento: sustitución de órdenes y variables en lo
+ * que no va entre comillas simples, y llaves y comodines solo en lo que no va
+ * entre comillas de ninguna clase.
+ *
+ * @param {object} estado
+ * @param {object} palabra  Token de palabra con sus segmentos.
+ * @returns {string[]} Una palabra, o varias si hubo llaves o comodines.
+ */
+function expandirPalabra(estado, palabra) {
+  let texto = '';
+  let sinComillas = true;
+
+  for (const seg of palabra.segmentos) {
+    if (seg.tipo === 'simple') { texto += seg.texto; sinComillas = false; continue; }
+    if (seg.tipo === 'doble') sinComillas = false;
+    texto += expandirVariables(estado, sustituirOrdenes(estado, seg.texto));
+  }
+
+  if (!sinComillas) return [texto];
+  return expandirLlaves(texto).flatMap((t) => expandir(estado, t));
+}
+
+/**
+ * Resuelve `$( … )` ejecutando lo de dentro y quedándose con su salida sin los
+ * saltos finales.
+ *
+ * Comparte el sistema de ficheros con el shell padre —un `$(touch x)` crea el
+ * fichero de verdad— pero devuelve el directorio de trabajo a donde estaba,
+ * porque una subshell no arrastra el `cd` de su padre.
+ */
+function sustituirOrdenes(estado, texto) {
+  if (!texto.includes('$(')) return texto;
+  let out = '';
+
+  for (let i = 0; i < texto.length; i++) {
+    if (texto[i] === '$' && texto[i + 1] === '(') {
+      let nivel = 0;
+      let j = i + 1;
+      for (; j < texto.length; j++) {
+        if (texto[j] === '(') nivel++;
+        else if (texto[j] === ')' && --nivel === 0) break;
+      }
+      const cwdAntes = estado.cwd;
+      const r = ejecutar(estado, texto.slice(i + 2, j));
+      estado.cwd = cwdAntes;
+      out += r.salida.replace(/\n+$/, '');
+      i = j;
+      continue;
+    }
+    out += texto[i];
+  }
+  return out;
+}
+
+/**
+ * Abre un fichero para escritura, creándolo o vaciándolo según el operador.
+ * Devuelve el mensaje de error, o '' si se pudo abrir.
+ */
+function abrir(estado, ruta, truncar) {
+  const b = buscar(estado, ruta);
+  if (!b.error) {
+    if (b.inodo.tipo === 'd') return 'bash: ' + ruta + ': Is a directory\n';
+    if (!puede(estado, b.inodo, 'w')) return 'bash: ' + ruta + ': Permission denied\n';
+    if (b.inodo.tipo !== 'c' && truncar) { b.inodo.contenido = ''; b.inodo.mtime = estado.ahora; }
+    return '';
+  }
+  if (b.error !== 'ENOENT') return 'bash: ' + ruta + ': ' + ERRNO[b.error] + '\n';
+  const p = padreDe(estado, ruta, 'bash', '');
+  if (p.error) return 'bash: ' + ruta + ': ' + (p.error.includes('Permission') ? 'Permission denied' : 'No such file or directory') + '\n';
+  enlazar(p.padre, p.nombre, crearInodo(estado.fs, { tipo: 'f', contenido: '', ...atributosNuevos(estado, 0o666) }).id);
+  return '';
+}
+
+/** Escribe (o añade) en un fichero del árbol. Devuelve el mensaje de error, o ''. */
+function escribir(estado, ruta, contenido, anadir) {
+  const b = buscar(estado, ruta);
+  if (!b.error) {
+    if (b.inodo.tipo === 'd') return 'bash: ' + ruta + ': Is a directory\n';
+    if (!puede(estado, b.inodo, 'w')) return 'bash: ' + ruta + ': Permission denied\n';
+    if (b.inodo.tipo === 'c') return '';  // /dev/null se lo traga todo
+    b.inodo.contenido = anadir ? b.inodo.contenido + contenido : contenido;
+    b.inodo.mtime = estado.ahora;
+    return '';
+  }
+  if (b.error !== 'ENOENT') return 'bash: ' + ruta + ': ' + ERRNO[b.error] + '\n';
+  const p = padreDe(estado, ruta, 'bash', '');
+  if (p.error) return 'bash: ' + ruta + ': ' + (p.error.includes('Permission') ? 'Permission denied' : 'No such file or directory') + '\n';
+  enlazar(p.padre, p.nombre, crearInodo(estado.fs, { tipo: 'f', contenido, ...atributosNuevos(estado, 0o666) }).id);
+  return '';
+}
+
+/**
+ * Ejecuta una línea completa: tuberías, `&&`, `||` y `;` incluidos.
+ *
+ * Muta `estado` igual que lo haría un shell de verdad: un `cp` de tres ficheros
+ * que falla en el segundo deja el primero copiado. Si hace falta deshacer, el
+ * llamador clona antes con `clonar()`.
+ *
+ * @param {object} estado  Estado del shell. Se modifica.
+ * @param {string} linea   Lo que el usuario ha escrito, sin el salto final.
+ * @returns {{salida:string, error:string, codigo:number}} Los dos canales y el
+ *          código de salida de la última orden de la línea.
+ */
+function ejecutar(estado, linea) {
+  const t = trocear(linea);
+  if (t.error) return { salida: '', error: 'bash: ' + t.error + '\n', codigo: 2 };
+  const p = parsear(t.tokens);
+  if (p.error) return { salida: '', error: 'bash: ' + p.error + '\n', codigo: 2 };
+
+  let salida = '';
+  let error = '';
+  let codigo = estado.ultimoCodigo ?? 0;
+  let primera = true;
+
+  for (const grupo of p.lista) {
+    if (!primera) {
+      if (grupo.union === '&&' && codigo !== 0) continue;
+      if (grupo.union === '||' && codigo === 0) continue;
+    }
+    primera = false;
+
+    let tuberia = '';
+    for (const orden of grupo.ordenes) {
+      const res = ejecutarOrden(estado, orden, tuberia);
+      tuberia = res.salida;
+      error += res.error;
+      codigo = res.codigo;
+      estado.ultimoCodigo = codigo;
+    }
+    salida += tuberia;
+  }
+
+  estado.ultimoCodigo = codigo;
+  return { salida, error, codigo };
+}
+
+/**
+ * Comandos que existen en Linux y que aquí solo saben declararse: están en el
+ * registro para no decir «command not found», que sería mentira.
+ */
+const SOLO_DECLARADOS = ['clear', 'exit'];
+
+/** Órdenes que en bash son solo builtin: no existe un fichero que las contenga. */
+const SOLO_BUILTIN = ['cd', 'type', 'umask', 'export', 'exit'];
+
+/** Los comandos que este simulador sabe ejecutar de verdad. */
+const IMPLEMENTADOS = Object.keys(COMANDOS).filter((c) => !SOLO_DECLARADOS.includes(c)).sort();
+
+/* ================= 10. PRESENTACIÓN PURA =================
+   Dos funciones que hablan de cómo se ve la salida, no de qué contesta el
+   shell. Viven aquí, y no en la vista, para que se puedan probar sin navegador
+   y para que la regla de las columnas esté escrita una sola vez.             */
+
+/**
+ * Reparte nombres en columnas como lo hace GNU `ls` cuando su salida es una
+ * terminal: rellenando hacia abajo primero, con el ancho del nombre más largo
+ * y dos espacios de separación.
+ *
+ * @param {string[]} nombres      Entradas ya ordenadas por el comando.
+ * @param {number} anchoTerminal  Ancho disponible, en caracteres.
+ * @returns {string} Las entradas en columnas, con salto de línea final.
+ */
+function enColumnas(nombres, anchoTerminal) {
+  if (!nombres.length) return '';
+  const mayor = Math.max(...nombres.map((n) => n.length));
+  const columna = mayor + 2;
+  const columnas = Math.max(1, Math.floor((anchoTerminal + 2) / columna));
+  if (columnas === 1) return nombres.join('\n') + '\n';
+  const filas = Math.ceil(nombres.length / columnas);
+
+  const lineasSalida = [];
+  for (let f = 0; f < filas; f++) {
+    let linea = '';
+    // Se rellena hacia abajo primero: la columna 2 empieza donde acaba la 1.
+    for (let c = 0; c < columnas; c++) {
+      const nombre = nombres[c * filas + f];
+      if (nombre === undefined) continue;
+      linea += c === columnas - 1 ? nombre : nombre.padEnd(columna);
+    }
+    lineasSalida.push(linea.replace(/\s+$/, ''));
+  }
+  return lineasSalida.join('\n') + '\n';
+}
+
+/**
+ * Decide si la salida de una línea se puede repartir en columnas al pintarla.
+ *
+ * Solo cuando la línea es un `ls` a secas: una sola orden, sin tubería ni
+ * redirección, y sin las opciones que fijan el formato. Es la única diferencia
+ * entre lo que dice el núcleo y lo que se ve en pantalla, y está aquí escrita
+ * para que no se convierta en dos verdades.
+ *
+ * @param {string} linea  La línea que se acaba de ejecutar.
+ * @returns {boolean}
+ */
+function lsDePantalla(linea) {
+  const t = trocear(linea);
+  if (t.error) return false;
+  const p = parsear(t.tokens);
+  if (p.error || p.lista.length !== 1) return false;
+  const grupo = p.lista[0];
+  if (grupo.ordenes.length !== 1) return false;
+  const orden = grupo.ordenes[0];
+  if (orden.redir.length) return false;
+  const palabras = orden.palabras.map((w) => w.v);
+  if (palabras[0] !== 'ls') return false;
+  return !palabras.some((w) => /^-[^-]*[l1C]/.test(w) || w === '--format' || w.startsWith('--format='));
+}
+
+/* ================= 11. ÁRBOL DE PARTIDA ================= */
+
+/**
+ * Monta un árbol declarado como objeto dentro de un directorio.
+ *
+ * @param {object} fs        Sistema de ficheros.
+ * @param {object} padre     Inodo del directorio donde colgarlo.
+ * @param {object} entradas  Nombre → atributos del inodo, con `hijos` si es directorio.
+ */
+function montar(fs, padre, entradas) {
+  for (const [nombre, spec] of Object.entries(entradas)) {
+    const inodo = crearInodo(fs, spec);
+    enlazar(padre, nombre, inodo.id);
+    if (spec.hijos) montar(fs, inodo, spec.hijos);
+  }
+}
+
+/**
+ * Estado inicial del shell, con el árbol semilla montado.
+ *
+ * El árbol es pequeño pero contiene a propósito los casos que rompen a un
+ * simulador: un fichero de más de seis meses (columna de año en `ls -l`), uno
+ * sin permiso de lectura, uno vacío, un directorio vacío, uno ilegible,
+ * ficheros ocultos, un script con setuid, `/tmp` en 1777, `/dev/null` y `/etc`.
+ *
+ * @param {object} [opts]
+ * @param {number} opts.ahora     Instante actual en segundos. Es un dato, no un reloj.
+ * @param {string} [opts.usuario] Dueño de la carpeta personal.
+ * @returns {object} Estado listo para `ejecutar()`.
+ */
+function estadoInicial({ ahora, usuario = 'jorge' } = {}) {
+  const dia = 86400;
+  const f = (contenido, mtime, modo) => ({ tipo: 'f', contenido, mtime, modo, usuario, grupo: usuario });
+  const d = (mtime, modo, hijos) => ({ tipo: 'd', mtime, modo, usuario, grupo: usuario, hijos });
+
+  const fs = sistemaNuevo(0);
+  const raiz = inodoDe(fs, fs.raiz);
+
+  montar(fs, raiz, {
+    home: { tipo: 'd', modo: 0o755, mtime: 0, hijos: {
+      [usuario]: d(ahora - 2 * dia, 0o755, {
+        'notas.txt': f('comprar pan\nrevisar permisos\nestudiar find\n', ahora - 3 * dia, 0o644),
+        'informe.log': f(
+          'INFO arranque\nWARN disco al 81%\nERROR fallo de red\nINFO reintento\nERROR fallo de red\n',
+          ahora - dia, 0o644
+        ),
+        'datos.csv': f('nombre,edad,ciudad\nana,34,vigo\nluis,29,leon\nmar,41,vigo\n', ahora - 5 * dia, 0o644),
+        'antiguo.txt': f('de la era anterior\n', ahora - 300 * dia, 0o644),
+        'secreto.txt': f('no deberias poder leer esto\n', ahora - dia, 0o000),
+        'vacio.txt': f('', ahora - dia, 0o644),
+        'script.sh': f('#!/bin/bash\necho hola\n', ahora - dia, 0o755),
+        'instalador.sh': f('#!/bin/bash\necho instalando\n', ahora - 10 * dia, 0o4755),
+        '.bashrc': f('export EDITOR=vi\n', ahora - 100 * dia, 0o644),
+        '.perfil': f('oculto\n', ahora - 100 * dia, 0o644),
+        proyectos: d(ahora - dia, 0o755, {
+          'a.sh': f('echo a\n', ahora - dia, 0o755),
+          'b.sh': f('echo b\n', ahora - dia, 0o644),
+          'leeme.md': f('# proyectos\n', ahora - dia, 0o644),
+          interno: d(ahora - dia, 0o755, { 'c.sh': f('echo c\n', ahora - dia, 0o755) })
+        }),
+        vacio: d(ahora - dia, 0o755, {}),
+        cerrado: d(ahora - dia, 0o000, { 'dentro.txt': f('invisible\n', ahora - dia, 0o644) })
+      })
+    } },
+    tmp: { tipo: 'd', modo: 0o1777, mtime: 0 },
+    // Los programas están donde dice `type`, y `/bin` es un enlace a `usr/bin`
+    // como en Debian 12: sin esto, `type ls` prometería un fichero que no está.
+    usr: { tipo: 'd', modo: 0o755, mtime: 0, hijos: {
+      bin: { tipo: 'd', modo: 0o755, mtime: 0, hijos: Object.fromEntries(
+        Object.keys(COMANDOS)
+          .filter((c) => !SOLO_BUILTIN.includes(c))
+          .sort()
+          .map((c) => [c, { tipo: 'f', modo: 0o755, mtime: 0, contenido: '' }])
+      ) },
+      local: { tipo: 'd', modo: 0o755, mtime: 0, hijos: { bin: { tipo: 'd', modo: 0o755, mtime: 0 } } }
+    } },
+    bin: { tipo: 'l', modo: 0o777, mtime: 0, destino: 'usr/bin' },
+    dev: { tipo: 'd', modo: 0o755, mtime: 0, hijos: {
+      null: { tipo: 'c', modo: 0o666, mtime: 0 },
+      zero: { tipo: 'c', modo: 0o666, mtime: 0 }
+    } },
+    etc: { tipo: 'd', modo: 0o755, mtime: 0, hijos: {
+      hostname: { tipo: 'f', modo: 0o644, mtime: ahora - 400 * dia, contenido: 'debian\n' }
+    } },
+    root: { tipo: 'd', modo: 0o700, mtime: 0 }
+  });
+
+  return {
+    fs,
+    cwd: '/home/' + usuario,
+    usuario,
+    grupos: [usuario],
+    uids: { [usuario]: 1000, root: 0 },
+    gids: { [usuario]: 1000, root: 0 },
+    umask: 0o022,
+    entorno: {
+      HOME: '/home/' + usuario,
+      USER: usuario,
+      SHELL: '/bin/bash',
+      PATH: '/usr/local/bin:/usr/bin:/bin'
+    },
+    ahora,
+    ultimoCodigo: 0
+  };
+}
+
+/* ===== NUCLEO PURO — FIN ===== */
+
+/* ================= VISTA =================
+   La única capa que toca el navegador: lee el reloj, mide el ancho de la
+   pantalla, pinta y escucha el teclado. No decide nada de lo que contesta el
+   shell; para eso llama al núcleo.
+   Contrato: docs/specs/terminal-simulador-nucleo.spec.md                     */
+
+const MAX_HISTORIAL = 200;
+
+const vista = {
+  salida: document.getElementById('salida'),
+  entrada: document.getElementById('entrada'),
+  prompt: document.getElementById('prompt'),
+  estado: document.getElementById('estado'),
+  term: document.getElementById('term'),
+  regla: document.getElementById('regla'),
+  chips: document.getElementById('chips')
+};
+
+/** Estado de la máquina de la interfaz: listo · ejecutando · reiniciando. */
+let fase = 'listo';
+let shell = null;
+const historial = [];
+let indiceHistorial = 0;
+let borrador = '';
+
+/** El instante entra como dato al núcleo: es el único sitio que mira el reloj. */
+function ahoraEnSegundos() {
+  return Math.floor(Date.now() / 1000);
+}
+
+function cambiarFase(nueva) {
+  fase = nueva;
+  vista.estado.textContent = nueva;
+  vista.entrada.disabled = nueva !== 'listo';
+}
+
+/** Escapa el texto: la salida del shell es texto, nunca marcado. */
+function escapar(texto) {
+  return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** La ruta como la muestra un prompt: la carpeta personal se abrevia con `~`. */
+function rutaCorta(estado) {
+  const casa = estado.entorno.HOME;
+  if (estado.cwd === casa) return '~';
+  if (estado.cwd.startsWith(casa + '/')) return '~' + estado.cwd.slice(casa.length);
+  return estado.cwd;
+}
+
+function textoDelPrompt(estado) {
+  return estado.usuario + '@simulador:' + rutaCorta(estado) + (estado.usuario === 'root' ? '# ' : '$ ');
+}
+
+function pintarPrompt() {
+  vista.prompt.textContent = textoDelPrompt(shell);
+}
+
+/**
+ * Añade un bloque de texto a la pantalla.
+ *
+ * @param {string} texto
+ * @param {string} clase  eco (lo que se escribió), err (canal de error) o vacío.
+ */
+function imprimir(texto, clase) {
+  if (texto === '') return;
+  const pre = document.createElement('pre');
+  if (clase) pre.className = clase;
+  pre.innerHTML = escapar(texto.replace(/\n$/, ''));
+  vista.salida.appendChild(pre);
+}
+
+/** Ancho de la pantalla en caracteres, medido sobre la fuente que se está usando. */
+function anchoEnCaracteres() {
+  const anchoLetra = vista.regla.getBoundingClientRect().width / vista.regla.textContent.length;
+  if (!anchoLetra) return 80;
+  const disponible = vista.salida.getBoundingClientRect().width;
+  return Math.max(20, Math.floor(disponible / anchoLetra));
+}
+
+/**
+ * Separa el canal de error en avisos del simulador y errores del shell, para
+ * que un hueco declarado no se lea como si el comando hubiera fallado.
+ */
+function imprimirError(texto) {
+  const avisos = [];
+  const errores = [];
+  for (const linea of texto.split('\n')) {
+    if (linea === '') continue;
+    (linea.startsWith('simulador:') ? avisos : errores).push(linea);
+  }
+  if (errores.length) imprimir(errores.join('\n') + '\n', 'err');
+  if (avisos.length) imprimir(avisos.join('\n') + '\n', 'aviso');
+}
+
+/** Ejecuta una línea y pinta el resultado. Es la transición listo → ejecutando → listo. */
+function ejecutarLinea(linea) {
+  imprimir(textoDelPrompt(shell) + linea + '\n', 'eco');
+  if (linea.trim() === '') { terminar(); return; }
+
+  cambiarFase('ejecutando');
+  const r = ejecutar(shell, linea);
+
+  // El núcleo entrega una entrada por línea, como una tubería. Repartir en
+  // columnas es cosa de la pantalla, y solo cuando el comando fue un `ls` sin
+  // opciones de formato: eso lo decide el propio núcleo en `lsDePantalla`.
+  const salida = lsDePantalla(linea) && r.salida
+    ? enColumnas(r.salida.split('\n').filter((n) => n !== ''), anchoEnCaracteres())
+    : r.salida;
+
+  imprimir(salida, '');
+  imprimirError(r.error);
+  terminar();
+}
+
+function terminar() {
+  cambiarFase('listo');
+  pintarPrompt();
+  vista.entrada.focus();
+  vista.term.scrollTop = vista.term.scrollHeight;
+}
+
+function limpiarPantalla() {
+  vista.salida.innerHTML = '';
+  vista.term.scrollTop = 0;
+}
+
+/** Vuelve al árbol semilla: misma orden, mismo resultado, siempre. */
+function reiniciar() {
+  cambiarFase('reiniciando');
+  shell = estadoInicial({ ahora: ahoraEnSegundos() });
+  historial.length = 0;
+  indiceHistorial = 0;
+  limpiarPantalla();
+  imprimir('Terminal simulada · árbol de partida montado en /home/' + shell.usuario + '\n' +
+           'Escribe una orden y pulsa Enter. `type ls` dice si algo existe aquí.\n', 'aviso');
+  vista.entrada.value = '';
+  terminar();
+}
+
+function recordar(linea) {
+  if (linea.trim() === '') return;
+  if (historial[historial.length - 1] !== linea) historial.push(linea);
+  if (historial.length > MAX_HISTORIAL) historial.shift();
+  indiceHistorial = historial.length;
+}
+
+/** ↑ y ↓ se mueven por el historial y guardan lo que estaba a medio escribir. */
+function moverHistorial(paso) {
+  if (!historial.length) return;
+  if (indiceHistorial === historial.length) borrador = vista.entrada.value;
+  const nuevo = indiceHistorial + paso;
+  if (nuevo < 0 || nuevo > historial.length) return;
+  indiceHistorial = nuevo;
+  vista.entrada.value = nuevo === historial.length ? borrador : historial[nuevo];
+  vista.entrada.setSelectionRange(vista.entrada.value.length, vista.entrada.value.length);
+}
+
+vista.entrada.addEventListener('keydown', (ev) => {
+  if (fase !== 'listo') { ev.preventDefault(); return; }
+
+  if (ev.key === 'Enter') {
+    const linea = vista.entrada.value;
+    vista.entrada.value = '';
+    recordar(linea);
+    ejecutarLinea(linea);
+    return;
+  }
+  if (ev.key === 'ArrowUp') { ev.preventDefault(); moverHistorial(-1); return; }
+  if (ev.key === 'ArrowDown') { ev.preventDefault(); moverHistorial(1); return; }
+  if (ev.ctrlKey && (ev.key === 'l' || ev.key === 'L')) { ev.preventDefault(); limpiarPantalla(); return; }
+  if (ev.ctrlKey && (ev.key === 'c' || ev.key === 'C')) {
+    // Ctrl+C no borra la línea sin más: la deja escrita con la marca ^C, como
+    // hace bash, para que quede el rastro de lo que se descartó.
+    ev.preventDefault();
+    imprimir(textoDelPrompt(shell) + vista.entrada.value + '^C\n', 'eco');
+    vista.entrada.value = '';
+    indiceHistorial = historial.length;
+    terminar();
+  }
+});
+
+// Pinchar en cualquier parte de la caja escribe en la línea de órdenes, como en
+// una terminal de verdad; pero no se roba el foco si se está seleccionando texto.
+vista.term.addEventListener('mouseup', () => {
+  if (String(window.getSelection() ?? '') === '') vista.entrada.focus();
+});
+
+document.getElementById('btnLimpiar').addEventListener('click', () => {
+  limpiarPantalla();
+  vista.entrada.focus();
+});
+document.getElementById('btnReiniciar').addEventListener('click', reiniciar);
+
+for (const nombre of IMPLEMENTADOS) {
+  const chip = document.createElement('span');
+  chip.className = 'chip';
+  chip.textContent = nombre;
+  vista.chips.appendChild(chip);
+}
+
+reiniciar();
+</script>
+</body>
+</html>

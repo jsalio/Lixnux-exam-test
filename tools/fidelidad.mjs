@@ -5,35 +5,52 @@
  * Sin esto, «parece correcto» es lo único que se puede decir de un simulador.
  * Con esto, la fidelidad es un número.
  *
- * Uso:  node prototype/fidelidad.mjs            resumen
- *       node prototype/fidelidad.mjs -v         con el detalle de cada fallo
- *       node prototype/fidelidad.mjs -v grep    solo un grupo
+ * Mide el núcleo **extraído de la página**, no una copia: lo que se comprueba
+ * es exactamente lo que se publica.
+ *
+ * Uso:  node tools/fidelidad.mjs            resumen
+ *       node tools/fidelidad.mjs -v         con el detalle de cada discrepancia
+ *       node tools/fidelidad.mjs -v grep    solo un grupo
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, utimesSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, utimesSync, rmSync, linkSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { estadoInicial, ejecutar, clonar } from './terminal-core.mjs';
+import { generarModuloNucleo } from './extract-core.mjs';
+
+const { ruta } = generarModuloNucleo({ pagina: 'terminal' });
+const { estadoInicial, ejecutar, clonar, buscar, inodoDe } = await import(ruta);
 
 const AHORA = Math.floor(Date.now() / 1000);
 
 /* ---------- materializar el árbol virtual en disco de verdad ---------- */
 
 /**
- * Escribe el subárbol del VFS en un directorio real, con sus modos y fechas.
+ * Escribe el subárbol del mundo virtual en un directorio real, con sus modos,
+ * sus fechas y sus enlaces.
  *
  * Los permisos se aplican al volver de la recursión: si se aplicaran al bajar,
- * un directorio en 000 impediría crear lo que va dentro.
+ * un directorio en 000 impediría crear lo que va dentro. Los inodos ya escritos
+ * se recuerdan para que un segundo nombre del mismo inodo salga como enlace
+ * duro de verdad y no como una copia.
  */
-function materializar(nodo, ruta) {
-  if (nodo.tipo === 'd') {
+function materializar(fs, inodo, ruta, escritos) {
+  if (inodo.tipo === 'l') { symlinkSync(inodo.destino, ruta); return; }
+  if (inodo.tipo === 'c') return;  // un dispositivo no se puede crear sin root
+
+  if (inodo.tipo === 'f') {
+    const previo = escritos.get(inodo.id);
+    if (previo !== undefined) { linkSync(previo, ruta); return; }
+    writeFileSync(ruta, inodo.contenido);
+    escritos.set(inodo.id, ruta);
+  } else {
     mkdirSync(ruta, { recursive: true });
-    for (const [n, h] of Object.entries(nodo.hijos)) materializar(h, join(ruta, n));
-  } else if (nodo.tipo === 'f') {
-    writeFileSync(ruta, nodo.contenido);
-  } else return;
-  chmodSync(ruta, nodo.modo & 0o7777);
-  utimesSync(ruta, nodo.mtime, nodo.mtime);
+    for (const [nombre, id] of Object.entries(inodo.hijos)) {
+      materializar(fs, inodoDe(fs, id), join(ruta, nombre), escritos);
+    }
+  }
+  chmodSync(ruta, inodo.modo & 0o7777);
+  utimesSync(ruta, inodo.mtime, inodo.mtime);
 }
 
 /**
@@ -76,7 +93,10 @@ const NO_COMPARABLES = [
   ['ls -la (en la raíz del sandbox)', 'el dueño de `..` es root en el mundo virtual y no se puede reproducir sin ser root'],
   ['cd / && pwd', 'la raíz real no es la del sandbox'],
   ['ls -l /dev/null', 'el /dev/null real tiene dueño y fecha del sistema anfitrión'],
-  ['id', 'el usuario real pertenece a los grupos del sistema anfitrión, no a los del mundo virtual']
+  ['id', 'el usuario real pertenece a los grupos del sistema anfitrión, no a los del mundo virtual'],
+  ['ls -i', 'los números de inodo del mundo virtual son los suyos, no los del disco real'],
+  ['la fecha de `..` (ls -lt, ls -at)', 'el padre del sandbox lo crea el banco al arrancar, no es el /home del mundo virtual'],
+  ['el reparto de `ls` en columnas', 'se compara la salida por tubería, que va a una línea por fichero; en pantalla lo reparte `enColumnas`']
 ];
 
 /* ---------- casos ---------- */
@@ -87,10 +107,10 @@ const CASOS = {
     'cd notas.txt', 'cd cerrado && pwd', 'cd proyectos/interno && pwd', 'cd ~ && pwd'
   ],
   'ls-corto': ['ls', 'ls -a', 'ls -A', 'ls proyectos', 'ls vacio', 'ls nope', 'ls cerrado', 'ls -d proyectos', 'ls notas.txt proyectos', 'ls -r'],
-  'ls-largo': ['ls -l', 'ls -la proyectos', 'ls -l proyectos', 'ls -l vacio', 'ls -l notas.txt', 'ls -l vacio.txt', 'ls -lh', 'ls -l antiguo.txt', 'ls -l secreto.txt', 'ls -ld proyectos'],
-  cat: ['cat notas.txt', 'cat notas.txt datos.csv', 'cat nope', 'cat proyectos', 'cat secreto.txt', 'cat -n notas.txt', 'cat vacio.txt'],
-  'head-tail': ['head -n 2 informe.log', 'head -2 informe.log', 'tail -n 2 informe.log', 'tail -1 informe.log', 'head -n 0 informe.log', 'head informe.log notas.txt', 'head -n 99 notas.txt'],
-  wc: ['wc notas.txt', 'wc -l notas.txt', 'wc -l < notas.txt', 'cat notas.txt | wc -l', 'wc -lw notas.txt', 'wc notas.txt informe.log', 'wc -c vacio.txt', 'wc -l nope'],
+  'ls-largo': ['ls -l', 'ls -la proyectos', 'ls -l proyectos', 'ls -l vacio', 'ls -l notas.txt', 'ls -l vacio.txt', 'ls -lh', 'ls -l antiguo.txt', 'ls -l secreto.txt', 'ls -ld proyectos', 'ls -l instalador.sh'],
+  cat: ['cat notas.txt', 'cat notas.txt datos.csv', 'cat nope', 'cat proyectos', 'cat secreto.txt', 'cat -n notas.txt', 'cat vacio.txt', 'cat -A datos.csv', 'cat -E notas.txt', 'cat -T notas.txt'],
+  'head-tail': ['head -n 2 informe.log', 'head -2 informe.log', 'tail -n 2 informe.log', 'tail -1 informe.log', 'head -n 0 informe.log', 'head informe.log notas.txt', 'head -n 99 notas.txt', 'head -v -n 1 notas.txt'],
+  wc: ['wc notas.txt', 'wc -l notas.txt', 'wc -l < notas.txt', 'cat notas.txt | wc -l', 'wc -lw notas.txt', 'wc notas.txt informe.log', 'wc -c vacio.txt', 'wc -l nope', 'wc -m notas.txt', 'wc -cm notas.txt'],
   grep: [
     'grep ERROR informe.log', 'grep -n ERROR informe.log', 'grep -c ERROR informe.log',
     'grep -v ERROR informe.log', 'grep -i error informe.log', 'grep nada informe.log',
@@ -152,7 +172,7 @@ const CASOS = {
   ],
   'duras-comodines': [
     'ls [ab]*.txt', 'ls *.[cl]*', 'ls proyectos/*', 'echo {1..3}',
-    'ls no*existe*', 'ls */*.sh', 'echo .??*'
+    'ls no*existe*', 'ls */*.sh', 'echo .??*', 'ln -s nope roto && echo r*'
   ],
   'duras-tuberias': [
     'false | true ; echo $?', 'true | false ; echo $?',
@@ -160,15 +180,10 @@ const CASOS = {
     'cat informe.log | grep ERROR | wc -l', 'sort datos.csv | head -1',
     'ls nope 2>&1 | wc -l'
   ],
-  'duras-opciones': [
-    'ls -lt', 'ls -S', 'ls -1', 'ls --all', 'cut -c1-3 notas.txt',
-    'head -n -1 notas.txt', 'tail -n +2 notas.txt', 'sort -k2 datos.csv',
-    'grep -A1 ERROR informe.log', 'wc -L notas.txt'
-  ],
   'duras-shell': [
     'X=5 ; echo $X', 'cd - ; echo $?', 'for f in *.txt ; do echo $f ; done',
     'echo $(pwd)', 'echo `pwd`', 'if [ -f notas.txt ] ; then echo si ; fi',
-    'ls ; ls', 'echo uno && echo dos && echo tres'
+    'ls ; ls', 'echo uno && echo dos && echo tres', 'type ln', 'type export'
   ],
   'duras-ficheros': [
     'cp -r proyectos nuevo && find nuevo | sort', 'mv proyectos vacio && ls vacio',
@@ -190,7 +205,7 @@ const CASOS = {
     'chmod 600 script.sh && ls -l script.sh', 'chmod 000 proyectos && find proyectos ; echo $?',
     'chmod 400 notas.txt && echo x > notas.txt ; echo $?',
     'umask ; umask 077 ; umask', 'umask 077 ; mkdir d3 ; ls -ld d3',
-    'chmod 000 vacio && cd vacio ; echo $?'
+    'chmod 000 vacio && cd vacio ; echo $?', 'chmod 000 vacio && rm -r vacio ; echo $?'
   ],
   'duras-rutas': [
     'cd proyectos && cat ../notas.txt', 'ls proyectos/interno',
@@ -203,7 +218,7 @@ const CASOS = {
     'tr -d aeiou < notas.txt', 'tr a-z A-Z < notas.txt',
     'grep ERROR *.log', 'ls -l | wc -l', 'grep -c "" notas.txt',
     'grep -v "" notas.txt ; echo $?', 'cat notas.txt informe.log | wc -l',
-    'sort -n datos.csv | head -2', 'head -c 5 notas.txt'
+    'sort -n datos.csv | head -2', 'tr -s aeiou < notas.txt', 'sort -b notas.txt'
   ],
   'duras-ficheros-2': [
     'echo x >> nuevo && cat nuevo', '> vacio2 && ls -l vacio2',
@@ -217,7 +232,88 @@ const CASOS = {
     'ln -s nope roto && cat roto ; echo $?', 'ln -s nope roto && ls -l roto',
     'ln -s proyectos pd && ls pd', 'ln -s proyectos pd && cd pd && pwd',
     'ln -s notas.txt e && rm e && ls notas.txt', 'ln -s notas.txt e && ln -s notas.txt e ; echo $?',
-    'ln -s notas.txt e && wc -l e', 'ln -s notas.txt e && find . -type l | sort'
+    'ln -s notas.txt e && wc -l e', 'ln -s notas.txt e && find . -type l | sort',
+    'ln -s notas.txt e && mv e e2 && ls -l e2'
+  ],
+  /* Cuarta ronda: lo que esta versión añade sobre el prototipo. */
+  'enlaces-duros': [
+    'ln notas.txt duro && ls -l notas.txt duro', 'ln notas.txt duro && cat duro',
+    'ln notas.txt duro && rm notas.txt && cat duro',
+    'ln notas.txt duro && echo cambiado > duro && cat notas.txt',
+    'ln notas.txt duro ; ln notas.txt duro ; echo $?',
+    'ln proyectos pd ; echo $?', 'ln nope x ; echo $?',
+    'ln notas.txt proyectos && ls -l proyectos',
+    'ln notas.txt duro && touch duro && ls -l notas.txt',
+    'ln notas.txt duro && rm duro && ls -l notas.txt',
+    'ln -s notas.txt blando && ln blando duro2 && ls -l duro2',
+    'ln notas.txt duro && find . -samefile notas.txt'
+  ],
+  'orden-de-ls': [
+    'ls -t', 'ls -lt', 'ls -tr', 'ls -S', 'ls -lS', 'ls -Sr', 'ls -At',
+    'touch nuevo && ls -t | head -2', 'ls -t proyectos'
+  ],
+  'opciones-largas': [
+    'ls --all', 'ls --almost-all', 'ls --reverse', 'ls -l --human-readable',
+    'ls --directory proyectos', 'wc --lines notas.txt', 'head --lines=2 informe.log',
+    'tail --lines=1 informe.log', 'sort --numeric-sort --reverse datos.csv',
+    'sort --unique informe.log', 'cut --delimiter=, --fields=2 datos.csv',
+    'grep --count ERROR informe.log', 'grep --invert-match ERROR informe.log',
+    'uniq --count notas.txt', 'mkdir --parents a/b && find a | sort',
+    'rm --force nope ; echo $?', 'chmod --recursive 700 proyectos && ls -ld proyectos',
+    'ln --symbolic notas.txt s && ls -l s', 'touch --no-create nope ; echo $?'
+  ],
+  'cut-y-recorte': [
+    'cut -c1-3 notas.txt', 'cut -c-4 notas.txt', 'cut -c3- notas.txt',
+    'cut -c1,4 notas.txt', 'cut -c1 -f1 notas.txt ; echo $?',
+    'cut notas.txt ; echo $?', 'cut -c0 notas.txt ; echo $?',
+    'cut -f0 -d, datos.csv ; echo $?', 'cut -c1 -d, notas.txt ; echo $?',
+    'cut -f x notas.txt ; echo $?', 'cut -d, -f2- datos.csv',
+    'head -c 5 notas.txt', 'head -c -20 notas.txt', 'tail -c 5 notas.txt',
+    'tail -c +5 notas.txt', 'head -c x notas.txt ; echo $?', 'head -c 3 notas.txt datos.csv'
+  ],
+  'sort-con-clave': [
+    'sort -k2 datos.csv', 'sort -t, -k2 datos.csv', 'sort -t, -k2 -n datos.csv',
+    'sort -t, -k1,1 datos.csv', 'sort -t, -k1,1 -r datos.csv',
+    'sort -t, -k3 datos.csv', 'sort -t, -k2 -u datos.csv',
+    'sort -k 2 datos.csv', 'sort -t xx -k1 datos.csv ; echo $?',
+    'sort -k 0 datos.csv ; echo $?', 'sort -t, -k9 datos.csv'
+  ],
+  'grep-con-contexto': [
+    'grep -A1 ERROR informe.log', 'grep -B1 ERROR informe.log', 'grep -C1 ERROR informe.log',
+    'grep -A2 WARN informe.log', 'grep -n -A1 ERROR informe.log',
+    'grep -A1 -c ERROR informe.log', 'grep -A1 -l ERROR informe.log',
+    'grep -A1 ERROR informe.log notas.txt', 'grep -C0 ERROR informe.log',
+    'grep -A1 -v ERROR informe.log', 'grep -A x ERROR informe.log ; echo $?',
+    'grep --after-context=1 ERROR informe.log'
+  ],
+  'echo-y-cat': [
+    'echo -e "a\\tb"', 'echo -e "a\\nb"', 'echo -E "a\\nb"', 'echo -x hola',
+    'echo -n -e "x\\n"', 'echo -ne "y\\n"', 'echo', 'echo -n',
+    'echo -e "a\\\\tb"', 'cat -n informe.log | head -2'
+  ],
+  'copiar-y-mover': [
+    'chmod 777 notas.txt && cp notas.txt c && ls -l c',
+    'umask 077 ; cp notas.txt c ; ls -l c',
+    'cp -p antiguo.txt c && ls -l c', 'cp antiguo.txt c && ls -l c',
+    'cp -n notas.txt datos.csv ; head -1 datos.csv',
+    'mv -n notas.txt datos.csv ; head -1 datos.csv',
+    'rmdir -p proyectos/interno ; echo $?',
+    'mkdir -p x/y/z && rmdir -p x/y/z ; ls -d x ; echo $?',
+    'mv proyectos/interno . && ls interno'
+  ],
+  /* Huecos: lo que el simulador declara en vez de inventar. */
+  'ordenes-por-ruta': [
+    './nada ; echo $?', './notas.txt ; echo $?', './proyectos ; echo $?',
+    'proyectos/interno/c.sh ; echo $?', './cerrado/dentro.txt ; echo $?',
+    'chmod -x proyectos/a.sh && proyectos/a.sh ; echo $?'
+  ],
+  'huecos-declarados': [
+    'wc -L notas.txt', 'ls -R', 'ls -C', 'ls -i', 'ls --format=long',
+    'rm -v notas.txt', 'rm -i notas.txt', 'mkdir -v x', 'cp -v notas.txt c',
+    'cat -v notas.txt', 'touch -a notas.txt', 'cut -b1 notas.txt',
+    'sort -k2.3 datos.csv', 'sort -k1 -k2 datos.csv', 'exit', 'clear', './script.sh', 'chmod +x notas.txt && ./notas.txt',
+    'while [ -f nada ] ; do echo x ; done', 'case x in y) echo z ;; esac',
+    'find . -newer notas.txt', 'grep -r ERROR .'
   ],
   varios: ['echo hola', 'echo -n hola', 'echo "a  b"', "echo 'a  b'", 'echo $HOME', 'echo $NOEXISTE', 'whoami', 'type cd', 'type ls', 'type nada ; echo $?']
 };
@@ -229,7 +325,7 @@ const soloGrupo = process.argv.slice(2).find((a) => !a.startsWith('-'));
 
 const base = mkdtempSync(join(tmpdir(), 'fidelidad-'));
 const semilla = estadoInicial({ ahora: AHORA });
-const casaVirtual = semilla.raiz.hijos.home.hijos.jorge;
+const casaVirtual = buscar(semilla, '/home/jorge').inodo;
 
 let total = 0;
 let iguales = 0;
@@ -246,7 +342,8 @@ for (const [grupo, lineas] of Object.entries(CASOS)) {
     // comparar tras quitar el prefijo.
     const raizReal = mkdtempSync(join(base, 'caso-'));
     const cwd = join(raizReal, 'home', 'jorge');
-    materializar(casaVirtual, cwd);
+    mkdirSync(cwd, { recursive: true });
+    materializar(semilla.fs, casaVirtual, cwd, new Map());
 
     const r = real(linea, cwd);
     const estado = clonar(semilla);
@@ -268,7 +365,7 @@ for (const [grupo, lineas] of Object.entries(CASOS)) {
     // Un hueco declarado no es una infidelidad: el simulador dice que no sabe.
     // Mezclar las dos cosas en un único porcentaje ocultaría lo único grave,
     // que es dar por buena una salida distinta de la real sin avisar.
-    const hueco = !igual && obtenido.error.startsWith('simulador:');
+    const hueco = !igual && obtenido.error.includes('simulador:');
 
     if (igual) iguales++;
     else if (hueco) huecos.push({ grupo, linea, obtenido });

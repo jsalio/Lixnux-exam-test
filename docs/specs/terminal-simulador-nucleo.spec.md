@@ -2,10 +2,9 @@
 
 **Feature**: Terminal de Linux simulada en el navegador, con filesystem virtual e intérprete de órdenes, para practicar los comandos de los objetivos 102, 103 y 105.
 **User story**: «Quiero ver qué tan factible es crear un simulador de terminal de Linux para practicar comandos» → alcance sin estructuras de control, elegido tras medir el prototipo.
-**Estado**: Draft
+**Estado**: **Implementada** el 2026-08-26 en `linux_terminal/index.html`. Las decisiones y desviaciones están en [terminal-simulador-nucleo.why.md](terminal-simulador-nucleo.why.md).
 **Fecha**: 2026-08-21
 **Sub-spec**: 1 de 2. La 2 (`terminal-simulador-ejercicios`) depende de esta.
-**Pipeline siguiente**: /impact → /arch → /tdd-plan → /tdd-plan-ui → /why
 
 ---
 
