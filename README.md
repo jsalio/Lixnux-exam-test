@@ -13,11 +13,12 @@ conexión.
 
 | Ruta | Qué es |
 |---|---|
-| `index.html` | Portada: navega a las siete páginas |
+| `index.html` | Portada: navega a las ocho páginas |
 | `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 242 preguntas |
 | `linux_terminal/index.html` | Terminal de Linux simulada, con filesystem virtual e intérprete de órdenes |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
+| `linux_system_files/index.html` | Guía interactiva de los ficheros de configuración de `/etc` |
 | `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
 | `linux_shell_scripting/index.html` | Guía del objetivo 3.3: de comandos sueltos a script de Bash |
 | `linux_networking/index.html` | Guía del objetivo 4.4: comandos de red, de `ip a` a `scp` |
@@ -227,7 +228,42 @@ directorios que no viven en ningún disco.
 
 ---
 
-## 5. Guía de comandos — `linux_basic_commands/index.html`
+## 5. Guía de ficheros del sistema — `linux_system_files/index.html`
+
+Los ficheros de configuración que el examen da por conocidos, leídos campo a campo.
+Cubre los temas 104 y 105 en la parte que no son permisos sino formato: quién eres,
+a qué grupos perteneces, qué se monta y cómo se resuelve un nombre.
+
+- **Disector de líneas** (interactivo): ocho ficheros con una línea real troceada
+  campo a campo —`/etc/passwd`, `/etc/shadow`, `/etc/group`, `/etc/gshadow`,
+  `/etc/fstab`, `/etc/hosts`, `/etc/crontab` y `/etc/sudoers`—. Cada campo se pulsa
+  y se resalta a la vez en la línea y en la leyenda, con lo que significa y por qué
+  está ahí. Los campos vacíos se muestran como tales, porque en estos ficheros
+  «vacío» significa «sin límite».
+- **Por qué passwd y shadow son dos ficheros**: la obligación de que `/etc/passwd`
+  sea legible por todos, los cuatro valores posibles del campo de contraseña
+  (`$6$…`, `!`, `*`, vacío) y los rangos de UID con su origen en `/etc/login.defs`.
+- **Explorador de ficheros** (interactivo): 23 rutas filtrables por tema
+  (cuentas / red / sistema / entorno / registros), cada una con sus permisos
+  reales, su formato y las órdenes que la consultan.
+- **Grupos**: la diferencia entre primario (cuarto campo de `passwd`) y secundarios
+  (cuarto campo de `group`), y por qué tu nombre no aparece en la línea de tu propio
+  grupo. Tabla de los grupos que conceden privilegios: `adm`, `disk`, `sudo`,
+  `shadow`, `docker`.
+- **Visor de consultas** (interactivo): doce órdenes con su salida real capturada en
+  una Debian 12 —`id`, `getent`, `chage -l`, `passwd -S`, `awk -F:`, `sudo -l`—
+  incluida la de `wc -l /etc/shadow` fallando con *Permission denied*.
+- **No los edites con nano**: `vipw`, `vigr`, `visudo`, `gpasswd`, `chage`,
+  `mount -a`, y el error clásico de `usermod -G` frente a `-aG`.
+- **Doce preguntas** de autoevaluación con opciones barajadas y explicación.
+- **Chuleta** final.
+
+El hash de contraseña que aparece en el disector es inventado; el resto de las
+líneas y todas las salidas del visor son reales.
+
+---
+
+## 6. Guía de comandos — `linux_basic_commands/index.html`
 
 Guía deliberadamente breve: siete secciones cortas en lugar de un manual.
 El foco no es la lista de comandos sino cómo se combinan.
@@ -244,7 +280,7 @@ El foco no es la lista de comandos sino cómo se combinan.
 
 ---
 
-## 6. Guía de scripting — `linux_shell_scripting/index.html`
+## 7. Guía de scripting — `linux_shell_scripting/index.html`
 
 El objetivo **3.3 «Turning Commands into a Script»**, que con peso 4 es el de mayor
 puntuación individual del examen. Va de no saber qué es un script a leer uno de
@@ -279,7 +315,7 @@ Trece secciones, cinco de ellas interactivas:
 - **Doce preguntas** de autoevaluación con opciones barajadas y explicación.
 - **Chuleta** final.
 
-## 7. Guía de red — `linux_networking/index.html`
+## 8. Guía de red — `linux_networking/index.html`
 
 El objetivo **4.4 «Your Computer on the Network»**, montado alrededor de la idea de
 que una máquina conectada solo necesita cuatro datos: dirección, puerta de enlace,
@@ -311,7 +347,7 @@ Nueve secciones, una de ellas interactiva:
 Los comandos que modifican la red (`ip link set`, `ip addr add`, `ip route add`)
 aparecen señalados aparte: requieren root y se pierden al reiniciar.
 
-## 8. Especificaciones — `docs/specs/`
+## 9. Especificaciones — `docs/specs/`
 
 | Spec | Estado |
 |---|---|
@@ -365,6 +401,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 | Terminal | <https://jsalio.github.io/Lixnux-exam-test/linux_terminal/> |
 | Permisos | <https://jsalio.github.io/Lixnux-exam-test/sample_linux_permissions/> |
 | Directorios | <https://jsalio.github.io/Lixnux-exam-test/linux_special_directories/> |
+| Ficheros del sistema | <https://jsalio.github.io/Lixnux-exam-test/linux_system_files/> |
 | Comandos | <https://jsalio.github.io/Lixnux-exam-test/linux_basic_commands/> |
 | Scripting | <https://jsalio.github.io/Lixnux-exam-test/linux_shell_scripting/> |
 | Red | <https://jsalio.github.io/Lixnux-exam-test/linux_networking/> |
