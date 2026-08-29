@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LPI Linux Essentials 010-160 — Material de estudio</title>
-<meta name="description" content="Examen de práctica y guías de permisos, directorios, comandos y scripting para la certificación LPI Linux Essentials 010-160.">
+<meta name="description" content="Examen de práctica, terminal simulada y guías de permisos, directorios, comandos, scripting y red para la certificación LPI Linux Essentials 010-160.">
 <style>
 :root{
   color-scheme: light;
@@ -12,7 +12,7 @@
   --line:#ccd4dc; --line-2:#9aa6b3;
   --ink:#131920; --ink-2:#3f4a57; --ink-3:#6d7884;
   --exam:#a8481a; --perm:#10695a; --tree:#464fa2; --cmd:#7a3ea1; --script:#3f6d24; --net:#1f5f8b;
-  --exam:#a8481a; --perm:#10695a; --tree:#464fa2; --cmd:#7a3ea1; --script:#3f6d24; --files:#9c2f3d;
+  --term:#41505f; --files:#9c2f3d;
   --mono: ui-monospace,"JetBrains Mono","SFMono-Regular","SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
   --serif: Charter,"Bitstream Charter","Iowan Old Style","Source Serif Pro",Georgia,serif;
   --sans: system-ui,-apple-system,"Segoe UI",Cantarell,sans-serif;
@@ -25,7 +25,7 @@
     --line:#2c3644; --line-2:#4a5768;
     --ink:#dde5ed; --ink-2:#a7b3c0; --ink-3:#79868f;
     --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --net:#6fb3e0;
-    --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --files:#ec8a97;
+    --term:#9fb3c8; --files:#ec8a97;
   }
 }
 :root[data-theme="dark"]{
@@ -34,7 +34,7 @@
   --line:#2c3644; --line-2:#4a5768;
   --ink:#dde5ed; --ink-2:#a7b3c0; --ink-3:#79868f;
   --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --net:#6fb3e0;
-  --exam:#e18c58; --perm:#4cc2a8; --tree:#949ceb; --cmd:#c69bf0; --script:#8fce6a; --files:#ec8a97;
+  --term:#9fb3c8; --files:#ec8a97;
 }
 
 *{ box-sizing:border-box; }
@@ -89,6 +89,7 @@ main{ padding-block: clamp(2.5rem,7vw,4.5rem) 1rem; }
 .card[data-kind="cmd"]{ --accent:var(--cmd); }
 .card[data-kind="script"]{ --accent:var(--script); }
 .card[data-kind="net"]{ --accent:var(--net); }
+.card[data-kind="term"]{ --accent:var(--term); }
 .card[data-kind="files"]{ --accent:var(--files); }
 
 .tag{
@@ -145,7 +146,7 @@ footer{
   <div class="shell">
     <p class="eyebrow">Certificación · LPI 010-160</p>
     <h1>Linux Essentials<span class="sub">Material de estudio</span></h1>
-    <p class="lede">Un banco de preguntas para medirte y cinco guías visuales para entender las partes que más se atragantan.</p>
+    <p class="lede">Un banco de preguntas para medirte, una terminal simulada para practicar los comandos y cinco guías visuales para entender las partes que más se atragantan.</p>
   </div>
 </header>
 
@@ -157,12 +158,25 @@ footer{
       <h2><a href="lpi_practice_exam/">Examen de práctica 010-160</a></h2>
       <p class="desc">Banco de preguntas bilingüe redactado sobre los objetivos oficiales v1.6, con explicación en cada pregunta y desglose de resultados por tema.</p>
       <ul class="facts">
-        <li>145 preguntas · español e inglés</li>
+        <li>242 preguntas · español e inglés</li>
         <li>Simulacro: 40 preguntas en 60 minutos</li>
         <li>Banco completo: sin límite, ordenado por tema</li>
         <li>Guarda el intento y permite reanudarlo</li>
       </ul>
       <p class="go">Empezar <span class="arrow">→</span></p>
+    </li>
+
+    <li class="card" data-kind="term">
+      <p class="tag">Práctica</p>
+      <h2><a href="linux_terminal/">Terminal simulada</a></h2>
+      <p class="desc">Un shell con su propio sistema de ficheros para practicar los comandos de los temas 102, 103 y 105 sin tocar tu equipo. Lo que no sabe hacer lo dice: nunca se inventa una salida.</p>
+      <ul class="facts">
+        <li>31 órdenes, con tuberías y redirección</li>
+        <li>Permisos, <code>umask</code> y enlaces duros con inodos</li>
+        <li>Salida comparada con Debian 12 carácter a carácter</li>
+        <li>El árbol se reinicia en cada carga</li>
+      </ul>
+      <p class="go">Practicar <span class="arrow">→</span></p>
     </li>
 
     <li class="card" data-kind="perm">

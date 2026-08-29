@@ -1,8 +1,8 @@
 /**
- * Extrae el banco de preguntas y el núcleo puro de la aplicación del examen
- * para poder probarlos con `node --test`, sin navegador y sin partir el HTML.
+ * Extrae el núcleo puro de una página de la aplicación para poder probarlo con
+ * `node --test`, sin navegador y sin partir el HTML.
  *
- * La aplicación es un archivo único a propósito: tiene que funcionar abierta
+ * Cada página es un archivo único a propósito: tiene que funcionar abierta
  * como file://, así que no puede usar módulos ES. Este extractor es el precio
  * de esa decisión, y a cambio convierte la regla arquitectónica "el núcleo no
  * toca el navegador" en algo que se comprueba solo.
@@ -12,8 +12,25 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const HTML = resolve(RAIZ, 'lpi_practice_exam/index.html');
-const GENERADO = resolve(RAIZ, 'tests/.core.generated.mjs');
+
+/**
+ * Las páginas que tienen núcleo extraíble.
+ *
+ * `extras` son símbolos que viven fuera de la región del núcleo y que las
+ * pruebas necesitan: en el examen, el banco de preguntas.
+ */
+export const PAGINAS = {
+  examen: {
+    html: 'lpi_practice_exam/index.html',
+    generado: 'tests/.core.generated.mjs',
+    extras: ['Q']
+  },
+  terminal: {
+    html: 'linux_terminal/index.html',
+    generado: 'tests/.terminal.generated.mjs',
+    extras: []
+  }
+};
 
 const MARCA_INICIO = '/* ===== NUCLEO PURO — INICIO';
 const MARCA_FIN = '/* ===== NUCLEO PURO — FIN';
@@ -90,45 +107,55 @@ function nombresExportables(nucleo) {
 }
 
 /**
- * Genera el módulo con el banco de preguntas y el núcleo, listo para importar.
+ * Genera el módulo con el núcleo de una página, listo para importar.
  *
  * @param {object} [opts]
- * @param {boolean} [opts.escribir=true]  Si debe volcar el módulo a disco.
+ * @param {string} [opts.pagina='examen']  Clave de `PAGINAS`.
+ * @param {boolean} [opts.escribir=true]   Si debe volcar el módulo a disco.
  * @returns {{ruta:string, fuente:string, exportados:string[]}} Módulo generado.
- * @throws {Error} Si faltan los marcadores o el núcleo viola la regla de pureza.
+ * @throws {Error} Si la página no existe, faltan los marcadores o el núcleo
+ *         viola la regla de pureza.
  */
-export function generarModuloNucleo({ escribir = true } = {}) {
-  const html = readFileSync(HTML, 'utf8');
+export function generarModuloNucleo({ pagina = 'examen', escribir = true } = {}) {
+  const config = PAGINAS[pagina];
+  if (!config) {
+    throw new Error(`Página desconocida: ${pagina}. Conocidas: ${Object.keys(PAGINAS).join(', ')}`);
+  }
+  const destino = resolve(RAIZ, config.generado);
+  const html = readFileSync(resolve(RAIZ, config.html), 'utf8');
   const bloques = bloquesScript(html);
   const logica = bloques[bloques.length - 1];
-  const banco = bloques.slice(0, -1).join('\n');
+  // Lo que va antes del bloque de lógica son datos de la página —el banco de
+  // preguntas del examen—: entra en el módulo aunque no sea parte del núcleo.
+  const datos = bloques.slice(0, -1).join('\n');
   const nucleo = regionNucleo(logica);
 
   const violaciones = violacionesDePureza(nucleo);
   if (violaciones.length) {
     throw new Error(
-      `El núcleo puro no puede usar: ${violaciones.join(', ')}. ` +
+      `El núcleo puro de ${config.html} no puede usar: ${violaciones.join(', ')}. ` +
       'Pasa esos valores como parámetros desde la capa de orquestación.'
     );
   }
 
-  // Q vive en los bloques del banco, fuera de la región, pero las pruebas lo
-  // necesitan para construir historiales con preguntas reales.
-  const exportados = ['Q', ...nombresExportables(nucleo)];
+  const exportados = [...config.extras, ...nombresExportables(nucleo)];
   const fuente = [
     '// GENERADO por tools/extract-core.mjs — no editar a mano.',
-    banco,
+    datos,
     nucleo,
     `export { ${exportados.join(', ')} };`,
     ''
   ].join('\n');
 
-  if (escribir) writeFileSync(GENERADO, fuente, 'utf8');
-  return { ruta: GENERADO, fuente, exportados };
+  if (escribir) writeFileSync(destino, fuente, 'utf8');
+  return { ruta: destino, fuente, exportados };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { ruta, exportados } = generarModuloNucleo();
-  console.log(`núcleo extraído → ${ruta}`);
-  console.log(`exporta ${exportados.length} símbolos: ${exportados.join(', ')}`);
+  const pedidas = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+  for (const pagina of pedidas.length ? pedidas : Object.keys(PAGINAS)) {
+    const { ruta, exportados } = generarModuloNucleo({ pagina });
+    console.log(`núcleo de ${pagina} extraído → ${ruta}`);
+    console.log(`  exporta ${exportados.length} símbolos: ${exportados.join(', ')}`);
+  }
 }

@@ -13,15 +13,18 @@ conexión.
 
 | Ruta | Qué es |
 |---|---|
-| `index.html` | Portada: navega a las seis páginas |
-| `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 145 preguntas |
+| `index.html` | Portada: navega a las ocho páginas |
+| `lpi_practice_exam/index.html` | Simulador de examen bilingüe con banco de 242 preguntas |
+| `linux_terminal/index.html` | Terminal de Linux simulada, con filesystem virtual e intérprete de órdenes |
 | `sample_linux_permissions/index.html` | Guía interactiva de permisos de Linux con calculadora |
 | `linux_special_directories/index.html` | Guía interactiva de la jerarquía de directorios |
 | `linux_system_files/index.html` | Guía interactiva de los ficheros de configuración de `/etc` |
 | `linux_basic_commands/index.html` | Guía breve de comandos y de cómo se encadenan |
 | `linux_shell_scripting/index.html` | Guía del objetivo 3.3: de comandos sueltos a script de Bash |
 | `linux_networking/index.html` | Guía del objetivo 4.4: comandos de red, de `ip a` a `scp` |
-| `docs/specs/registro-intentos-supabase.spec.md` | Especificación SDD (en estado *Draft*, **no implementada**) |
+| `docs/specs/` | Especificaciones SDD: una implementada y dos en estado *Draft* |
+| `tools/` | Extractor del núcleo y banco de fidelidad |
+| `tests/` | Pruebas con `node --test`, sin dependencias |
 
 Cada aplicación vive en su propia carpeta con un `index.html`, de modo que su URL
 es el directorio. La portada enlaza a todas y todas enlazan de vuelta a la portada.
@@ -35,24 +38,24 @@ es el directorio. La portada enlaza a todas y todas enlazan de vuelta a la porta
 | Modo | Preguntas | Tiempo | Orden |
 |---|---|---|---|
 | **Simulacro de examen** | 40 aleatorias | 60 min, envío automático al agotarse | Aleatorio |
-| **Banco completo (estudio)** | 145 (todas) | Sin límite | Por tema (101 → 105) |
+| **Banco completo (estudio)** | 242 (todas) | Sin límite | Por tema (101 → 105) |
 
 El simulacro respeta el reparto por tema del examen oficial:
 
 | Tema | Título | Banco | Simulacro |
 |---|---|---|---|
-| 101 | La comunidad Linux y una carrera en Open Source | 18 | 7 |
-| 102 | Encontrar tu camino en un sistema Linux | 29 | 8 |
-| 103 | El poder de la línea de comandos | 38 | 10 |
-| 104 | El sistema operativo Linux | 30 | 8 |
-| 105 | Seguridad y permisos de archivos | 30 | 7 |
-| | **Total** | **145** | **40** |
+| 101 | La comunidad Linux y una carrera en Open Source | 39 | 7 |
+| 102 | Encontrar tu camino en un sistema Linux | 45 | 8 |
+| 103 | El poder de la línea de comandos | 58 | 10 |
+| 104 | El sistema operativo Linux | 51 | 8 |
+| 105 | Seguridad y permisos de archivos | 49 | 7 |
+| | **Total** | **242** | **40** |
 
 ### Tipos de pregunta
 
-- **Respuesta única** (133): una sola opción correcta.
-- **Selección múltiple** (6): se exige el conjunto exacto; todo o nada, sin puntuación parcial.
-- **Escribir el comando** (7): se ignoran mayúsculas/minúsculas y espacios extra; se aceptan variantes equivalentes.
+- **Respuesta única** (216): una sola opción correcta.
+- **Selección múltiple** (14): se exige el conjunto exacto; todo o nada, sin puntuación parcial.
+- **Escribir el comando** (12): se ignoran mayúsculas/minúsculas y espacios extra; se aceptan variantes equivalentes.
 
 ### Calificación
 
@@ -94,7 +97,104 @@ la posición correcta cambia en cada ejecución.
 
 ---
 
-## 2. Guía de permisos — `sample_linux_permissions/index.html`
+## 2. Terminal simulada — `linux_terminal/index.html`
+
+Un shell de Linux con su propio sistema de ficheros, para practicar los comandos
+de los objetivos **102** (encontrar tu camino), **103** (la línea de comandos) y
+**105** (permisos) sin tocar la máquina de verdad.
+
+### El principio: mundo cerrado
+
+Lo que el simulador no sabe hacer **lo declara** con un mensaje que empieza por
+`simulador:`; nunca se inventa una salida. Una respuesta plausible pero falsa
+enseñaría algo incorrecto sin que el alumno tenga forma de notarlo; un hueco
+declarado no enseña nada malo.
+
+### Qué hay dentro
+
+- **31 órdenes**: `ls`, `cd`, `pwd`, `cat`, `head`, `tail`, `wc`, `grep`, `sort`,
+  `uniq`, `cut`, `tr`, `find`, `mkdir`, `rmdir`, `touch`, `rm`, `cp`, `mv`,
+  `chmod`, `umask`, `ln`, `id`, `whoami`, `type`, `test` / `[`, `echo`, `export`,
+  `true`, `false`.
+- **Intérprete**: tuberías, `&&`, `||`, `;`, redirecciones `>`, `>>`, `<`, `2>`,
+  `2>>`, `2>&1`, comodines, llaves, entrecomillado simple y doble, sustitución de
+  órdenes `$( )`, variables y `$?`.
+- **Inodos de verdad**: el nombre y el contenido son cosas distintas, así que
+  `ln` sin `-s` crea un enlace duro, `ls -l` cuenta 2 y borrar un nombre no borra
+  el fichero mientras quede otro.
+- **Permisos**: los nueve bits, `setuid`, `setgid`, *sticky*, `umask`, y la regla
+  de que el kernel aplica **un solo** bloque de tres bits.
+- **Un árbol coherente**: `/home/jorge` con ficheros preparados —uno ilegible,
+  uno vacío, uno de hace diez meses, ocultos, un directorio cerrado, un script
+  con `setuid`—, `/tmp` en 1777, `/dev/null`, `/etc` y los programas en
+  `/usr/bin`, con `/bin` como enlace, igual que en Debian 12.
+- **Interfaz**: historial con ↑ / ↓, `Ctrl+L` para limpiar, `Ctrl+C` para
+  descartar la línea, y un botón que devuelve el árbol al estado de partida.
+
+### Fuera de alcance, y por qué
+
+| Qué | Por qué |
+|---|---|
+| `for`, `while`, `if`, `case` | Exigen interpretar bloques, no líneas. El objetivo 3.3 lo cubre la guía de scripting |
+| `ps`, `kill`, `top`, `jobs` | No hay procesos. Son objetivo 104 |
+| `man` | Habría que escribir el manual, no simularlo |
+| `nano`, `vi` | Editar ficheros se practica en la guía de scripting |
+| `ping`, `ip`, `ssh` | No hay red. Objetivo 4.4, cubierto por la guía de red |
+| `wc -L`, `ls -R`, `ls -C`, `ls -i`, `-v`, `-i` | Opciones sin implementar; se declaran una a una |
+| Ejecutar `./script.sh` | El fichero se ve, y con él su `126` o su `127`, pero no se ejecuta: haría falta interpretar el script |
+
+### Fidelidad medida, no prometida
+
+El banco `tools/fidelidad.mjs` monta el mismo árbol dos veces —uno virtual y uno
+real en un directorio temporal, con los mismos modos y las mismas fechas—,
+ejecuta la misma línea en los dos y compara salida, error y código de salida
+carácter a carácter:
+
+```bash
+node tools/fidelidad.mjs        # resumen
+node tools/fidelidad.mjs -v     # el detalle de cada discrepancia
+node tools/fidelidad.mjs grep   # solo un grupo de casos
+```
+
+Medido contra Debian 12, coreutils 9.1 y bash 5.2, con `LC_ALL=C` y `TZ=UTC`:
+
+```
+Fidelidad sobre lo implementado: 360/360 (100.0%)
+Cobertura del banco:             360/387 (93.0%)
+Huecos declarados:               27   ·   Discrepancias silenciosas: 0
+```
+
+Las dos cifras miden cosas distintas: **fidelidad** es cuánto de lo que el
+simulador dice saber hacer coincide con el sistema real; **cobertura** es cuánto
+del banco sabe hacer. La diferencia son huecos declarados. **Discrepancias
+silenciosas: 0** es la única cifra que no puede subir de cero.
+
+El banco declara también lo que no puede medir (los números de inodo reales, el
+dueño de `..`, el `/dev/null` del anfitrión, el reparto en columnas), para que no
+se confunda con éxito.
+
+### Estructura interna
+
+El núcleo vive dentro del HTML, entre los marcadores `NUCLEO PURO`, y no toca
+`document`, el almacenamiento, la red, el reloj ni el azar: el instante actual
+entra como dato (`estado.ahora`) y los identificadores de inodo son un contador
+del estado. `tools/extract-core.mjs` lo extrae a un módulo ES para poder probarlo
+con `node --test`, y falla si alguien mete una dependencia del navegador dentro
+de la región.
+
+```bash
+node --test tests/               # 105 pruebas: núcleo del examen, núcleo del shell y vista
+node tools/extract-core.mjs      # extrae los núcleos de las dos páginas
+```
+
+La única diferencia entre lo que dice el núcleo y lo que se ve en pantalla es el
+reparto de `ls` en columnas: el núcleo entrega siempre una entrada por línea
+—como `ls` real cuando su salida va a una tubería— y la vista lo reparte con
+`enColumnas()` cuando la orden era un `ls` sin opciones de formato.
+
+---
+
+## 3. Guía de permisos — `sample_linux_permissions/index.html`
 
 Página explicativa de una sola pieza sobre el modelo de permisos de Linux, con
 índice lateral y una calculadora interactiva.
@@ -109,7 +209,7 @@ La calculadora no guarda estado: es puramente cliente y sin almacenamiento.
 
 ---
 
-## 3. Guía de directorios — `linux_special_directories/index.html`
+## 4. Guía de directorios — `linux_special_directories/index.html`
 
 Página sobre la jerarquía del sistema de archivos (FHS) y, sobre todo, sobre los
 directorios que no viven en ningún disco.
@@ -128,7 +228,7 @@ directorios que no viven en ningún disco.
 
 ---
 
-## 4. Guía de ficheros del sistema — `linux_system_files/index.html`
+## 5. Guía de ficheros del sistema — `linux_system_files/index.html`
 
 Los ficheros de configuración que el examen da por conocidos, leídos campo a campo.
 Cubre los temas 104 y 105 en la parte que no son permisos sino formato: quién eres,
@@ -163,7 +263,7 @@ líneas y todas las salidas del visor son reales.
 
 ---
 
-## 5. Guía de comandos — `linux_basic_commands/index.html`
+## 6. Guía de comandos — `linux_basic_commands/index.html`
 
 Guía deliberadamente breve: siete secciones cortas en lugar de un manual.
 El foco no es la lista de comandos sino cómo se combinan.
@@ -180,7 +280,7 @@ El foco no es la lista de comandos sino cómo se combinan.
 
 ---
 
-## 6. Guía de scripting — `linux_shell_scripting/index.html`
+## 7. Guía de scripting — `linux_shell_scripting/index.html`
 
 El objetivo **3.3 «Turning Commands into a Script»**, que con peso 4 es el de mayor
 puntuación individual del examen. Va de no saber qué es un script a leer uno de
@@ -215,16 +315,55 @@ Trece secciones, cinco de ellas interactivas:
 - **Doce preguntas** de autoevaluación con opciones barajadas y explicación.
 - **Chuleta** final.
 
-## 7. Especificación pendiente — `docs/specs/`
+## 8. Guía de red — `linux_networking/index.html`
+
+El objetivo **4.4 «Your Computer on the Network»**, montado alrededor de la idea de
+que una máquina conectada solo necesita cuatro datos: dirección, puerta de enlace,
+DNS y nombre. Todo lo demás son formas de leerlos.
+
+Nueve secciones, una de ellas interactiva:
+
+- **Cuatro datos**: qué comando muestra cada uno y en qué fichero vive.
+- **Explorador de comandos** (interactivo): los 19 comandos de la tabla del objetivo
+  —`ip addr`, `ip a`, `ip link`, `ip route`, `ip neigh`, `ifconfig`, `hostname`,
+  `hostname -I`, `ss`, `ping`, `traceroute`, `tracepath`, `dig`, `host`, `nslookup`,
+  `curl`, `wget`, `ssh`, `scp`— con **su salida real**, en qué fijarse de ella y las
+  variantes que se usan a diario. Filtro por familia: direcciones, rutas, DNS,
+  diagnóstico y remoto.
+- **Leer `ip a` campo a campo**: `inet`, el prefijo `/24`, `brd`, `scope`, las banderas
+  `UP` y `LOWER_UP`, `link/ether`, `valid_lft` y por qué `lo` no cuenta.
+- **`ifconfig` frente a `ip`**: net-tools contra iproute2, tabla de equivalencias
+  completa (`route -n` → `ip r`, `arp -a` → `ip n`, `netstat -tuln` → `ss -tuln`),
+  la misma interfaz contada por los dos, y qué significa «ifconfig: no se encontró
+  la orden».
+- **La tabla de rutas**: `default via`, `dev`, `proto`, `src`, `metric` y `ip route get`.
+- **Nombres y DNS**: `/etc/hosts`, `/etc/resolv.conf`, `/etc/nsswitch.conf` y los tres
+  comandos que preguntan lo mismo (`host`, `dig`, `nslookup`).
+- **Escalera de diagnóstico**: cinco pasos de dentro hacia fuera y qué significa que
+  falle cada uno, más una tabla de síntoma → sospechoso.
+- **Diez preguntas** de autoevaluación con opciones barajadas y explicación.
+- **Chuleta** final.
+
+Los comandos que modifican la red (`ip link set`, `ip addr add`, `ip route add`)
+aparecen señalados aparte: requieren root y se pierden al reiniciar.
+
+## 9. Especificaciones — `docs/specs/`
+
+| Spec | Estado |
+|---|---|
+| `terminal-simulador-nucleo.spec.md` | **Implementada** en `linux_terminal/index.html` |
+| `terminal-simulador-ejercicios.spec.md` | Draft: ejercicios corregidos sobre el árbol |
+| `registro-intentos-supabase.spec.md` | Draft: registro de intentos en Supabase |
+| `estadisticas-preparacion-por-tema.*` | Implementada en el simulador de examen |
+
+`terminal-simulador-ejercicios.spec.md` es la segunda mitad del simulador de
+terminal: enunciados que se corrigen **inspeccionando el árbol**, no comparando
+la orden tecleada, de modo que cualquier camino correcto valga. Depende del
+núcleo que ya está implementado, y de él usa `clonar()` y el `Estado`.
 
 `registro-intentos-supabase.spec.md` es un contrato SDD para persistir en Supabase
-cada intento finalizado (nombre, IP, número de intento, nota y modo).
-
-**Estado: Draft — no hay ninguna línea de código de Supabase en el proyecto.**
-El documento define modelo de datos, contratos de la Edge Function
-`POST /functions/v1/record-attempt`, invariantes, máquina de estados del frontend
-e impacto en ficheros existentes. Los siguientes pasos del pipeline
-(`/impact` → `/arch` → `/tdd-plan` → `/why`) están sin ejecutar.
+cada intento finalizado (nombre, IP, número de intento, nota y modo). **No hay
+ninguna línea de código de Supabase en el proyecto.**
 
 ---
 
@@ -243,6 +382,14 @@ python3 -m http.server 8000
 # http://localhost:8000/
 ```
 
+Las páginas no necesitan Node; las pruebas y el banco de fidelidad, sí (Node 18
+o superior, y un Linux con coreutils y bash para el banco):
+
+```bash
+node --test tests/          # pruebas del examen, del shell simulado y de su vista
+node tools/fidelidad.mjs    # fidelidad del shell frente a coreutils y bash reales
+```
+
 ### Publicación
 
 El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz:
@@ -251,6 +398,7 @@ El repositorio se sirve con **GitHub Pages** desde la rama `main`, carpeta raíz
 |---|---|
 | Portada | <https://jsalio.github.io/Lixnux-exam-test/> |
 | Examen | <https://jsalio.github.io/Lixnux-exam-test/lpi_practice_exam/> |
+| Terminal | <https://jsalio.github.io/Lixnux-exam-test/linux_terminal/> |
 | Permisos | <https://jsalio.github.io/Lixnux-exam-test/sample_linux_permissions/> |
 | Directorios | <https://jsalio.github.io/Lixnux-exam-test/linux_special_directories/> |
 | Ficheros del sistema | <https://jsalio.github.io/Lixnux-exam-test/linux_system_files/> |
