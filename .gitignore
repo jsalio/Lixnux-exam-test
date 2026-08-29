@@ -10,3 +10,6 @@
 # núcleos extraídos para las pruebas
 tests/.core.generated.mjs
 tests/.terminal.generated.mjs
+
+# ajustes del editor
+.vscode/
